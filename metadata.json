@@ -1,0 +1,5 @@
+{
+  "name": "Exam Supervision Management System",
+  "description": "A comprehensive web system for managing university exam supervisions, allowing administrators to plan supervision slots and supervisors to declare their availability.",
+  "requestFramePermissions": []
+}

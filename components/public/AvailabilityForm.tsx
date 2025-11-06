@@ -1,0 +1,486 @@
+
+import React, { useState, useEffect, memo } from 'react';
+import { Creneau, Session, SurveillantType, AvailabilityData, SurveillantTypeLabels, Surveillant } from '../../types';
+import { getActiveSessionWithCreneaux, findSurveillantByEmail, submitAvailability } from '../../lib/api';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../shared/Card';
+import { Button } from '../shared/Button';
+import { Input } from '../shared/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shared/Select';
+import { Checkbox } from '../shared/Checkbox';
+import { User, Calendar, MessageSquare, Send, ArrowLeft, ArrowRight, Mail, Search, Lightbulb, AlertTriangle, Frown, RefreshCw, Plus, Loader2, Users, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useDebug } from '../../contexts/DebugContext';
+
+const STORAGE_KEY = 'availabilityFormProgress';
+
+// --- Helper Functions ---
+
+const groupCreneauxByDate = (creneaux: Creneau[]) => {
+    return creneaux.reduce((acc, creneau) => {
+        if (creneau.date_surveillance) {
+            const date = creneau.date_surveillance;
+            if (!acc[date]) acc[date] = [];
+            acc[date].push(creneau);
+        }
+        return acc;
+    }, {} as Record<string, Creneau[]>);
+};
+
+// --- Step Components (Optimized) ---
+
+const Stepper: React.FC<{ currentStep: number; steps: string[] }> = memo(({ currentStep, steps }) => {
+    const activeStep = currentStep > 0 ? currentStep : 1;
+    return (
+        <nav aria-label="Progress" className="mb-8">
+            <ol role="list" className="space-y-4 md:flex md:space-x-8 md:space-y-0">
+                {steps.map((stepName, stepIdx) => (
+                    <li key={stepName} className="md:flex-1">
+                        {stepIdx + 1 < activeStep ? (
+                            <div className="group flex w-full flex-col border-l-4 border-indigo-600 py-2 pl-4 transition-colors md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4">
+                                <span className="text-sm font-medium text-indigo-600 transition-colors">{`Étape ${stepIdx + 1}`}</span>
+                                <span className="text-sm font-medium">{stepName}</span>
+                            </div>
+                        ) : stepIdx + 1 === activeStep ? (
+                            <div className="flex w-full flex-col border-l-4 border-indigo-600 py-2 pl-4 md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4" aria-current="step">
+                                <span className="text-sm font-medium text-indigo-600">{`Étape ${stepIdx + 1}`}</span>
+                                <span className="text-sm font-medium">{stepName}</span>
+                            </div>
+                        ) : (
+                            <div className="group flex w-full flex-col border-l-4 border-gray-200 py-2 pl-4 transition-colors md:border-l-0 md:border-t-4 md:pb-0 md:pl-0 md:pt-4 dark:border-gray-700">
+                                <span className="text-sm font-medium text-gray-500 transition-colors">{`Étape ${stepIdx + 1}`}</span>
+                                <span className="text-sm font-medium">{stepName}</span>
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ol>
+        </nav>
+    );
+});
+
+const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; }>(({ onEmailCheck, email, onEmailChange, isChecking }) => (
+    <div>
+        <div className="text-center mb-8">
+            <Users className="inline-block h-12 w-12 text-indigo-600 dark:text-indigo-400" />
+            <h1 className="text-3xl font-bold mt-4">Déclaration de Disponibilités</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Commencez par vérifier votre email pour pré-remplir vos informations.</p>
+        </div>
+        <Card className="max-w-lg mx-auto overflow-hidden">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-8 text-white text-center">
+                <Mail className="h-12 w-12 mx-auto mb-4" />
+                <h2 className="text-2xl font-semibold">Vérification de votre email</h2>
+                <p className="opacity-90 mt-2 text-sm">Saisissez votre adresse email UCLouvain pour commencer.</p>
+            </div>
+            <CardContent className="p-6">
+                <form onSubmit={onEmailCheck} className="space-y-5">
+                    <div>
+                        <label htmlFor="email-check" className="block text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">Adresse email</label>
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <Input id="email-check" name="email" type="email" placeholder="votre.nom@uclouvain.be" value={email} onChange={onEmailChange} required className="pl-10" />
+                        </div>
+                    </div>
+                    <Button type="submit" className="w-full text-base py-2.5" disabled={isChecking}>
+                        {isChecking ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Search className="mr-2 h-5 w-5" />}
+                        Vérifier mon email
+                    </Button>
+                </form>
+            </CardContent>
+            <CardFooter className="p-6 pt-0">
+                <div className="w-full bg-indigo-50 dark:bg-gray-800 border border-indigo-200 dark:border-gray-700 rounded-lg p-4 flex items-start space-x-3">
+                    <Lightbulb className="h-5 w-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <h3 className="font-semibold text-indigo-800 dark:text-indigo-300">Conseil</h3>
+                        <p className="text-sm text-indigo-700 dark:text-gray-300 mt-1">Utilisez votre adresse email officielle UCLouvain (@uclouvain.be) pour que nous puissions récupérer vos informations.</p>
+                    </div>
+                </div>
+            </CardFooter>
+        </Card>
+    </div>
+));
+
+const NotFoundStep = memo<{ onRetry: () => void; onManual: () => void; }>(({ onRetry, onManual }) => (
+    <div className="max-w-2xl mx-auto">
+        <Card className="border-orange-400 dark:border-orange-600 shadow-lg shadow-orange-500/10">
+            <CardHeader className="flex-row items-center space-x-4 bg-orange-50 dark:bg-transparent p-4 border-b border-orange-200 dark:border-orange-600/50">
+                <div className="bg-orange-100 dark:bg-orange-900/50 p-3 rounded-full text-orange-600 dark:text-orange-300 ring-4 ring-orange-50 dark:ring-orange-900/30">
+                    <AlertTriangle className="h-8 w-8" />
+                </div>
+                <CardTitle className="text-orange-800 dark:text-orange-300 text-3xl">Email non reconnu</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+                <div className="bg-blue-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-700 p-4 rounded-lg flex items-start space-x-3">
+                    <Frown className="h-6 w-6 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <p className="font-medium text-blue-800 dark:text-blue-300">Votre email n'a pas été trouvé dans notre base de données.</p>
+                </div>
+                <div className="bg-yellow-50 dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 p-4 rounded-lg space-y-3">
+                    <p className="font-semibold flex items-center text-yellow-800 dark:text-yellow-300"><span className="text-2xl mr-2">👋</span> Que souhaitez-vous faire ?</p>
+                    <Button variant="outline" className="w-full bg-white dark:bg-gray-700" onClick={onRetry}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Réessayer avec une autre adresse
+                    </Button>
+                    <Button className="w-full" onClick={onManual}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Continuer et remplir manuellement
+                    </Button>
+                    <p className="text-xs text-center text-gray-600 dark:text-gray-400 pt-2">Si vous continuez, vous devrez renseigner tous vos détails.</p>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+));
+
+type AvailabilityFormData = {
+    email: string;
+    nom: string;
+    prenom: string;
+    type_surveillant: SurveillantType;
+    remarque_generale: string;
+};
+
+const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; onSelectChange: (v: string) => void; onNext: () => void; }>(({ sessionName, formData, onInputChange, onSelectChange, onNext }) => (
+    <>
+        <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center"><User className="mr-2 h-6 w-6" /> Identification</CardTitle>
+                <CardDescription>Veuillez entrer vos informations personnelles.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Input name="prenom" placeholder="Prénom" value={formData.prenom} onChange={onInputChange} required />
+                <Input name="nom" placeholder="Nom" value={formData.nom} onChange={onInputChange} required />
+                <Input name="email" type="email" placeholder="Email UCLouvain" value={formData.email} onChange={onInputChange} required />
+                <Select onValueChange={onSelectChange} defaultValue={formData.type_surveillant}>
+                    <SelectTrigger><SelectValue placeholder="Type de surveillant" /></SelectTrigger>
+                    <SelectContent>
+                        {Object.entries(SurveillantTypeLabels).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={onNext} className="ml-auto">Suivant <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </CardFooter>
+        </Card>
+    </>
+));
+
+const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant }) => {
+    const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
+    
+    return (
+    <>
+        <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités</CardTitle>
+                <CardDescription>Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 max-h-[60vh] overflow-y-auto pr-3">
+                 <div className="space-y-4">
+                    {isFasbPat && (
+                        <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 p-3 rounded-lg flex items-start gap-3">
+                            <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h4 className="font-semibold">Attention - Personnel FASB</h4>
+                                <p className="text-sm">En tant que membre du personnel PAT de la faculté FASB, il est attendu que vous sélectionniez un minimum de 12 créneaux de disponibilité.</p>
+                            </div>
+                        </div>
+                    )}
+                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 p-3 rounded-lg flex items-start gap-3">
+                        <Lightbulb className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <h4 className="font-semibold">Rappel Important</h4>
+                            <p className="text-sm">Conformément aux directives des Décanats, il est attendu que vous maximisiez vos disponibilités pour assurer le bon déroulement de la session. Il n'est plus possible de renseigner d'examen à assurer d'office via ce formulaire.</p>
+                        </div>
+                    </div>
+                </div>
+                {Object.keys(groupedCreneaux).map(date => {
+                    const creneauxOnDate = groupedCreneaux[date];
+                    return (
+                        <div key={date}>
+                            <h3 className="text-lg font-semibold mb-2 border-b pb-1 dark:border-gray-600">{new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h3>
+                            <div className="space-y-2">
+                                {creneauxOnDate.map(creneau => {
+                                    const isChecked = availabilities[creneau.id]?.available;
+                                    return (
+                                        <label htmlFor={`creneau-${creneau.id}`} key={creneau.id} className={`flex items-center p-3 rounded-lg border dark:border-gray-700 cursor-pointer transition-all duration-200 ${isChecked ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                                            <Checkbox id={`creneau-${creneau.id}`} checked={!!isChecked} onCheckedChange={(checked) => onAvailabilityChange(creneau.id, !!checked)} />
+                                            <div className="ml-4 flex-1 flex justify-between items-center">
+                                                <span className="font-medium">{creneau.heure_debut_surveillance} - {creneau.heure_fin_surveillance}</span>
+                                                {creneau.type_creneau === 'RESERVE' && <span className="text-xs font-semibold bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Réserve</span>}
+                                            </div>
+                                        </label>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )
+                })}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+                <Button onClick={onPrev} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</Button>
+                <Button onClick={onNext}>Suivant <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </CardFooter>
+        </Card>
+    </>
+)});
+
+const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityFormData; selectedCount: number; creneaux: Creneau[]; availabilities: AvailabilityData; onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; onReset: () => void; onPrev: () => void; onSubmit: (e: React.FormEvent) => void; isSubmitting: boolean; }>(({ sessionName, formData, selectedCount, creneaux, availabilities, onInputChange, onReset, onPrev, onSubmit, isSubmitting }) => (
+    <>
+        <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center"><Send className="mr-2 h-6 w-6" /> Récapitulatif et Soumission</CardTitle>
+                <CardDescription>Veuillez vérifier vos informations avant de soumettre.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200">Informations personnelles</h3>
+                    <p className="text-gray-600 dark:text-gray-400">{formData.prenom} {formData.nom} ({formData.email}) - {SurveillantTypeLabels[formData.type_surveillant]}</p>
+                </div>
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200">Créneaux sélectionnés ({selectedCount})</h3>
+                    {selectedCount > 0 ? (
+                        <ul className="list-disc list-inside max-h-48 overflow-y-auto mt-2 text-gray-600 dark:text-gray-400">
+                            {creneaux.filter(c => availabilities[c.id]?.available).map(c => (
+                                <li key={c.id}>
+                                    {c.date_surveillance ? new Date(c.date_surveillance + 'T00:00:00').toLocaleDateString('fr-FR') : 'Date non définie'} de {c.heure_debut_surveillance} à {c.heure_fin_surveillance}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : <p className="text-gray-500 italic mt-2">Aucun créneau sélectionné.</p>}
+                </div>
+                <div>
+                    <h3 className="font-semibold mb-2 flex items-center"><MessageSquare className="mr-2 h-4 w-4" /> Remarque générale (optionnel)</h3>
+                    <textarea name="remarque_generale" rows={4} placeholder="Ajouter une remarque (ex: préférences, contraintes)..." className="w-full p-2 border rounded-md bg-transparent dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" value={formData.remarque_generale} onChange={onInputChange} />
+                </div>
+            </CardContent>
+            <CardFooter className="flex justify-between flex-wrap gap-2">
+                <Button onClick={onReset} variant="outline" className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-500/50 dark:hover:bg-red-900/20">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Tout recommencer
+                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={onPrev} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</Button>
+                    <Button onClick={onSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        Soumettre mes disponibilités
+                    </Button>
+                </div>
+            </CardFooter>
+        </Card>
+    </>
+));
+
+const SuccessStep = memo<{ prenom?: string; sessionName?: string; onReset: () => void; }>(({ prenom, sessionName, onReset }) => (
+    <Card className="text-center">
+        <CardContent className="pt-8">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <CardTitle className="mt-4 text-2xl">Soumission Réussie !</CardTitle>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Merci, {prenom}. Vos disponibilités pour la session <strong>{sessionName}</strong> ont bien été enregistrées.</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Vous recevrez un email de confirmation sous peu.</p>
+        </CardContent>
+        <CardFooter>
+            <Button onClick={onReset} className="mx-auto">Effectuer une nouvelle soumission</Button>
+        </CardFooter>
+    </Card>
+));
+
+// --- Main Form Component ---
+
+const AvailabilityForm: React.FC = () => {
+    const [step, setStep] = useState(0); // 0: Email check, -1: Not found, 1: Personal, 2: Avail, 3: Confirm, 4: Success
+    const [session, setSession] = useState<Session | null>(null);
+    const [creneaux, setCreneaux] = useState<Creneau[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const initialFormData: AvailabilityFormData = {
+        email: '',
+        nom: '',
+        prenom: '',
+        type_surveillant: SurveillantType.ASSISTANT,
+        remarque_generale: ''
+    };
+
+    const [formData, setFormData] = useState(initialFormData);
+    const [foundSurveillantId, setFoundSurveillantId] = useState<string | null>(null);
+    const [foundSurveillant, setFoundSurveillant] = useState<Surveillant | null>(null);
+    const [availabilities, setAvailabilities] = useState<AvailabilityData>({});
+    
+    const formSteps = ["Identification", "Disponibilités", "Confirmation"];
+    const { setDebugData } = useDebug();
+
+    useEffect(() => {
+        setDebugData('AvailabilityForm', {
+            step,
+            isLoading,
+            isCheckingEmail,
+            isSubmitting,
+            sessionName: session?.name,
+            formData,
+            availabilitiesSummary: {
+                totalSlots: Object.keys(availabilities).length,
+                // Fix: Used Object.keys to avoid type inference issues with Object.values.
+                selectedSlots: Object.keys(availabilities).filter(id => availabilities[id].available).length,
+            },
+            foundSurveillant,
+        });
+    }, [step, isLoading, isCheckingEmail, isSubmitting, session, formData, availabilities, foundSurveillant, setDebugData]);
+
+
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                setIsLoading(true);
+                const data = await getActiveSessionWithCreneaux();
+                if (data) {
+                    setSession(data);
+                    const sortedCreneaux = [...data.creneaux_surveillance].sort((a, b) => {
+                        const dateA = a.date_surveillance || '';
+                        const dateB = b.date_surveillance || '';
+                        const timeA = a.heure_debut_surveillance || '';
+                        const timeB = b.heure_debut_surveillance || '';
+                        if (dateA !== dateB) return dateA.localeCompare(dateB);
+                        return timeA.localeCompare(timeB);
+                    });
+                    setCreneaux(sortedCreneaux);
+                    const initialAvailabilities: AvailabilityData = sortedCreneaux.reduce((acc, c) => ({ ...acc, [c.id]: { available: false } }), {});
+                    setAvailabilities(initialAvailabilities);
+                } else {
+                    toast.error("Aucune session active trouvée.");
+                }
+            } catch (error) {
+                toast.error("Erreur lors du chargement des données de la session.");
+                console.error(error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadInitialData();
+    }, []);
+    
+    useEffect(() => {
+        if (step > 0 && step < 4) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, availabilities, foundSurveillantId }));
+            } catch (error) {
+                console.error("Could not save form progress:", error);
+            }
+        }
+    }, [formData, availabilities, step, foundSurveillantId]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSelectChange = (value: string) => {
+        setFormData(prev => ({ ...prev, type_surveillant: value as SurveillantType }));
+    };
+
+    const handleAvailabilityChange = (creneauId: string, available: boolean) => {
+        setAvailabilities(prev => ({ ...prev, [creneauId]: { available } }));
+    };
+    
+    const nextStep = () => setStep(s => s + 1);
+    const prevStep = () => setStep(s => s - 1);
+
+    const handleEmailCheck = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCheckingEmail(true);
+        try {
+            const found = await findSurveillantByEmail(formData.email.toLowerCase().trim());
+            if (found) {
+                setFoundSurveillant(found);
+                setFormData(prev => ({ ...prev, nom: found.nom, prenom: found.prenom, type_surveillant: found.type as SurveillantType }));
+                setFoundSurveillantId(found.id);
+                toast.success('Email reconnu ! Vos informations ont été pré-remplies.');
+                setStep(2);
+            } else {
+                setFoundSurveillant(null);
+                toast.error('Email non reconnu. Veuillez renseigner vos informations manuellement.');
+                setStep(-1);
+            }
+        } catch (error) {
+            toast.error("Une erreur est survenue lors de la vérification.");
+            setStep(-1);
+        } finally {
+            setIsCheckingEmail(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!session) return toast.error("Session non trouvée. Impossible de soumettre.");
+        setIsSubmitting(true);
+        
+        try {
+            await submitAvailability({
+                session_id: session.id,
+                surveillant_id: foundSurveillantId,
+                ...formData,
+                availabilities: Object.entries(availabilities)
+                  .filter(([, val]) => val.available)
+                  .map(([creneauId]) => ({ creneau_id: creneauId, est_disponible: true })),
+            });
+            localStorage.removeItem(STORAGE_KEY);
+            toast.success('Vos disponibilités ont été soumises avec succès !');
+            nextStep();
+        } catch(error) {
+            toast.error("Erreur lors de la soumission du formulaire.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    const handleReset = () => {
+        setFormData(initialFormData);
+        const initialAvailabilities: AvailabilityData = creneaux.reduce((acc, c) => ({ ...acc, [c.id]: { available: false } }), {});
+        setAvailabilities(initialAvailabilities);
+        localStorage.removeItem(STORAGE_KEY);
+        setFoundSurveillantId(null);
+        setFoundSurveillant(null);
+        toast('Formulaire réinitialisé.', { icon: '🔄' });
+        setStep(0);
+    };
+    
+    const renderStep = () => {
+        const groupedCreneaux = groupCreneauxByDate(creneaux);
+        // Fix: Used Object.keys to avoid type inference issues with Object.values.
+        const selectedCount = Object.keys(availabilities).filter(id => availabilities[id].available).length;
+
+        switch (step) {
+            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} onEmailChange={handleInputChange} isChecking={isCheckingEmail} />;
+            case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setStep(0);}} onManual={() => setStep(1)} />;
+            case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
+            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} />;
+            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} />;
+            case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
+            default: return null;
+        }
+    };
+    
+    if (isLoading) return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" aria-label="Loading" />
+        <p className="text-lg text-gray-600 dark:text-gray-400 mt-4">Chargement de la session...</p>
+      </div>
+    );
+
+    if (!session) return <div className="text-center text-red-500">Aucune session active n'a pu être chargée. Veuillez contacter l'administrateur.</div>;
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            {step > 0 && step < 4 && <Stepper currentStep={step} steps={formSteps} />}
+            {renderStep()}
+        </div>
+    );
+};
+
+export default AvailabilityForm;
