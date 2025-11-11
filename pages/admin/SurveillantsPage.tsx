@@ -19,11 +19,11 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
         const defaults = {
             prenom: '', nom: '', email: '', type: SurveillantType.ASSISTANT,
             affectation_faculte: '',
-            etp: 1, quota_defaut: 6, is_active: true
+            etp_total: 1, etp_recherche: undefined, quota_surveillances: 6, is_active: true
         };
         const initialData = { ...defaults, ...surveillant };
         if (!surveillant?.id && initialData.type === SurveillantType.PAT) {
-            initialData.quota_defaut = 0;
+            initialData.quota_surveillances = 0;
         }
         return initialData;
     });
@@ -37,8 +37,23 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
         if (!formData.nom?.trim()) newErrors.nom = 'Le nom est requis.';
         if (!formData.email?.trim()) newErrors.email = "L'email est requis.";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Le format de l'email est invalide.";
-        if (formData.etp === undefined || formData.etp === null || isNaN(formData.etp) || formData.etp < 0 || formData.etp > 1) newErrors.etp = 'L\'ETP doit être entre 0.0 et 1.0.';
-        if (formData.quota_defaut === undefined || formData.quota_defaut === null || isNaN(formData.quota_defaut) || !Number.isInteger(Number(formData.quota_defaut)) || formData.quota_defaut < 0) newErrors.quota_defaut = 'Le quota doit être un entier positif.';
+        
+        // Validation ETP Total ou ETP Recherche (au moins un doit être rempli)
+        const eftT = formData.etp_total;
+        const eftR = formData.etp_recherche;
+        if ((eftT === undefined || eftT === null) && (eftR === undefined || eftR === null)) {
+            newErrors.etp_total = 'Au moins EFT T. ou EFT R. doit être rempli.';
+        }
+        if (eftT !== undefined && eftT !== null && (isNaN(eftT) || eftT < 0 || eftT > 1)) {
+            newErrors.etp_total = 'EFT T. doit être entre 0.0 et 1.0.';
+        }
+        if (eftR !== undefined && eftR !== null && (isNaN(eftR) || eftR < 0 || eftR > 1)) {
+            newErrors.etp_recherche = 'EFT R. doit être entre 0.0 et 1.0.';
+        }
+        
+        if (formData.quota_surveillances === undefined || formData.quota_surveillances === null || isNaN(formData.quota_surveillances) || !Number.isInteger(Number(formData.quota_surveillances)) || formData.quota_surveillances < 0) {
+            newErrors.quota_surveillances = 'Le quota doit être un entier positif.';
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -49,16 +64,37 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
         setFormData(prev => ({ ...prev, [name]: type === 'number' ? (value === '' ? undefined : parseInt(value, 10)) : value }));
     };
 
-    const handleEtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleEtpTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(',', '.');
-        setFormData(prev => ({ ...prev, etp: value === '' ? undefined : parseFloat(value) }));
+        const newEtpTotal = value === '' ? undefined : parseFloat(value);
+        setFormData(prev => {
+            // Recalculer le quota si c'est un assistant
+            let newQuota = prev.quota_surveillances;
+            if (prev.type === SurveillantType.ASSISTANT && newEtpTotal) {
+                newQuota = Math.round(newEtpTotal * 6);
+            }
+            return { ...prev, etp_total: newEtpTotal, quota_surveillances: newQuota };
+        });
+    };
+
+    const handleEtpRechercheChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(',', '.');
+        const newEtpRecherche = value === '' ? undefined : parseFloat(value);
+        setFormData(prev => {
+            // Si ETP Total est vide et qu'on remplit ETP Recherche, recalculer le quota
+            let newQuota = prev.quota_surveillances;
+            if (prev.type === SurveillantType.ASSISTANT && !prev.etp_total && newEtpRecherche) {
+                newQuota = Math.round(newEtpRecherche * 6);
+            }
+            return { ...prev, etp_recherche: newEtpRecherche, quota_surveillances: newQuota };
+        });
     };
 
     const handleSelectChange = (value: string) => {
         const newType = value as SurveillantType;
         setFormData(prev => {
-            const etp = prev.etp ?? 1;
-            let newQuota = prev.quota_defaut;
+            const etp = prev.etp_total ?? prev.etp_recherche ?? 1;
+            let newQuota = prev.quota_surveillances;
 
             if (newType === SurveillantType.PAT) {
                 newQuota = 0;
@@ -67,7 +103,7 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
             } else { // Jobiste, Autre
                 newQuota = Math.round(etp * 10);
             }
-            return { ...prev, type: newType, quota_defaut: newQuota };
+            return { ...prev, type: newType, quota_surveillances: newQuota };
         });
     };
 
@@ -130,16 +166,21 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
                 <Switch id="is_active" checked={!!formData.is_active} onCheckedChange={handleSwitchChange} />
                 <label htmlFor="is_active" className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">Actif</label>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
                  <div>
-                    <label htmlFor="etp" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">ETP</label>
-                    <Input id="etp" name="etp" type="text" inputMode="decimal" placeholder="0,8" value={formData.etp !== undefined ? String(formData.etp).replace('.', ',') : ''} onChange={handleEtpChange} />
-                    {errors.etp && <p className="text-sm text-red-500 mt-1">{errors.etp}</p>}
+                    <label htmlFor="etp_total" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">EFT T.</label>
+                    <Input id="etp_total" name="etp_total" type="text" inputMode="decimal" placeholder="1,0" value={formData.etp_total !== undefined ? String(formData.etp_total).replace('.', ',') : ''} onChange={handleEtpTotalChange} />
+                    {errors.etp_total && <p className="text-sm text-red-500 mt-1">{errors.etp_total}</p>}
                 </div>
                  <div>
-                    <label htmlFor="quota_defaut" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Quota</label>
-                    <Input id="quota_defaut" name="quota_defaut" type="number" value={formData.quota_defaut ?? ''} onChange={handleChange} />
-                    {errors.quota_defaut && <p className="text-sm text-red-500 mt-1">{errors.quota_defaut}</p>}
+                    <label htmlFor="etp_recherche" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">EFT R.</label>
+                    <Input id="etp_recherche" name="etp_recherche" type="text" inputMode="decimal" placeholder="0,8" value={formData.etp_recherche !== undefined ? String(formData.etp_recherche).replace('.', ',') : ''} onChange={handleEtpRechercheChange} />
+                    {errors.etp_recherche && <p className="text-sm text-red-500 mt-1">{errors.etp_recherche}</p>}
+                </div>
+                 <div>
+                    <label htmlFor="quota_surveillances" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Quota</label>
+                    <Input id="quota_surveillances" name="quota_surveillances" type="number" value={formData.quota_surveillances ?? ''} onChange={handleChange} />
+                    {errors.quota_surveillances && <p className="text-sm text-red-500 mt-1">{errors.quota_surveillances}</p>}
                 </div>
             </div>
             <DialogFooter className="pt-4 !mt-8">
@@ -159,8 +200,9 @@ const SurveillantRow = memo<{ surveillant: Surveillant; onEdit: (s: Surveillant)
         <td className="px-6 py-3 whitespace-nowrap text-sm">{SurveillantTypeLabels[surveillant.type]}</td>
         <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.affectation_faculte || 'N/A'}</td>
         <td className="px-6 py-3 whitespace-nowrap text-sm"><Badge variant={surveillant.is_active ? 'success' : 'default'}>{surveillant.is_active ? 'Actif' : 'Inactif'}</Badge></td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.etp}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.quota_defaut}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.etp_total ?? '-'}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.etp_recherche ?? '-'}</td>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.quota_surveillances ?? 0}</td>
         <td className="px-6 py-3 whitespace-nowrap text-right text-sm">
             <Button variant="ghost" size="sm" onClick={() => onEdit(surveillant)}><Edit className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" onClick={() => onDelete(surveillant)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></Button>
@@ -339,8 +381,8 @@ const SurveillantsPage: React.FC = () => {
                                     <SelectItem value="nom-desc">Nom (Z-A)</SelectItem>
                                     <SelectItem value="prenom-asc">Prénom (A-Z)</SelectItem>
                                     <SelectItem value="prenom-desc">Prénom (Z-A)</SelectItem>
-                                    <SelectItem value="quota_defaut-asc">Quota (Croissant)</SelectItem>
-                                    <SelectItem value="quota_defaut-desc">Quota (Décroissant)</SelectItem>
+                                    <SelectItem value="quota_surveillances-asc">Quota (Croissant)</SelectItem>
+                                    <SelectItem value="quota_surveillances-desc">Quota (Décroissant)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -351,14 +393,15 @@ const SurveillantsPage: React.FC = () => {
                     : <div className="border rounded-lg dark:border-gray-700 overflow-x-auto">
                         <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-700">
                             <colgroup>
-                                <col style={{ width: '25%' }} />
-                                <col style={{ width: '25%' }} />
-                                <col style={{ width: '12%' }} />
-                                <col style={{ width: '8%' }} />
-                                <col style={{ width: '8%' }} />
-                                <col style={{ width: '6%' }} />
-                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '22%' }} />
+                                <col style={{ width: '22%' }} />
                                 <col style={{ width: '10%' }} />
+                                <col style={{ width: '8%' }} />
+                                <col style={{ width: '8%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '12%' }} />
                             </colgroup>
                             <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
@@ -367,7 +410,8 @@ const SurveillantsPage: React.FC = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Affect. fac.</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Statut</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">ETP</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">EFT T.</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">EFT R.</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Quota</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
                                 </tr>
