@@ -122,16 +122,6 @@ const HomePage: React.FC = () => {
             {/* Hero Section */}
             <div className="relative overflow-hidden">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-16 sm:pb-20">
-                    {/* Admin Button - Top Right */}
-                    <div className="absolute top-6 right-4 sm:right-6 lg:right-8">
-                        <NavLink to="/admin">
-                            <Button variant="outline" size="sm" className="shadow-sm">
-                                <Settings className="mr-2 h-4 w-4" />
-                                <span className="hidden sm:inline">Administration</span>
-                            </Button>
-                        </NavLink>
-                    </div>
-
                     {/* Hero Content */}
                     <div className="text-center space-y-6 mb-12">
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
@@ -159,6 +149,18 @@ const HomePage: React.FC = () => {
             {/* Form Section */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
                 <AvailabilityForm />
+            </div>
+
+            {/* Admin Button - Bottom Footer */}
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+                <div className="flex justify-center">
+                    <NavLink to="/admin">
+                        <button className="text-xs text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-colors flex items-center gap-1.5 py-2 px-3">
+                            <Settings className="h-3 w-3" />
+                            <span>Administration</span>
+                        </button>
+                    </NavLink>
+                </div>
             </div>
         </div>
     );
