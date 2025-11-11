@@ -113,10 +113,18 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can view active sessions" ON sessions
     FOR SELECT USING (is_active = true);
 
+-- Permettre toutes les opérations sur les sessions (pour l'admin)
+CREATE POLICY "Allow all operations on sessions" ON sessions
+    FOR ALL USING (true) WITH CHECK (true);
+
 -- Politiques pour la table surveillants
 -- Lecture publique des surveillants actifs (pour vérification email)
 CREATE POLICY "Public can view active surveillants" ON surveillants
     FOR SELECT USING (is_active = true);
+
+-- Permettre toutes les opérations sur les surveillants (pour l'admin)
+CREATE POLICY "Allow all operations on surveillants" ON surveillants
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Politiques pour la table creneaux
 -- Lecture publique des créneaux des sessions actives
@@ -128,6 +136,10 @@ CREATE POLICY "Public can view creneaux of active sessions" ON creneaux
             AND sessions.is_active = true
         )
     );
+
+-- Permettre toutes les opérations sur les créneaux (pour l'admin)
+CREATE POLICY "Allow all operations on creneaux" ON creneaux
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Politiques pour la table soumissions_disponibilites
 -- Insertion publique des soumissions
@@ -146,6 +158,10 @@ CREATE POLICY "Public can view submissions" ON soumissions_disponibilites
 -- Insertion publique des messages
 CREATE POLICY "Public can insert messages" ON messages
     FOR INSERT WITH CHECK (true);
+
+-- Permettre toutes les opérations sur les messages (pour l'admin)
+CREATE POLICY "Allow all operations on messages" ON messages
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================
 -- Données de test (optionnel)

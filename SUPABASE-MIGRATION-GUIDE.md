@@ -23,6 +23,14 @@
 4. Collez-le dans l'éditeur SQL
 5. Cliquez sur **Run** (ou appuyez sur Ctrl+Enter)
 
+### 2b. Mise à jour des politiques (si vous avez déjà exécuté le script initial)
+
+Si vous avez déjà créé les tables et que vous rencontrez des erreurs 401 lors de la création de sessions :
+
+1. Dans **SQL Editor**, créez une nouvelle requête
+2. Copiez le contenu du fichier `supabase-update-policies.sql`
+3. Collez-le et cliquez sur **Run**
+
 Le script va créer :
 - ✅ 5 tables principales (sessions, surveillants, creneaux, soumissions_disponibilites, messages)
 - ✅ Tous les index nécessaires pour les performances
@@ -129,8 +137,9 @@ Les politiques de sécurité Row Level Security sont configurées pour :
 - Permettre la lecture publique des créneaux des sessions actives
 - Permettre l'insertion et la mise à jour publique des soumissions
 - Permettre l'insertion publique des messages
+- **Permettre toutes les opérations d'administration** (INSERT, UPDATE, DELETE) sur toutes les tables
 
-⚠️ **Important :** Pour l'administration, vous devrez utiliser la Service Role Key ou configurer des politiques RLS supplémentaires avec authentification.
+⚠️ **Note :** Les politiques actuelles permettent un accès complet pour faciliter le développement. Pour la production, vous devriez ajouter une authentification admin et restreindre les politiques RLS en conséquence.
 
 ## 🔧 Configuration des variables d'environnement (optionnel)
 
