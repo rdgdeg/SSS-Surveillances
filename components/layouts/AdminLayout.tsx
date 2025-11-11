@@ -50,7 +50,7 @@ const AdminLayout: React.FC = () => {
                         <NavLink to="/">
                             <Button variant="outline" size="sm">
                                 <Home className="mr-2 h-4 w-4" />
-                                Accueil
+                                Retour à l'accueil
                             </Button>
                         </NavLink>
                         <Button variant="outline" size="sm" onClick={handleLogout}>
