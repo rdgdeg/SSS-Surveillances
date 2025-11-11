@@ -41,8 +41,17 @@ export interface Surveillant {
   prenom: string;
   type: SurveillantType;
   affectation_faculte?: string;
-  etp?: number;
-  quota_defaut?: number;
+  affectation_institut?: string;
+  statut_salarial?: string;
+  etp_total?: number;
+  etp_recherche?: number;
+  etp_autre?: number;
+  categorie_presence?: string;
+  fin_absence?: string;
+  fin_repos_postnatal?: string;
+  type_occupation?: string;
+  telephone?: string;
+  quota_surveillances?: number;
   is_active: boolean;
 }
 

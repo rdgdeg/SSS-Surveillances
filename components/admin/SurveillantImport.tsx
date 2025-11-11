@@ -14,8 +14,16 @@ interface ImportedSurveillant {
   email: string;
   type: SurveillantType;
   affectation_faculte?: string;
-  etp?: number;
-  quota_defaut?: number;
+  affectation_institut?: string;
+  statut_salarial?: string;
+  etp_total?: number;
+  etp_recherche?: number;
+  etp_autre?: number;
+  categorie_presence?: string;
+  fin_absence?: string;
+  fin_repos_postnatal?: string;
+  type_occupation?: string;
+  quota_surveillances?: number;
   is_active: boolean;
 }
 
@@ -102,9 +110,14 @@ const SurveillantImport: React.FC<{ onImportComplete: () => void }> = ({ onImpor
     const emailIndex = getColumnIndex(['mails', 'mail', 'email', 'e-mail']);
     const typeIndex = getColumnIndex(['stsal', 'type', 'statut', 'status']);
     const faculteIndex = getColumnIndex(['affectfac', 'faculte', 'faculty', 'affectation']);
-    const etpIndex = getColumnIndex(['eft t', 'eftt', 'etp', 'fte']);
-    const etpRIndex = getColumnIndex(['eft r', 'eftr']);
-    const etpAIndex = getColumnIndex(['eft a', 'efta']);
+    const institutIndex = getColumnIndex(['affectins', 'institut', 'institute']);
+    const etpTotalIndex = getColumnIndex(['eft t', 'eftt', 'etp', 'fte', 'etp total']);
+    const etpRIndex = getColumnIndex(['eft r', 'eftr', 'etp recherche']);
+    const etpAIndex = getColumnIndex(['eft a', 'efta', 'etp autre']);
+    const categorieIndex = getColumnIndex(['texte cat', 'categorie', 'presence']);
+    const finAbsenceIndex = getColumnIndex(['fin absc', 'fin absence']);
+    const finReposIndex = getColumnIndex(['fin r pos', 'fin repos', 'repos postnatal']);
+    const typeOccupationIndex = getColumnIndex(['d type oc', 'type occupation', 'occupation']);
 
     if (nomIndex === -1 || prenomIndex === -1) {
       result.errors.push({ 
@@ -145,21 +158,46 @@ const SurveillantImport: React.FC<{ onImportComplete: () => void }> = ({ onImpor
         const typeValue = typeIndex !== -1 ? row[typeIndex]?.trim() || '' : '';
         const type = mapSurveillantType(typeValue);
 
-        // Faculté
+        // Faculté et institut
         const affectation_faculte = faculteIndex !== -1 ? row[faculteIndex]?.trim() : undefined;
+        const affectation_institut = institutIndex !== -1 ? row[institutIndex]?.trim() : undefined;
 
-        // ETP - prendre la première valeur ETP disponible
-        let etp: number | undefined;
-        const etpColumns = [etpIndex, etpRIndex, etpAIndex].filter(idx => idx !== -1);
-        for (const idx of etpColumns) {
-          if (row[idx] && row[idx].trim()) {
-            const etpValue = parseFloat(row[idx].replace(',', '.'));
-            if (!isNaN(etpValue) && etpValue > 0) {
-              etp = etpValue;
-              break;
-            }
+        // Statut salarial
+        const statut_salarial = typeIndex !== -1 ? row[typeIndex]?.trim() : undefined;
+
+        // ETP
+        const parseETP = (value: string | undefined): number | undefined => {
+          if (!value || !value.trim()) return undefined;
+          const parsed = parseFloat(value.replace(',', '.'));
+          return !isNaN(parsed) ? parsed : undefined;
+        };
+
+        const etp_total = parseETP(etpTotalIndex !== -1 ? row[etpTotalIndex] : undefined);
+        const etp_recherche = parseETP(etpRIndex !== -1 ? row[etpRIndex] : undefined);
+        const etp_autre = parseETP(etpAIndex !== -1 ? row[etpAIndex] : undefined);
+
+        // Quota surveillances = 6 * ETP total
+        const quota_surveillances = etp_total ? Math.round(etp_total * 6) : undefined;
+
+        // Catégorie présence
+        const categorie_presence = categorieIndex !== -1 ? row[categorieIndex]?.trim() : undefined;
+
+        // Dates
+        const convertDate = (dateStr: string | undefined): string | undefined => {
+          if (!dateStr || !dateStr.trim()) return undefined;
+          const parts = dateStr.split('.');
+          if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
-        }
+          return undefined;
+        };
+
+        const fin_absence = convertDate(finAbsenceIndex !== -1 ? row[finAbsenceIndex] : undefined);
+        const fin_repos_postnatal = convertDate(finReposIndex !== -1 ? row[finReposIndex] : undefined);
+
+        // Type occupation
+        const type_occupation = typeOccupationIndex !== -1 ? row[typeOccupationIndex]?.trim() : undefined;
 
         const surveillant: ImportedSurveillant = {
           nom,
@@ -167,8 +205,16 @@ const SurveillantImport: React.FC<{ onImportComplete: () => void }> = ({ onImpor
           email,
           type,
           affectation_faculte,
-          etp,
-          quota_defaut: undefined, // À définir manuellement si nécessaire
+          affectation_institut,
+          statut_salarial,
+          etp_total,
+          etp_recherche,
+          etp_autre,
+          categorie_presence,
+          fin_absence,
+          fin_repos_postnatal,
+          type_occupation,
+          quota_surveillances,
           is_active: true
         };
 
