@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { University, Sun, Moon } from 'lucide-react';
+import { University, Sun, Moon, Home } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../shared/Button';
 
 const MainLayout: React.FC = () => {
     const { isDarkMode, toggleTheme } = useTheme();
@@ -17,7 +18,13 @@ const MainLayout: React.FC = () => {
                             <span className="ml-3 text-lg font-semibold">Portail de Gestion des Surveillances</span>
                             <span className="ml-2 font-light text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">SSS - UCLouvain</span>
                         </NavLink>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                            <NavLink to="/">
+                                <Button variant="outline" size="sm">
+                                    <Home className="mr-2 h-4 w-4" />
+                                    Retour à l'accueil
+                                </Button>
+                            </NavLink>
                             <button
                                 onClick={toggleTheme}
                                 className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
