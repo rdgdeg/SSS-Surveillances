@@ -104,15 +104,29 @@ Nom;Prénom;Affect.fac;Affect.ins;StSal;EFT T.;EFT R.;EFT A.;Texte cat. prés./a
 ### Calcul automatique du quota
 
 Le quota de surveillances est calculé automatiquement :
+
+#### Pour les assistants
 - **Formule** : `quota_surveillances = ROUND(etp_total × 6)`
+- **ETP utilisé** : EFT T. (ou EFT R. si EFT T. est vide)
 - **Exemples** :
   - ETP 1.0 → 6 surveillances
   - ETP 0.8 → 5 surveillances
+  - ETP 0.7 → 4 surveillances
   - ETP 0.5 → 3 surveillances
   - ETP 0.33 → 2 surveillances
+  - ETP 0.3 → 2 surveillances
   - ETP 0.2 → 1 surveillance
 
-Vous pouvez ensuite ajuster ce quota manuellement si nécessaire.
+#### Pour les PAT
+- **Quota par défaut** : 0 (pas d'obligation)
+- Vous pouvez ajuster manuellement si un PAT souhaite participer
+
+### Gestion des ETP
+
+- **ETP Total** (etp_total) : Correspond à la colonne "EFT T." du CSV
+- **Si EFT T. est vide** : On utilise "EFT R." (ETP recherche) comme valeur par défaut
+- **ETP Recherche** (etp_recherche) : Correspond à "EFT R."
+- **ETP Autre** (etp_autre) : Correspond à "EFT A."
 
 ## 📊 Données importées
 
@@ -158,14 +172,20 @@ ORDER BY type;
 
 ## 📝 Prochaines étapes
 
+### Installation initiale
 1. ✅ Exécuter `supabase-update-policies.sql` (corriger les politiques RLS)
 2. ✅ Exécuter `supabase-update-surveillants-table.sql` (ajouter les colonnes)
 3. ✅ Exécuter `supabase-insert-surveillants.sql` (93 assistants)
 4. ✅ Exécuter `supabase-insert-pat.sql` (75 PAT)
-5. ⏳ Compléter les numéros de téléphone manuellement
-6. ⏳ Ajuster les quotas des PAT si nécessaire (par défaut = 0)
-7. ⏳ Créer une session et des créneaux
-8. ⏳ Tester la soumission des disponibilités
+
+### Si vous avez déjà inséré les données
+5. ⚠️ Exécuter `supabase-fix-etp.sql` (corriger les ETP manquants)
+
+### Configuration
+6. ⏳ Compléter les numéros de téléphone manuellement
+7. ⏳ Ajuster les quotas des PAT si nécessaire (par défaut = 0)
+8. ⏳ Créer une session et des créneaux
+9. ⏳ Tester la soumission des disponibilités
 
 ## 💡 Notes importantes
 

@@ -172,12 +172,19 @@ const SurveillantImport: React.FC<{ onImportComplete: () => void }> = ({ onImpor
           return !isNaN(parsed) ? parsed : undefined;
         };
 
-        const etp_total = parseETP(etpTotalIndex !== -1 ? row[etpTotalIndex] : undefined);
+        let etp_total = parseETP(etpTotalIndex !== -1 ? row[etpTotalIndex] : undefined);
         const etp_recherche = parseETP(etpRIndex !== -1 ? row[etpRIndex] : undefined);
         const etp_autre = parseETP(etpAIndex !== -1 ? row[etpAIndex] : undefined);
 
-        // Quota surveillances = 6 * ETP total
-        const quota_surveillances = etp_total ? Math.round(etp_total * 6) : undefined;
+        // Si ETP total est vide, utiliser ETP recherche
+        if (!etp_total && etp_recherche) {
+          etp_total = etp_recherche;
+        }
+
+        // Quota surveillances = 6 * ETP total (ou 0 pour les PAT)
+        const quota_surveillances = etp_total && type === SurveillantType.ASSISTANT 
+          ? Math.round(etp_total * 6) 
+          : 0;
 
         // Catégorie présence
         const categorie_presence = categorieIndex !== -1 ? row[categorieIndex]?.trim() : undefined;

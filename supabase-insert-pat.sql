@@ -4,8 +4,9 @@
 -- ============================================
 
 -- Insérer les PAT du CSV avec quota_surveillances = 0 par défaut
+-- Note: Si EFT T. est vide, on utilise EFT R. comme etp_total
 INSERT INTO surveillants (nom, prenom, email, type, affectation_faculte, etp_total, etp_recherche, etp_autre, categorie_presence, fin_absence, fin_repos_postnatal, quota_surveillances, is_active) VALUES
-('Affan', 'Hala', 'hala.affan@uclouvain.be', 'pat', 'FSP', NULL, 0.8, NULL, NULL, NULL, '2025-12-03', 0, true),
+('Affan', 'Hala', 'hala.affan@uclouvain.be', 'pat', 'FSP', 0.8, 0.8, NULL, NULL, NULL, '2025-12-03', 0, true),
 ('Agbekponou', 'Afi', 'sandrine.agbekponou@uclouvain.be', 'pat', 'MEDE', 1, NULL, NULL, NULL, NULL, NULL, 0, true),
 ('Andriamanampisoa', 'Maëlle', 'maelle.andriamanampisoa@uclouvain.be', 'pat', 'FASB', 1, NULL, NULL, NULL, NULL, NULL, 0, true),
 ('Araujo Vargas', 'Guillermo Alain', 'guillermo.araujo@uclouvain.be', 'pat', 'ASS', 1, NULL, NULL, NULL, NULL, NULL, 0, true),
