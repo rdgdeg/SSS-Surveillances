@@ -118,41 +118,48 @@ const App: React.FC = () => {
 
 const HomePage: React.FC = () => {
     return (
-        <div className="space-y-8 min-h-[calc(100vh-200px)] bg-gradient-to-br from-indigo-50/30 via-purple-50/30 to-pink-50/30 dark:from-gray-900/30 dark:via-indigo-950/30 dark:to-purple-950/30 -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-            <div className="md:flex md:items-center md:justify-between">
-                <div className="min-w-0 flex-1">
-                    <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">
-                        Portail de Gestion des Surveillances - SSS - UCLouvain
-                    </h2>
-                    <div className="mt-3 space-y-2">
-                        <p className="text-gray-700 dark:text-gray-300">
-                            Bienvenue sur le portail de gestion des surveillances d'examens.
+        <div className="min-h-[calc(100vh-120px)] bg-gradient-to-b from-indigo-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-950/30 -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8">
+            {/* Hero Section */}
+            <div className="relative overflow-hidden">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 sm:pt-16 sm:pb-20">
+                    {/* Admin Button - Top Right */}
+                    <div className="absolute top-6 right-4 sm:right-6 lg:right-8">
+                        <NavLink to="/admin">
+                            <Button variant="outline" size="sm" className="shadow-sm">
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span className="hidden sm:inline">Administration</span>
+                            </Button>
+                        </NavLink>
+                    </div>
+
+                    {/* Hero Content */}
+                    <div className="text-center space-y-6 mb-12">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
+                            Gérez vos disponibilités
+                        </h1>
+                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                            Encodez vos disponibilités pour les surveillances d'examens. 
+                            Vous pouvez revenir à tout moment pour les consulter et les modifier.
                         </p>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            Vous pouvez encoder vos disponibilités ci-dessous, revenir à tout moment pour les consulter et les modifier selon vos besoins.
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-500">
-                            En cas de souci ou de question, n'hésitez pas à contacter{' '}
+                        
+                        {/* Contact Info */}
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-full border border-gray-200 dark:border-gray-700">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Besoin d'aide ?</span>
                             <a 
                                 href="mailto:raphael.degand@uclouvain.be" 
-                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                                className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
                             >
-                                raphael.degand@uclouvain.be
+                                Contactez-nous
                             </a>
-                        </p>
+                        </div>
                     </div>
                 </div>
-                <div className="mt-4 flex md:ml-4 md:mt-0">
-                    <NavLink to="/admin">
-                      <Button>
-                          <Settings className="mr-2 h-4 w-4" />
-                          Accès Administration
-                      </Button>
-                    </NavLink>
-                </div>
             </div>
-            
-            <AvailabilityForm />
+
+            {/* Form Section */}
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
+                <AvailabilityForm />
+            </div>
         </div>
     );
 };

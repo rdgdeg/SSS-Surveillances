@@ -13,9 +13,9 @@ const MainLayout: React.FC = () => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <NavLink to="/" className="flex items-center">
-                            <University className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                            <span className="ml-3 text-xl font-bold">UCLouvain</span>
-                            <span className="ml-2 font-light text-gray-500 dark:text-gray-400">Exam Supervision</span>
+                            <University className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                            <span className="ml-3 text-lg font-semibold">Portail de Gestion des Surveillances</span>
+                            <span className="ml-2 font-light text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">SSS - UCLouvain</span>
                         </NavLink>
                         <div className="flex items-center space-x-4">
                             <button
