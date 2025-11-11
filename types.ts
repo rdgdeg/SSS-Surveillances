@@ -67,6 +67,14 @@ export interface SoumissionDisponibilite {
   remarque_generale?: string;
   historique_disponibilites: HistoriqueDisponibilite[];
   submitted_at: string;
+  updated_at?: string;
+  historique_modifications?: ModificationHistoryEntry[];
+}
+
+export interface ModificationHistoryEntry {
+  date: string;
+  type: 'modification' | 'creation';
+  nb_creneaux: number;
 }
 
 export interface HistoriqueDisponibilite {

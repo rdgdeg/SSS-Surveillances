@@ -58,6 +58,46 @@ const Stepper: React.FC<{ currentStep: number; steps: string[] }> = memo(({ curr
     );
 });
 
+const SubmissionInfoBanner: React.FC<{ submittedAt?: string; updatedAt?: string; modificationsCount?: number }> = memo(({ submittedAt, updatedAt, modificationsCount }) => {
+    if (!submittedAt) return null;
+    
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleString('fr-FR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    };
+    
+    const isModified = updatedAt && updatedAt !== submittedAt;
+    
+    return (
+        <div className="mb-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 space-y-1">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                        <span className="font-semibold">Première soumission :</span> {formatDate(submittedAt)}
+                    </p>
+                    {isModified && (
+                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                            <span className="font-semibold">Dernière modification :</span> {formatDate(updatedAt)}
+                            {modificationsCount && modificationsCount > 0 && (
+                                <span className="ml-2 text-xs bg-blue-200 dark:bg-blue-800 px-2 py-0.5 rounded-full">
+                                    {modificationsCount} modification{modificationsCount > 1 ? 's' : ''}
+                                </span>
+                            )}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+});
+
 const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; hasExistingSubmission: boolean; }>(({ onEmailCheck, email, onEmailChange, isChecking, hasExistingSubmission }) => (
     <div className="w-full max-w-md mx-auto py-4">
         <div className="text-center mb-8">
@@ -192,12 +232,13 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
     </>
 ));
 
-const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification }) => {
+const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount }) => {
     const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
     
     return (
     <>
         <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
+        <SubmissionInfoBanner submittedAt={submittedAt} updatedAt={updatedAt} modificationsCount={modificationsCount} />
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités {isModification && '(Modification)'}</CardTitle>
@@ -352,6 +393,7 @@ const AvailabilityForm: React.FC = () => {
     const [availabilities, setAvailabilities] = useState<AvailabilityData>({});
     const [existingSubmissionId, setExistingSubmissionId] = useState<string | null>(null);
     const [hasExistingSubmission, setHasExistingSubmission] = useState(false);
+    const [submissionTimestamps, setSubmissionTimestamps] = useState<{ submittedAt?: string; updatedAt?: string; modificationsCount?: number }>({});
     
     const formSteps = ["Identification", "Disponibilités", "Confirmation"];
     const { setDebugData } = useDebug();
@@ -455,6 +497,13 @@ const AvailabilityForm: React.FC = () => {
                     remarque_generale: existingSubmission.remarque_generale || ''
                 }));
                 
+                // Charger les timestamps
+                setSubmissionTimestamps({
+                    submittedAt: existingSubmission.submitted_at,
+                    updatedAt: existingSubmission.updated_at,
+                    modificationsCount: existingSubmission.historique_modifications?.length || 0
+                });
+                
                 // Charger les disponibilités existantes
                 const existingAvailabilities: AvailabilityData = {};
                 if (existingSubmission.historique_disponibilites && Array.isArray(existingSubmission.historique_disponibilites)) {
@@ -532,6 +581,7 @@ const AvailabilityForm: React.FC = () => {
         setFoundSurveillant(null);
         setExistingSubmissionId(null);
         setHasExistingSubmission(false);
+        setSubmissionTimestamps({});
         toast('Formulaire réinitialisé.', { icon: '🔄' });
         setStep(0);
     };
@@ -545,7 +595,7 @@ const AvailabilityForm: React.FC = () => {
             case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} onEmailChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
-            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} />;
+            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} />;
             case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
             case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
             default: return null;
