@@ -276,14 +276,6 @@ const SurveillantsPage: React.FC = () => {
         }
     };
 
-    const toggleSelectAll = useCallback(() => {
-        if (selectedIds.size === paginatedSurveillants.length) {
-            setSelectedIds(new Set());
-        } else {
-            setSelectedIds(new Set(paginatedSurveillants.map(s => s.id)));
-        }
-    }, [selectedIds.size, paginatedSurveillants]);
-
     const toggleSelectOne = useCallback((id: string) => {
         setSelectedIds(prev => {
             const newSet = new Set(prev);
@@ -365,6 +357,13 @@ const SurveillantsPage: React.FC = () => {
         );
     }, [filteredAndSortedSurveillants, currentPage]);
 
+    const toggleSelectAll = useCallback(() => {
+        if (selectedIds.size === paginatedSurveillants.length && paginatedSurveillants.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(paginatedSurveillants.map(s => s.id)));
+        }
+    }, [selectedIds.size, paginatedSurveillants]);
 
     return (
         <div className="space-y-6">
