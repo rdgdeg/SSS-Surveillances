@@ -512,7 +512,7 @@ const SurveillantsPage: React.FC = () => {
                     {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
                     : <div className="border rounded-lg dark:border-gray-700 overflow-hidden shadow-sm">
                         <div className="overflow-x-auto max-h-[calc(100vh-400px)]">
-                            <table className="w-full table-auto"
+                            <table className="w-full table-auto">
                             <colgroup>
                                 <col style={{ width: '3%' }} />
                                 <col style={{ width: '18%' }} />
