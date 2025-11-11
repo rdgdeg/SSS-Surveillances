@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../shared/Button';
@@ -22,6 +22,7 @@ const AdminLayout: React.FC = () => {
         { to: 'surveillants', label: 'Surveillants', icon: Users },
         { to: 'creneaux', label: 'Créneaux', icon: Clock },
         { to: 'disponibilites', label: 'Disponibilités', icon: FileText },
+        { to: 'statistiques', label: 'Statistiques', icon: BarChart3 },
         { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList },
         { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare },
         { to: 'messages', label: 'Messages', icon: MessageSquare },
