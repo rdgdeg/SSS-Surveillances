@@ -1,16 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Creneau, SoumissionDisponibilite, SurveillantTypeLabels } from '../../types';
-import { getDisponibilitesData } from '../../lib/api';
+import { getDisponibilitesData, updateSoumissionDisponibilites } from '../../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/shared/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
 import { Input } from '../../components/shared/Input';
 import { CheckIcon } from '../../components/icons/CheckIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import { MinusIcon } from '../../components/icons/MinusIcon';
-import { Filter, FileText, Search, Loader2, List, Columns } from 'lucide-react';
+import { Filter, FileText, Search, Loader2, List, Columns, Edit } from 'lucide-react';
 import { Badge } from '../../components/shared/Badge';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import { Button } from '../../components/shared/Button';
+import toast from 'react-hot-toast';
 
 interface DisponibilitesData {
     creneaux: Creneau[];
@@ -26,7 +27,14 @@ const initialData: DisponibilitesData = {
 
 type ViewMode = 'creneau' | 'surveillant';
 
-const CreneauView: React.FC<{ creneaux: Creneau[]; soumissions: SoumissionDisponibilite[]; availabilityMap: Map<string, any> }> = ({ creneaux, soumissions, availabilityMap }) => {
+const CreneauView: React.FC<{ 
+    creneaux: Creneau[]; 
+    soumissions: SoumissionDisponibilite[]; 
+    availabilityMap: Map<string, any>;
+    editMode: boolean;
+    updatingCell: string | null;
+    onToggle: (submission: SoumissionDisponibilite, creneauId: string) => void;
+}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle }) => {
     const stats = useMemo(() => {
         const creneauStats = new Map<string, number>();
         creneaux.forEach(creneau => {
@@ -61,11 +69,29 @@ const CreneauView: React.FC<{ creneaux: Creneau[]; soumissions: SoumissionDispon
                             </td>
                             {soumissions.map(submission => {
                                 const key = `${submission.surveillant_id ?? submission.email}-${creneau.id}`;
+                                const cellKey = `${submission.id}-${creneau.id}`;
                                 const availability = availabilityMap.get(key);
                                 const Icon = availability ? (availability.est_disponible ? CheckIcon : XIcon) : MinusIcon;
                                 const colorClass = availability ? (availability.est_disponible ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : 'text-gray-400';
                                 const bgClass = availability ? (availability.est_disponible ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30') : 'bg-gray-50/50 dark:bg-gray-800/30';
-                                return <td key={submission.id} className={`px-6 py-3 text-sm ${bgClass}`}><div className="flex justify-center"><Icon className={`h-5 w-5 ${colorClass}`} /></div></td>;
+                                const isUpdating = updatingCell === cellKey;
+                                
+                                return (
+                                    <td 
+                                        key={submission.id} 
+                                        className={`px-6 py-3 text-sm ${bgClass} ${editMode ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''}`}
+                                        onClick={() => editMode && onToggle(submission, creneau.id)}
+                                        title={editMode ? 'Cliquer pour modifier' : ''}
+                                    >
+                                        <div className="flex justify-center">
+                                            {isUpdating ? (
+                                                <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+                                            ) : (
+                                                <Icon className={`h-5 w-5 ${colorClass}`} />
+                                            )}
+                                        </div>
+                                    </td>
+                                );
                             })}
                         </tr>
                     )})}
@@ -75,7 +101,14 @@ const CreneauView: React.FC<{ creneaux: Creneau[]; soumissions: SoumissionDispon
     );
 };
 
-const SurveillantView: React.FC<{ creneaux: Creneau[]; soumissions: SoumissionDisponibilite[]; availabilityMap: Map<string, any> }> = ({ creneaux, soumissions, availabilityMap }) => {
+const SurveillantView: React.FC<{ 
+    creneaux: Creneau[]; 
+    soumissions: SoumissionDisponibilite[]; 
+    availabilityMap: Map<string, any>;
+    editMode: boolean;
+    updatingCell: string | null;
+    onToggle: (submission: SoumissionDisponibilite, creneauId: string) => void;
+}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle }) => {
     return (
         <div className="overflow-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
@@ -100,10 +133,26 @@ const SurveillantView: React.FC<{ creneaux: Creneau[]; soumissions: SoumissionDi
                             </td>
                             {creneaux.map(creneau => {
                                 const key = `${submission.surveillant_id ?? submission.email}-${creneau.id}`;
+                                const cellKey = `${submission.id}-${creneau.id}`;
                                 const availability = availabilityMap.get(key);
                                 const Icon = availability ? (availability.est_disponible ? CheckIcon : XIcon) : MinusIcon;
                                 const colorClass = availability ? (availability.est_disponible ? 'text-green-600' : 'text-red-600') : 'text-gray-400';
-                                return <td key={creneau.id} className="px-6 py-3 text-sm text-center"><Icon className={`h-5 w-5 mx-auto ${colorClass}`} /></td>;
+                                const isUpdating = updatingCell === cellKey;
+                                
+                                return (
+                                    <td 
+                                        key={creneau.id} 
+                                        className={`px-6 py-3 text-sm text-center ${editMode ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''}`}
+                                        onClick={() => editMode && onToggle(submission, creneau.id)}
+                                        title={editMode ? 'Cliquer pour modifier' : ''}
+                                    >
+                                        {isUpdating ? (
+                                            <Loader2 className="h-5 w-5 mx-auto animate-spin text-indigo-500" />
+                                        ) : (
+                                            <Icon className={`h-5 w-5 mx-auto ${colorClass}`} />
+                                        )}
+                                    </td>
+                                );
                             })}
                         </tr>
                     )})}
@@ -115,12 +164,56 @@ const SurveillantView: React.FC<{ creneaux: Creneau[]; soumissions: SoumissionDi
 
 
 const DisponibilitesPage: React.FC = () => {
-    const { data, isLoading } = useDataFetching(getDisponibilitesData, initialData);
+    const { data, isLoading, refetch } = useDataFetching(getDisponibilitesData, initialData);
     const { creneaux, soumissions, activeSessionName } = data;
     
     const [viewMode, setViewMode] = useState<ViewMode>('creneau');
     const [filterType, setFilterType] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [editMode, setEditMode] = useState<boolean>(false);
+    const [updatingCell, setUpdatingCell] = useState<string | null>(null);
+
+    const handleToggleAvailability = async (submission: SoumissionDisponibilite, creneauId: string) => {
+        if (!editMode) return;
+        
+        const cellKey = `${submission.id}-${creneauId}`;
+        setUpdatingCell(cellKey);
+
+        try {
+            // Trouver la disponibilité actuelle
+            const currentAvail = submission.historique_disponibilites.find(h => h.creneau_id === creneauId);
+            
+            // Créer le nouvel historique
+            let newHistorique;
+            if (currentAvail) {
+                // Toggle la disponibilité existante
+                newHistorique = submission.historique_disponibilites.map(h =>
+                    h.creneau_id === creneauId
+                        ? { ...h, est_disponible: !h.est_disponible }
+                        : h
+                );
+            } else {
+                // Ajouter une nouvelle disponibilité
+                newHistorique = [
+                    ...submission.historique_disponibilites,
+                    { creneau_id: creneauId, est_disponible: true }
+                ];
+            }
+
+            // Mettre à jour dans la base de données
+            await updateSoumissionDisponibilites(submission.id, newHistorique);
+            
+            // Rafraîchir les données
+            await refetch();
+            
+            toast.success('Disponibilité mise à jour');
+        } catch (error) {
+            console.error('Error updating availability:', error);
+            toast.error('Erreur lors de la mise à jour');
+        } finally {
+            setUpdatingCell(null);
+        }
+    };
 
     const availabilityMap = useMemo(() => {
         const map = new Map<string, { est_disponible: boolean }>();
@@ -168,6 +261,16 @@ const DisponibilitesPage: React.FC = () => {
                 </CardDescription>
                 <div className="flex flex-wrap items-center gap-4 pt-4 border-t dark:border-gray-700 mt-4">
                     <div className="flex items-center gap-2">
+                        <Button 
+                            variant={editMode ? 'default' : 'outline'} 
+                            onClick={() => setEditMode(!editMode)}
+                            className={editMode ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                        >
+                            <Edit className="h-4 w-4 mr-2"/>
+                            {editMode ? 'Mode Édition Actif' : 'Activer Édition'}
+                        </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
                         <label className="text-sm font-medium shrink-0">Vue:</label>
                         <div className="inline-flex rounded-md shadow-sm">
                             <Button variant={viewMode === 'creneau' ? 'default' : 'outline'} onClick={() => setViewMode('creneau')} className="rounded-r-none"><Columns className="h-4 w-4 mr-2"/>Par Créneau</Button>
@@ -195,12 +298,35 @@ const DisponibilitesPage: React.FC = () => {
                 </div>
             </CardHeader>
             <CardContent>
+                {editMode && (
+                    <div className="mb-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 p-3 rounded-lg flex items-start gap-3">
+                        <Edit className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <h4 className="font-semibold">Mode Édition Actif</h4>
+                            <p className="text-sm">Cliquez sur une cellule pour basculer entre disponible (✓) et indisponible (✗). Les modifications sont sauvegardées immédiatement.</p>
+                        </div>
+                    </div>
+                )}
                 {creneaux.length === 0 || filteredSoumissions.length === 0 ? (
                      <div className="text-center py-16 text-gray-500"><p>Aucune donnée à afficher pour la session et les filtres actuels.</p></div>
                 ) : (
                     viewMode === 'creneau'
-                        ? <CreneauView creneaux={creneaux} soumissions={filteredSoumissions} availabilityMap={availabilityMap} />
-                        : <SurveillantView creneaux={creneaux} soumissions={filteredSoumissions} availabilityMap={availabilityMap} />
+                        ? <CreneauView 
+                            creneaux={creneaux} 
+                            soumissions={filteredSoumissions} 
+                            availabilityMap={availabilityMap}
+                            editMode={editMode}
+                            updatingCell={updatingCell}
+                            onToggle={handleToggleAvailability}
+                          />
+                        : <SurveillantView 
+                            creneaux={creneaux} 
+                            soumissions={filteredSoumissions} 
+                            availabilityMap={availabilityMap}
+                            editMode={editMode}
+                            updatingCell={updatingCell}
+                            onToggle={handleToggleAvailability}
+                          />
                 )}
             </CardContent>
         </Card>

@@ -311,3 +311,14 @@ export async function updateSoumissionRemark(id: string, remarque_generale: stri
     if (error) throw error;
     return data;
 }
+
+export async function updateSoumissionDisponibilites(id: string, historique_disponibilites: any[]): Promise<SoumissionDisponibilite> {
+    const { data, error } = await supabase
+        .from('soumissions_disponibilites')
+        .update({ historique_disponibilites })
+        .eq('id', id)
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
