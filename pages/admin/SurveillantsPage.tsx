@@ -193,8 +193,22 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
     );
 };
 
-const SurveillantRow = memo<{ surveillant: Surveillant; onEdit: (s: Surveillant) => void; onDelete: (s: Surveillant) => void }>(({ surveillant, onEdit, onDelete }) => (
-    <tr className={`transition-opacity odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-gray-800 ${!surveillant.is_active ? 'opacity-60' : ''}`}>
+const SurveillantRow = memo<{ 
+    surveillant: Surveillant; 
+    isSelected: boolean;
+    onToggleSelect: (id: string) => void;
+    onEdit: (s: Surveillant) => void; 
+    onDelete: (s: Surveillant) => void 
+}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete }) => (
+    <tr className={`transition-opacity odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-gray-800 ${!surveillant.is_active ? 'opacity-60' : ''} ${isSelected ? 'bg-indigo-100 dark:bg-indigo-900/30' : ''}`}>
+        <td className="px-6 py-3 whitespace-nowrap text-sm">
+            <input 
+                type="checkbox" 
+                checked={isSelected}
+                onChange={() => onToggleSelect(surveillant.id)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+        </td>
         <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.nom.toUpperCase()} {surveillant.prenom}</td>
         <td className="px-6 py-3 whitespace-nowrap truncate text-sm">{surveillant.email}</td>
         <td className="px-6 py-3 whitespace-nowrap text-sm">{SurveillantTypeLabels[surveillant.type]}</td>
@@ -216,8 +230,10 @@ const SurveillantsPage: React.FC = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+    const [isConfirmBulkDeleteOpen, setIsConfirmBulkDeleteOpen] = useState(false);
     const [selectedSurveillant, setSelectedSurveillant] = useState<Surveillant | null>(null);
     const [surveillantToDelete, setSurveillantToDelete] = useState<Surveillant | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [filters, setFilters] = useState({ type: 'all', active: 'all', faculte: 'all', sort: 'nom-asc' });
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -257,6 +273,58 @@ const SurveillantsPage: React.FC = () => {
         } finally {
             setIsConfirmDeleteOpen(false);
             setSurveillantToDelete(null);
+        }
+    };
+
+    const toggleSelectAll = useCallback(() => {
+        if (selectedIds.size === paginatedSurveillants.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(paginatedSurveillants.map(s => s.id)));
+        }
+    }, [selectedIds.size, paginatedSurveillants]);
+
+    const toggleSelectOne = useCallback((id: string) => {
+        setSelectedIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        
+        try {
+            let deleted = 0;
+            let failed = 0;
+            
+            for (const id of selectedIds) {
+                try {
+                    await deleteSurveillant(id);
+                    deleted++;
+                } catch (error) {
+                    failed++;
+                    console.error('Erreur suppression:', id, error);
+                }
+            }
+            
+            if (deleted > 0) {
+                toast.success(`${deleted} surveillant(s) supprimé(s)${failed > 0 ? `, ${failed} échec(s)` : ''}`);
+            } else {
+                toast.error("Aucun surveillant n'a pu être supprimé.");
+            }
+            
+            setSelectedIds(new Set());
+            refetch();
+        } catch (error) {
+            toast.error("Erreur lors de la suppression en bloc.");
+        } finally {
+            setIsConfirmBulkDeleteOpen(false);
         }
     };
     
@@ -322,6 +390,15 @@ const SurveillantsPage: React.FC = () => {
                             <CardDescription>Ajoutez, modifiez et consultez la liste des surveillants.</CardDescription>
                         </div>
                         <div className="flex gap-2">
+                             {selectedIds.size > 0 && (
+                                 <Button 
+                                     variant="destructive" 
+                                     onClick={() => setIsConfirmBulkDeleteOpen(true)}
+                                 >
+                                     <Trash2 className="mr-2 h-4 w-4" /> 
+                                     Supprimer ({selectedIds.size})
+                                 </Button>
+                             )}
                              <Button variant="outline" onClick={() => setIsImportOpen(true)}><Upload className="mr-2 h-4 w-4" /> Importer</Button>
                              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                                  <DialogTrigger asChild><Button onClick={() => setSelectedSurveillant(null)}><PlusCircle className="mr-2 h-4 w-4" /> Ajouter</Button></DialogTrigger>
@@ -393,8 +470,9 @@ const SurveillantsPage: React.FC = () => {
                     : <div className="border rounded-lg dark:border-gray-700 overflow-x-auto">
                         <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-700">
                             <colgroup>
-                                <col style={{ width: '22%' }} />
-                                <col style={{ width: '22%' }} />
+                                <col style={{ width: '4%' }} />
+                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '20%' }} />
                                 <col style={{ width: '10%' }} />
                                 <col style={{ width: '8%' }} />
                                 <col style={{ width: '8%' }} />
@@ -405,6 +483,14 @@ const SurveillantsPage: React.FC = () => {
                             </colgroup>
                             <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedIds.size === paginatedSurveillants.length && paginatedSurveillants.length > 0}
+                                            onChange={toggleSelectAll}
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                    </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nom</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
@@ -417,7 +503,16 @@ const SurveillantsPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                                {paginatedSurveillants.map(s => <SurveillantRow key={s.id} surveillant={s} onEdit={handleEdit} onDelete={openDeleteConfirmation} />)}
+                                {paginatedSurveillants.map(s => (
+                                    <SurveillantRow 
+                                        key={s.id} 
+                                        surveillant={s} 
+                                        isSelected={selectedIds.has(s.id)}
+                                        onToggleSelect={toggleSelectOne}
+                                        onEdit={handleEdit} 
+                                        onDelete={openDeleteConfirmation} 
+                                    />
+                                ))}
                             </tbody>
                         </table>
                     </div>}
@@ -455,6 +550,17 @@ const SurveillantsPage: React.FC = () => {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsConfirmDeleteOpen(false)}>Annuler</Button>
                         <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Supprimer</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isConfirmBulkDeleteOpen} onOpenChange={setIsConfirmBulkDeleteOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="text-red-500" />Confirmer la suppression en bloc</DialogTitle></DialogHeader>
+                    <p>Vous êtes sur le point de supprimer <strong>{selectedIds.size} surveillant(s)</strong>. Cette action est irréversible.</p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsConfirmBulkDeleteOpen(false)}>Annuler</Button>
+                        <Button onClick={handleBulkDelete} className="bg-red-600 hover:bg-red-700">Supprimer tout</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
