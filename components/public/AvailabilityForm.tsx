@@ -59,43 +59,64 @@ const Stepper: React.FC<{ currentStep: number; steps: string[] }> = memo(({ curr
 });
 
 const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; }>(({ onEmailCheck, email, onEmailChange, isChecking }) => (
-    <div>
+    <div className="w-full max-w-md mx-auto py-4">
         <div className="text-center mb-8">
-            <Users className="inline-block h-12 w-12 text-indigo-600 dark:text-indigo-400" />
-            <h1 className="text-3xl font-bold mt-4">Déclaration de Disponibilités</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Commencez par vérifier votre email pour pré-remplir vos informations.</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">Déclaration de Disponibilités</h1>
         </div>
-        <Card className="max-w-lg mx-auto overflow-hidden">
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-8 text-white text-center">
-                <Mail className="h-12 w-12 mx-auto mb-4" />
-                <h2 className="text-2xl font-semibold">Vérification de votre email</h2>
-                <p className="opacity-90 mt-2 text-sm">Saisissez votre adresse email UCLouvain pour commencer.</p>
+        
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-indigo-100/50 dark:shadow-indigo-900/20 p-6 md:p-8 space-y-6">
+            <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 mb-4">
+                    <Mail className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Vérifiez votre email UCLouvain</h2>
             </div>
-            <CardContent className="p-6">
-                <form onSubmit={onEmailCheck} className="space-y-5">
-                    <div>
-                        <label htmlFor="email-check" className="block text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">Adresse email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <Input id="email-check" name="email" type="email" placeholder="votre.nom@uclouvain.be" value={email} onChange={onEmailChange} required className="pl-10" />
-                        </div>
-                    </div>
-                    <Button type="submit" className="w-full text-base py-2.5" disabled={isChecking}>
-                        {isChecking ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Search className="mr-2 h-5 w-5" />}
-                        Vérifier mon email
-                    </Button>
-                </form>
-            </CardContent>
-            <CardFooter className="p-6 pt-0">
-                <div className="w-full bg-indigo-50 dark:bg-gray-800 border border-indigo-200 dark:border-gray-700 rounded-lg p-4 flex items-start space-x-3">
-                    <Lightbulb className="h-5 w-5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <h3 className="font-semibold text-indigo-800 dark:text-indigo-300">Conseil</h3>
-                        <p className="text-sm text-indigo-700 dark:text-gray-300 mt-1">Utilisez votre adresse email officielle UCLouvain (@uclouvain.be) pour que nous puissions récupérer vos informations.</p>
+
+            <form onSubmit={onEmailCheck} className="space-y-5">
+                <div>
+                    <label htmlFor="email-check" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Adresse email</label>
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                        <Input 
+                            id="email-check" 
+                            name="email" 
+                            type="email" 
+                            placeholder="votre.nom@uclouvain.be" 
+                            value={email} 
+                            onChange={onEmailChange} 
+                            required 
+                            className="pl-10 h-12 text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
+                        />
                     </div>
                 </div>
-            </CardFooter>
-        </Card>
+                
+                <Button 
+                    type="submit" 
+                    className="w-full h-12 text-base font-medium bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all" 
+                    disabled={isChecking}
+                >
+                    {isChecking ? (
+                        <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Vérification en cours...
+                        </>
+                    ) : (
+                        <>
+                            <Search className="mr-2 h-5 w-5" />
+                            Vérifier mon email
+                        </>
+                    )}
+                </Button>
+            </form>
+
+            <div className="border-l-4 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-r-lg p-4 flex items-start space-x-3">
+                <Lightbulb className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Conseil</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Utilisez votre adresse email officielle UCLouvain (@uclouvain.be) pour récupérer automatiquement vos informations.</p>
+                </div>
+            </div>
+        </div>
     </div>
 ));
 

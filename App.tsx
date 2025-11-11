@@ -108,7 +108,7 @@ const App: React.FC = () => {
 
 const HomePage: React.FC = () => {
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 min-h-[calc(100vh-200px)] bg-gradient-to-br from-indigo-50/30 via-purple-50/30 to-pink-50/30 dark:from-gray-900/30 dark:via-indigo-950/30 dark:to-purple-950/30 -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             <div className="md:flex md:items-center md:justify-between">
                 <div className="min-w-0 flex-1">
                     <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">Portail de Gestion des Surveillances</h2>
