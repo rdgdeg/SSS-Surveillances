@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/shared/Card';
 import { Button } from '../../components/shared/Button';
-import { Loader2, CheckCircle, XCircle, AlertCircle, Mail, UserX, UserCheck } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle, Mail, UserX, UserCheck, Copy, Download } from 'lucide-react';
 import { getSurveillants, getSubmissionStatusData, updateSurveillant } from '../../lib/api';
 import { Surveillant, SurveillantType, SoumissionDisponibilite } from '../../types';
 import toast from 'react-hot-toast';
@@ -106,6 +106,29 @@ const SuiviSoumissionsPage: React.FC = () => {
         }
     });
 
+    const exportEmails = () => {
+        const emails = filteredSurveillants.map(s => s.email).join('; ');
+        navigator.clipboard.writeText(emails).then(() => {
+            toast.success(`${filteredSurveillants.length} email(s) copié(s) dans le presse-papiers`);
+        }).catch(() => {
+            toast.error('Erreur lors de la copie');
+        });
+    };
+
+    const downloadEmailsAsText = () => {
+        const emails = filteredSurveillants.map(s => s.email).join('\n');
+        const blob = new Blob([emails], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `emails-${filter}-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Fichier téléchargé');
+    };
+
     const stats = {
         total: surveillants.length,
         submitted: surveillants.filter(s => s.hasSubmitted).length,
@@ -193,7 +216,29 @@ const SuiviSoumissionsPage: React.FC = () => {
             {/* Filtres */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Filtrer par statut</CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Filtrer par statut</CardTitle>
+                        {filteredSurveillants.length > 0 && (
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={exportEmails}
+                                >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Copier les emails ({filteredSurveillants.length})
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={downloadEmailsAsText}
+                                >
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Télécharger
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-wrap gap-2">
@@ -279,7 +324,7 @@ const SuiviSoumissionsPage: React.FC = () => {
                                         <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                                             <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="font-medium text-gray-900 dark:text-white">
-                                                    {s.prenom} {s.nom}
+                                                    {s.nom.toUpperCase()} {s.prenom}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
