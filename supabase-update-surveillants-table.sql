@@ -20,14 +20,19 @@ ADD COLUMN IF NOT EXISTS type_occupation TEXT,
 ADD COLUMN IF NOT EXISTS telephone TEXT,
 ADD COLUMN IF NOT EXISTS quota_surveillances INTEGER;
 
--- Renommer l'ancienne colonne etp si elle existe
+-- Renommer l'ancienne colonne etp si elle existe et que etp_total n'existe pas
 DO $$ 
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns 
-               WHERE table_name = 'surveillants' AND column_name = 'etp') THEN
+               WHERE table_name = 'surveillants' AND column_name = 'etp')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE table_name = 'surveillants' AND column_name = 'etp_total') THEN
         ALTER TABLE surveillants RENAME COLUMN etp TO etp_total;
     END IF;
 END $$;
+
+-- Supprimer l'ancienne colonne etp si etp_total existe déjà
+ALTER TABLE surveillants DROP COLUMN IF EXISTS etp;
 
 -- Supprimer l'ancienne colonne quota_defaut si elle existe
 ALTER TABLE surveillants DROP COLUMN IF EXISTS quota_defaut;

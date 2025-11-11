@@ -48,11 +48,24 @@ Exécutez le script `supabase-update-surveillants-table.sql` dans Supabase SQL E
 
 ### 2. Insérer les données des surveillants
 
+#### 2a. Insérer les assistants
+
 Exécutez le script `supabase-insert-surveillants.sql` dans Supabase SQL Editor :
 
 ```sql
--- Ce script va insérer les 93 surveillants du fichier CSV
+-- Ce script va insérer les 93 assistants du fichier CSV
 -- avec toutes leurs informations
+-- Quota calculé automatiquement : 6 × ETP total
+```
+
+#### 2b. Insérer les PAT
+
+Exécutez le script `supabase-insert-pat.sql` dans Supabase SQL Editor :
+
+```sql
+-- Ce script va insérer les 75 PAT du fichier CSV
+-- avec toutes leurs informations
+-- Quota par défaut = 0 (à ajuster manuellement)
 ```
 
 ## 📥 Import via l'interface web
@@ -103,27 +116,75 @@ Vous pouvez ensuite ajuster ce quota manuellement si nécessaire.
 
 ## 📊 Données importées
 
-Le fichier CSV contient **93 surveillants** de type assistant avec :
+### Assistants (93 personnes)
+Le fichier `supabase-insert-surveillants.sql` contient **93 surveillants** de type assistant avec :
 - Toutes les facultés (FASB, FSP, MEDE, ASS, FSM)
 - Différents instituts (LDRI, IRSS, IREC, IONS, DDUV, IPSY, IACS, IMCN)
 - Différents ETP (de 0.15 à 1.0)
-- Quotas calculés (de 1 à 6 surveillances)
+- Quotas calculés automatiquement (de 1 à 6 surveillances selon ETP)
 - Informations sur les absences et congés maternité
+
+### PAT - Personnel Administratif et Technique (75 personnes)
+Le fichier `supabase-insert-pat.sql` contient **75 PAT** avec :
+- Toutes les facultés (FASB, FSP, MEDE, ASS, FSM)
+- Différents ETP (de 0.35 à 1.0)
+- **Quota par défaut = 0** (à ajuster manuellement si nécessaire)
+- Informations sur les crédits temps, mi-temps médicaux, etc.
 
 ## 🔍 Vérification
 
 Après l'import, vérifiez dans Supabase :
 
 1. **Table Editor** → `surveillants`
-2. Vous devriez voir 93 lignes
+2. Vous devriez voir **168 lignes** au total :
+   - 93 assistants (type = 'assistant')
+   - 75 PAT (type = 'pat')
 3. Toutes les colonnes doivent être remplies (sauf téléphone)
-4. Les quotas doivent être calculés correctement
+4. Les quotas doivent être :
+   - Assistants : calculés automatiquement (1 à 6 selon ETP)
+   - PAT : 0 par défaut
+
+Vous pouvez exécuter cette requête pour vérifier :
+```sql
+SELECT 
+    type,
+    COUNT(*) as nombre,
+    SUM(CASE WHEN quota_surveillances > 0 THEN 1 ELSE 0 END) as avec_quota,
+    AVG(quota_surveillances) as quota_moyen
+FROM surveillants
+GROUP BY type
+ORDER BY type;
+```
 
 ## 📝 Prochaines étapes
 
-1. ✅ Exécuter `supabase-update-surveillants-table.sql`
-2. ✅ Exécuter `supabase-insert-surveillants.sql`
-3. ⏳ Compléter les numéros de téléphone manuellement
-4. ⏳ Ajuster les quotas si nécessaire
-5. ⏳ Créer une session et des créneaux
-6. ⏳ Tester la soumission des disponibilités
+1. ✅ Exécuter `supabase-update-policies.sql` (corriger les politiques RLS)
+2. ✅ Exécuter `supabase-update-surveillants-table.sql` (ajouter les colonnes)
+3. ✅ Exécuter `supabase-insert-surveillants.sql` (93 assistants)
+4. ✅ Exécuter `supabase-insert-pat.sql` (75 PAT)
+5. ⏳ Compléter les numéros de téléphone manuellement
+6. ⏳ Ajuster les quotas des PAT si nécessaire (par défaut = 0)
+7. ⏳ Créer une session et des créneaux
+8. ⏳ Tester la soumission des disponibilités
+
+## 💡 Notes importantes
+
+### Différence Assistant vs PAT
+
+- **Assistants** : Quota calculé automatiquement (6 × ETP)
+  - Exemple : ETP 1.0 → 6 surveillances, ETP 0.5 → 3 surveillances
+  
+- **PAT** : Quota par défaut = 0
+  - Les PAT ne sont pas obligés de faire des surveillances
+  - Vous pouvez ajuster manuellement leur quota s'ils souhaitent participer
+
+### Ajustement des quotas
+
+Pour ajuster le quota d'un PAT qui souhaite participer :
+```sql
+UPDATE surveillants 
+SET quota_surveillances = 3 
+WHERE email = 'exemple@uclouvain.be';
+```
+
+Ou utilisez l'interface d'administration pour modifier individuellement.
