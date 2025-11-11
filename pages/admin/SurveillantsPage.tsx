@@ -198,8 +198,9 @@ const SurveillantRow = memo<{
     isSelected: boolean;
     onToggleSelect: (id: string) => void;
     onEdit: (s: Surveillant) => void; 
-    onDelete: (s: Surveillant) => void 
-}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete }) => (
+    onDelete: (s: Surveillant) => void;
+    onToggleDispense: (s: Surveillant) => void;
+}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete, onToggleDispense }) => (
     <tr className={`transition-all duration-150 hover:bg-indigo-50/50 dark:hover:bg-gray-800/50 ${!surveillant.is_active ? 'opacity-50' : ''} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}`}>
         <td className="px-3 py-2 whitespace-nowrap">
             <input 
@@ -237,13 +238,23 @@ const SurveillantRow = memo<{
         <td className="px-3 py-2 whitespace-nowrap text-xs text-center font-semibold text-indigo-600 dark:text-indigo-400">
             {surveillant.quota_surveillances ?? 0}
         </td>
+        <td className="px-3 py-2 whitespace-nowrap text-center">
+            <div className="flex justify-center">
+                <Switch 
+                    checked={!!surveillant.dispense_surveillance} 
+                    onCheckedChange={() => onToggleDispense(surveillant)}
+                />
+            </div>
+        </td>
         <td className="px-3 py-2 whitespace-nowrap text-right">
-            <div className="flex items-center justify-end gap-1">
-                <Button variant="ghost" size="sm" onClick={() => onEdit(surveillant)} className="h-7 w-7 p-0">
-                    <Edit className="h-3.5 w-3.5" />
+            <div className="flex items-center justify-end gap-1.5">
+                <Button variant="ghost" size="sm" onClick={() => onEdit(surveillant)} className="h-8 px-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20">
+                    <Edit className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Modifier</span>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(surveillant)} className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <Trash2 className="h-3.5 w-3.5" />
+                <Button variant="ghost" size="sm" onClick={() => onDelete(surveillant)} className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Supprimer</span>
                 </Button>
             </div>
         </td>
@@ -264,6 +275,7 @@ const SurveillantsPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [currentPage, setCurrentPage] = useState(1);
+    const [updatingDispenseIds, setUpdatingDispenseIds] = useState<Set<string>>(new Set());
     const ITEMS_PER_PAGE = 20;
 
     
@@ -345,6 +357,34 @@ const SurveillantsPage: React.FC = () => {
             setIsConfirmBulkDeleteOpen(false);
         }
     };
+
+    const handleToggleDispense = async (surveillant: Surveillant) => {
+        try {
+            setUpdatingDispenseIds(prev => new Set(prev).add(surveillant.id));
+            const newDispenseStatus = !surveillant.dispense_surveillance;
+            
+            await updateSurveillant(surveillant.id, {
+                dispense_surveillance: newDispenseStatus
+            });
+
+            toast.success(
+                newDispenseStatus 
+                    ? `${surveillant.prenom} ${surveillant.nom} est dispensé(e)`
+                    : `${surveillant.prenom} ${surveillant.nom} n'est plus dispensé(e)`
+            );
+            
+            refetch();
+        } catch (error) {
+            console.error('Error updating dispense status:', error);
+            toast.error('Erreur lors de la mise à jour');
+        } finally {
+            setUpdatingDispenseIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(surveillant.id);
+                return newSet;
+            });
+        }
+    };
     
     const uniqueFaculties = useMemo(() => {
         if (!surveillants) return [];
@@ -422,10 +462,10 @@ const SurveillantsPage: React.FC = () => {
                         <div className="flex gap-2">
                              {selectedIds.size > 0 && (
                                  <Button 
-                                     variant="destructive" 
+                                     variant="outline" 
                                      onClick={() => setIsConfirmBulkDeleteOpen(true)}
                                      size="sm"
-                                     className="h-9"
+                                     className="h-9 text-red-600 border-red-300 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20"
                                  >
                                      <Trash2 className="mr-1.5 h-3.5 w-3.5" /> 
                                      Supprimer ({selectedIds.size})
@@ -515,15 +555,16 @@ const SurveillantsPage: React.FC = () => {
                             <table className="w-full table-auto">
                             <colgroup>
                                 <col style={{ width: '3%' }} />
+                                <col style={{ width: '16%' }} />
                                 <col style={{ width: '18%' }} />
-                                <col style={{ width: '20%' }} />
-                                <col style={{ width: '10%' }} />
-                                <col style={{ width: '8%' }} />
-                                <col style={{ width: '8%' }} />
+                                <col style={{ width: '9%' }} />
                                 <col style={{ width: '7%' }} />
                                 <col style={{ width: '7%' }} />
-                                <col style={{ width: '7%' }} />
-                                <col style={{ width: '12%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '16%' }} />
                             </colgroup>
                             <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0 z-10">
                                 <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -543,6 +584,7 @@ const SurveillantsPage: React.FC = () => {
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">EFT T.</th>
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">EFT R.</th>
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Quota</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Dispense</th>
                                     <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -554,7 +596,8 @@ const SurveillantsPage: React.FC = () => {
                                         isSelected={selectedIds.has(s.id)}
                                         onToggleSelect={toggleSelectOne}
                                         onEdit={handleEdit} 
-                                        onDelete={openDeleteConfirmation} 
+                                        onDelete={openDeleteConfirmation}
+                                        onToggleDispense={handleToggleDispense}
                                     />
                                 ))}
                             </tbody>
