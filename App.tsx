@@ -23,6 +23,7 @@ const SurveillantsPage = lazy(() => import('./pages/admin/SurveillantsPage'));
 const CreneauxPage = lazy(() => import('./pages/admin/CreneauxPage'));
 const DisponibilitesPage = lazy(() => import('./pages/admin/DisponibilitesPage'));
 const SoumissionsPage = lazy(() => import('./pages/admin/SoumissionsPage'));
+const SuiviSoumissionsPage = lazy(() => import('./pages/admin/SuiviSoumissionsPage'));
 const MessagesPage = lazy(() => import('./pages/admin/MessagesPage'));
 
 
@@ -83,6 +84,7 @@ const AppContent: React.FC = () => {
                             <Route path="creneaux" element={<CreneauxPage />} />
                             <Route path="disponibilites" element={<DisponibilitesPage />} />
                             <Route path="soumissions" element={<SoumissionsPage />} />
+                            <Route path="suivi-soumissions" element={<SuiviSoumissionsPage />} />
                             <Route path="messages" element={<MessagesPage />} />
                         </Route>
                     </Routes>

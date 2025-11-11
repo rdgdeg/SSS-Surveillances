@@ -53,6 +53,7 @@ export interface Surveillant {
   telephone?: string;
   quota_surveillances?: number;
   is_active: boolean;
+  dispense_surveillance?: boolean;
 }
 
 export interface SoumissionDisponibilite {
