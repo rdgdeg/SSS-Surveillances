@@ -7,7 +7,7 @@ import { Input } from '../../components/shared/Input';
 import { CheckIcon } from '../../components/icons/CheckIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import { MinusIcon } from '../../components/icons/MinusIcon';
-import { Filter, FileText, Search, Loader2, List, Columns, Edit } from 'lucide-react';
+import { Filter, FileText, Search, Loader2, List, Columns, Edit, Clock, History, Calendar } from 'lucide-react';
 import { Badge } from '../../components/shared/Badge';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import { Button } from '../../components/shared/Button';
@@ -27,6 +27,174 @@ const initialData: DisponibilitesData = {
 
 type ViewMode = 'creneau' | 'surveillant';
 
+// Modal pour afficher l'historique des modifications
+const HistoryModal: React.FC<{ 
+    submission: SoumissionDisponibilite | null; 
+    onClose: () => void;
+}> = ({ submission, onClose }) => {
+    if (!submission) return null;
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleString('fr-FR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    };
+
+    const isModified = submission.updated_at && submission.updated_at !== submission.submitted_at;
+    const modificationsCount = submission.historique_modifications?.length || 0;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b dark:border-gray-700">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <History className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                                Historique des modifications
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                {submission.prenom} {submission.nom} ({submission.email})
+                            </p>
+                        </div>
+                        <button 
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        >
+                            <XIcon className="h-6 w-6" />
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
+                    {/* Informations principales */}
+                    <div className="space-y-4 mb-6">
+                        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <div>
+                                        <span className="text-sm font-semibold text-blue-900 dark:text-blue-300">Première soumission :</span>
+                                        <p className="text-sm text-blue-800 dark:text-blue-300">{formatDate(submission.submitted_at)}</p>
+                                    </div>
+                                    {isModified && (
+                                        <div>
+                                            <span className="text-sm font-semibold text-blue-900 dark:text-blue-300">Dernière modification :</span>
+                                            <p className="text-sm text-blue-800 dark:text-blue-300">{formatDate(submission.updated_at!)}</p>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <span className="text-sm font-semibold text-blue-900 dark:text-blue-300">Nombre de créneaux actuels :</span>
+                                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                                            {submission.historique_disponibilites.filter(d => d.est_disponible).length} créneau(x) sélectionné(s)
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Historique des modifications */}
+                    {modificationsCount > 0 ? (
+                        <div>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                Historique des modifications ({modificationsCount})
+                            </h4>
+                            <div className="space-y-3">
+                                {submission.historique_modifications?.map((modif, index) => (
+                                    <div 
+                                        key={index}
+                                        className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                    Modification #{modificationsCount - index}
+                                                </p>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                    {formatDate(modif.date)}
+                                                </p>
+                                            </div>
+                                            <Badge variant="default">
+                                                {modif.nb_creneaux} créneau{modif.nb_creneaux > 1 ? 'x' : ''}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                            <p className="text-sm">Aucune modification depuis la soumission initiale</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                    <Button onClick={onClose} variant="outline" className="w-full">
+                        Fermer
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Composant pour afficher les timestamps dans le tableau
+const TimestampCell: React.FC<{ 
+    submission: SoumissionDisponibilite;
+    onClick: () => void;
+}> = ({ submission, onClick }) => {
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleString('fr-FR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
+    };
+
+    const isModified = submission.updated_at && submission.updated_at !== submission.submitted_at;
+    const modificationsCount = submission.historique_modifications?.length || 0;
+
+    return (
+        <button
+            onClick={onClick}
+            className="text-left w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors p-2 rounded group"
+        >
+            <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3 text-gray-400" />
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {formatDate(submission.submitted_at)}
+                    </span>
+                </div>
+                {isModified && (
+                    <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-orange-500" />
+                        <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                            Modifié {modificationsCount > 0 && `(${modificationsCount}×)`}
+                        </span>
+                    </div>
+                )}
+            </div>
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                Voir l'historique →
+            </div>
+        </button>
+    );
+};
+
 const CreneauView: React.FC<{ 
     creneaux: Creneau[]; 
     soumissions: SoumissionDisponibilite[]; 
@@ -34,7 +202,8 @@ const CreneauView: React.FC<{
     editMode: boolean;
     updatingCell: string | null;
     onToggle: (submission: SoumissionDisponibilite, creneauId: string) => void;
-}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle }) => {
+    onShowHistory: (submission: SoumissionDisponibilite) => void;
+}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle, onShowHistory }) => {
     const stats = useMemo(() => {
         const creneauStats = new Map<string, number>();
         creneaux.forEach(creneau => {
@@ -53,7 +222,14 @@ const CreneauView: React.FC<{
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
                         <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">Créneau</th>
-                        {soumissions.map(s => <th key={s.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">{s.prenom} {s.nom}</th>)}
+                        {soumissions.map(s => (
+                            <th key={s.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">
+                                <div>{s.prenom} {s.nom}</div>
+                                <div className="mt-1 normal-case font-normal">
+                                    <TimestampCell submission={s} onClick={() => onShowHistory(s)} />
+                                </div>
+                            </th>
+                        ))}
                     </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -108,7 +284,8 @@ const SurveillantView: React.FC<{
     editMode: boolean;
     updatingCell: string | null;
     onToggle: (submission: SoumissionDisponibilite, creneauId: string) => void;
-}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle }) => {
+    onShowHistory: (submission: SoumissionDisponibilite) => void;
+}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle, onShowHistory }) => {
     return (
         <div className="overflow-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
@@ -130,6 +307,9 @@ const SurveillantView: React.FC<{
                                 <div>{submission.prenom} {submission.nom}</div>
                                 <div className="text-xs text-gray-500">{SurveillantTypeLabels[submission.type_surveillant as keyof typeof SurveillantTypeLabels]}</div>
                                 <div className="mt-1"><Badge variant="default">{availableCount} créneau{availableCount > 1 ? 'x' : ''}</Badge></div>
+                                <div className="mt-2 pt-2 border-t dark:border-gray-700">
+                                    <TimestampCell submission={submission} onClick={() => onShowHistory(submission)} />
+                                </div>
                             </td>
                             {creneaux.map(creneau => {
                                 const key = `${submission.surveillant_id ?? submission.email}-${creneau.id}`;
@@ -172,6 +352,7 @@ const DisponibilitesPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [editMode, setEditMode] = useState<boolean>(false);
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
+    const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
 
     const handleToggleAvailability = async (submission: SoumissionDisponibilite, creneauId: string) => {
         if (!editMode) return;
@@ -253,8 +434,13 @@ const DisponibilitesPage: React.FC = () => {
     }
 
     return (
-        <Card>
-            <CardHeader>
+        <>
+            <HistoryModal 
+                submission={selectedSubmission} 
+                onClose={() => setSelectedSubmission(null)} 
+            />
+            <Card>
+                <CardHeader>
                 <CardTitle className="flex items-center"><FileText className="mr-2 h-6 w-6" />Analyse des Disponibilités</CardTitle>
                 <CardDescription>
                     {activeSessionName ? `Tableau croisé pour la session : "${activeSessionName}".` : "Aucune session active. Veuillez en activer une."}
@@ -318,6 +504,7 @@ const DisponibilitesPage: React.FC = () => {
                             editMode={editMode}
                             updatingCell={updatingCell}
                             onToggle={handleToggleAvailability}
+                            onShowHistory={setSelectedSubmission}
                           />
                         : <SurveillantView 
                             creneaux={creneaux} 
@@ -326,10 +513,12 @@ const DisponibilitesPage: React.FC = () => {
                             editMode={editMode}
                             updatingCell={updatingCell}
                             onToggle={handleToggleAvailability}
+                            onShowHistory={setSelectedSubmission}
                           />
                 )}
             </CardContent>
         </Card>
+        </>
     );
 };
 
