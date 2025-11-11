@@ -29,19 +29,28 @@ export function validateEnv(): void {
   const missing = required.filter(key => !import.meta.env[key]);
 
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables:\n${missing.map(key => `  - ${key}`).join('\n')}\n\n` +
-      `Please create a .env.local file based on .env.example`
-    );
+    // In production, log warning instead of throwing to prevent blank page
+    const errorMessage = `Missing required environment variables:\n${missing.map(key => `  - ${key}`).join('\n')}\n\nPlease configure environment variables in Vercel dashboard.`;
+    
+    if (import.meta.env.MODE === 'development') {
+      throw new Error(errorMessage);
+    } else {
+      console.error(errorMessage);
+      // Don't throw in production to allow app to load with error boundary
+    }
+    return;
   }
 
   // Validate Supabase URL format
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
-    throw new Error(
-      `Invalid VITE_SUPABASE_URL format: ${supabaseUrl}\n` +
-      `Expected format: https://your-project.supabase.co`
-    );
+  if (supabaseUrl && (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co'))) {
+    const errorMessage = `Invalid VITE_SUPABASE_URL format: ${supabaseUrl}\nExpected format: https://your-project.supabase.co`;
+    
+    if (import.meta.env.MODE === 'development') {
+      throw new Error(errorMessage);
+    } else {
+      console.error(errorMessage);
+    }
   }
 }
 
