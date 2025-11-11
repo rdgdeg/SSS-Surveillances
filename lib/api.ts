@@ -51,6 +51,22 @@ export async function findSurveillantByEmail(email: string): Promise<Surveillant
     return data;
 }
 
+export async function getExistingSubmission(sessionId: string, email: string): Promise<SoumissionDisponibilite | null> {
+    const { data, error } = await supabase
+        .from('soumissions_disponibilites')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('email', email.toLowerCase())
+        .limit(1)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error finding existing submission:', error);
+        throw error;
+    }
+    return data;
+}
+
 interface SubmissionPayload {
     session_id: string;
     surveillant_id: string | null;

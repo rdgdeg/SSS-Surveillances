@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { Creneau, Session, SurveillantType, AvailabilityData, SurveillantTypeLabels, Surveillant } from '../../types';
-import { getActiveSessionWithCreneaux, findSurveillantByEmail, submitAvailability } from '../../lib/api';
+import { getActiveSessionWithCreneaux, findSurveillantByEmail, submitAvailability, getExistingSubmission } from '../../lib/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -58,7 +58,7 @@ const Stepper: React.FC<{ currentStep: number; steps: string[] }> = memo(({ curr
     );
 });
 
-const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; }>(({ onEmailCheck, email, onEmailChange, isChecking }) => (
+const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; hasExistingSubmission: boolean; }>(({ onEmailCheck, email, onEmailChange, isChecking, hasExistingSubmission }) => (
     <div className="w-full max-w-md mx-auto py-4">
         <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">Déclaration de Disponibilités</h1>
@@ -113,7 +113,12 @@ const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: stri
                 <Lightbulb className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
                 <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Conseil</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Utilisez votre adresse email officielle UCLouvain (@uclouvain.be) pour récupérer automatiquement vos informations.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {hasExistingSubmission 
+                            ? "Vous avez déjà soumis vos disponibilités. Vous pouvez les consulter et les modifier."
+                            : "Utilisez votre adresse email officielle UCLouvain (@uclouvain.be) pour récupérer automatiquement vos informations."
+                        }
+                    </p>
                 </div>
             </div>
         </div>
@@ -187,7 +192,7 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
     </>
 ));
 
-const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant }) => {
+const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification }) => {
     const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
     
     return (
@@ -195,8 +200,11 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
         <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités</CardTitle>
-                <CardDescription>Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux.</CardDescription>
+                <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités {isModification && '(Modification)'}</CardTitle>
+                <CardDescription>
+                    {isModification && <span className="text-blue-600 dark:text-blue-400 font-medium">Vous modifiez vos disponibilités existantes. </span>}
+                    Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux.
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 max-h-[60vh] overflow-y-auto pr-3">
                  <div className="space-y-4">
@@ -248,13 +256,22 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
     </>
 )});
 
-const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityFormData; selectedCount: number; creneaux: Creneau[]; availabilities: AvailabilityData; onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; onReset: () => void; onPrev: () => void; onSubmit: (e: React.FormEvent) => void; isSubmitting: boolean; }>(({ sessionName, formData, selectedCount, creneaux, availabilities, onInputChange, onReset, onPrev, onSubmit, isSubmitting }) => (
+const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityFormData; selectedCount: number; creneaux: Creneau[]; availabilities: AvailabilityData; onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; onReset: () => void; onPrev: () => void; onSubmit: (e: React.FormEvent) => void; isSubmitting: boolean; isModification: boolean; }>(({ sessionName, formData, selectedCount, creneaux, availabilities, onInputChange, onReset, onPrev, onSubmit, isSubmitting, isModification }) => (
     <>
         <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
+        {isModification && (
+            <div className="mb-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 p-3 rounded-lg flex items-start gap-3">
+                <RefreshCw className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div>
+                    <h4 className="font-semibold">Modification de vos disponibilités</h4>
+                    <p className="text-sm">Vous êtes en train de modifier vos disponibilités existantes. Les changements remplaceront votre soumission précédente.</p>
+                </div>
+            </div>
+        )}
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center"><Send className="mr-2 h-6 w-6" /> Récapitulatif et Soumission</CardTitle>
-                <CardDescription>Veuillez vérifier vos informations avant de soumettre.</CardDescription>
+                <CardTitle className="flex items-center"><Send className="mr-2 h-6 w-6" /> Récapitulatif et {isModification ? 'Modification' : 'Soumission'}</CardTitle>
+                <CardDescription>Veuillez vérifier vos informations avant de {isModification ? 'modifier' : 'soumettre'}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
@@ -287,7 +304,7 @@ const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityForm
                     <Button onClick={onPrev} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</Button>
                     <Button onClick={onSubmit} disabled={isSubmitting}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                        Soumettre mes disponibilités
+                        {isModification ? 'Mettre à jour mes disponibilités' : 'Soumettre mes disponibilités'}
                     </Button>
                 </div>
             </CardFooter>
@@ -333,6 +350,8 @@ const AvailabilityForm: React.FC = () => {
     const [foundSurveillantId, setFoundSurveillantId] = useState<string | null>(null);
     const [foundSurveillant, setFoundSurveillant] = useState<Surveillant | null>(null);
     const [availabilities, setAvailabilities] = useState<AvailabilityData>({});
+    const [existingSubmissionId, setExistingSubmissionId] = useState<string | null>(null);
+    const [hasExistingSubmission, setHasExistingSubmission] = useState(false);
     
     const formSteps = ["Identification", "Disponibilités", "Confirmation"];
     const { setDebugData } = useDebug();
@@ -416,17 +435,58 @@ const AvailabilityForm: React.FC = () => {
         e.preventDefault();
         setIsCheckingEmail(true);
         try {
-            const found = await findSurveillantByEmail(formData.email.toLowerCase().trim());
-            if (found) {
-                setFoundSurveillant(found);
-                setFormData(prev => ({ ...prev, nom: found.nom, prenom: found.prenom, type_surveillant: found.type as SurveillantType }));
-                setFoundSurveillantId(found.id);
-                toast.success('Email reconnu ! Vos informations ont été pré-remplies.');
+            if (!session) {
+                toast.error("Session non trouvée.");
+                return;
+            }
+
+            // Vérifier s'il existe une soumission existante
+            const existingSubmission = await getExistingSubmission(session.id, formData.email.toLowerCase().trim());
+            
+            if (existingSubmission) {
+                // Charger les données de la soumission existante
+                setExistingSubmissionId(existingSubmission.id);
+                setHasExistingSubmission(true);
+                setFormData(prev => ({
+                    ...prev,
+                    nom: existingSubmission.nom,
+                    prenom: existingSubmission.prenom,
+                    type_surveillant: existingSubmission.type_surveillant as SurveillantType,
+                    remarque_generale: existingSubmission.remarque_generale || ''
+                }));
+                
+                // Charger les disponibilités existantes
+                const existingAvailabilities: AvailabilityData = {};
+                if (existingSubmission.historique_disponibilites && Array.isArray(existingSubmission.historique_disponibilites)) {
+                    existingSubmission.historique_disponibilites.forEach((disp: any) => {
+                        existingAvailabilities[disp.creneau_id] = { available: disp.est_disponible };
+                    });
+                }
+                setAvailabilities(prev => ({ ...prev, ...existingAvailabilities }));
+                
+                // Vérifier si c'est aussi un surveillant enregistré
+                const found = await findSurveillantByEmail(formData.email.toLowerCase().trim());
+                if (found) {
+                    setFoundSurveillant(found);
+                    setFoundSurveillantId(found.id);
+                }
+                
+                toast.success('Vos disponibilités ont été chargées ! Vous pouvez les modifier.', { duration: 4000 });
                 setStep(2);
             } else {
-                setFoundSurveillant(null);
-                toast.error('Email non reconnu. Veuillez renseigner vos informations manuellement.');
-                setStep(-1);
+                // Pas de soumission existante, vérifier si c'est un surveillant enregistré
+                const found = await findSurveillantByEmail(formData.email.toLowerCase().trim());
+                if (found) {
+                    setFoundSurveillant(found);
+                    setFormData(prev => ({ ...prev, nom: found.nom, prenom: found.prenom, type_surveillant: found.type as SurveillantType }));
+                    setFoundSurveillantId(found.id);
+                    toast.success('Email reconnu ! Vos informations ont été pré-remplies.');
+                    setStep(2);
+                } else {
+                    setFoundSurveillant(null);
+                    toast.error('Email non reconnu. Veuillez renseigner vos informations manuellement.');
+                    setStep(-1);
+                }
             }
         } catch (error) {
             toast.error("Une erreur est survenue lors de la vérification.");
@@ -451,7 +511,10 @@ const AvailabilityForm: React.FC = () => {
                   .map(([creneauId]) => ({ creneau_id: creneauId, est_disponible: true })),
             });
             localStorage.removeItem(STORAGE_KEY);
-            toast.success('Vos disponibilités ont été soumises avec succès !');
+            const successMessage = hasExistingSubmission 
+                ? 'Vos disponibilités ont été mises à jour avec succès !' 
+                : 'Vos disponibilités ont été soumises avec succès !';
+            toast.success(successMessage);
             nextStep();
         } catch(error) {
             toast.error("Erreur lors de la soumission du formulaire.");
@@ -467,6 +530,8 @@ const AvailabilityForm: React.FC = () => {
         localStorage.removeItem(STORAGE_KEY);
         setFoundSurveillantId(null);
         setFoundSurveillant(null);
+        setExistingSubmissionId(null);
+        setHasExistingSubmission(false);
         toast('Formulaire réinitialisé.', { icon: '🔄' });
         setStep(0);
     };
@@ -477,11 +542,11 @@ const AvailabilityForm: React.FC = () => {
         const selectedCount = Object.keys(availabilities).filter(id => availabilities[id].available).length;
 
         switch (step) {
-            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} onEmailChange={handleInputChange} isChecking={isCheckingEmail} />;
-            case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setStep(0);}} onManual={() => setStep(1)} />;
+            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} onEmailChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
+            case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
-            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} />;
-            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} />;
+            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} />;
+            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
             case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
             default: return null;
         }
