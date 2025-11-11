@@ -121,8 +121,26 @@ const HomePage: React.FC = () => {
         <div className="space-y-8 min-h-[calc(100vh-200px)] bg-gradient-to-br from-indigo-50/30 via-purple-50/30 to-pink-50/30 dark:from-gray-900/30 dark:via-indigo-950/30 dark:to-purple-950/30 -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             <div className="md:flex md:items-center md:justify-between">
                 <div className="min-w-0 flex-1">
-                    <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">Portail de Gestion des Surveillances</h2>
-                    <p className="mt-1 text-gray-500 dark:text-gray-400">Bienvenue sur le portail de gestion des surveillances d'examens de l'UCLouvain.</p>
+                    <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">
+                        Portail de Gestion des Surveillances - SSS - UCLouvain
+                    </h2>
+                    <div className="mt-3 space-y-2">
+                        <p className="text-gray-700 dark:text-gray-300">
+                            Bienvenue sur le portail de gestion des surveillances d'examens.
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            Vous pouvez encoder vos disponibilités ci-dessous, revenir à tout moment pour les consulter et les modifier selon vos besoins.
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500">
+                            En cas de souci ou de question, n'hésitez pas à contacter{' '}
+                            <a 
+                                href="mailto:raphael.degand@uclouvain.be" 
+                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                            >
+                                raphael.degand@uclouvain.be
+                            </a>
+                        </p>
+                    </div>
                 </div>
                 <div className="mt-4 flex md:ml-4 md:mt-0">
                     <NavLink to="/admin">
