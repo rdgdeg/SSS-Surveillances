@@ -1,9 +1,10 @@
 
 import React, { Suspense, lazy, useEffect } from 'react';
-import { HashRouter, Routes, Route, NavLink, Outlet, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AvailabilityForm from './components/public/AvailabilityForm';
-import { University, Users, Loader2, BookOpen, UserCheck, Settings } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './components/shared/Card';
+import { Loader2, Settings } from 'lucide-react';
 import { Button } from './components/shared/Button';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import MainLayout from './components/layouts/MainLayout';
@@ -14,6 +15,8 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { DebugProvider, useDebug } from './contexts/DebugContext';
 import DebugPanel from './components/shared/DebugPanel';
+import { queryClient } from './src/lib/queryClient';
+import { env } from './src/config/env';
 
 // Lazy load admin components for code splitting
 const AdminLayout = lazy(() => import('./components/layouts/AdminLayout'));
@@ -97,14 +100,17 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <DebugProvider>
-          <AppContent />
-          <DebugPanel />
-        </DebugProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <DebugProvider>
+            <AppContent />
+            <DebugPanel />
+            {env.app.debug && <ReactQueryDevtools initialIsOpen={false} />}
+          </DebugProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
 
