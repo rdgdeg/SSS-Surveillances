@@ -200,26 +200,52 @@ const SurveillantRow = memo<{
     onEdit: (s: Surveillant) => void; 
     onDelete: (s: Surveillant) => void 
 }>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete }) => (
-    <tr className={`transition-opacity odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-gray-800 ${!surveillant.is_active ? 'opacity-60' : ''} ${isSelected ? 'bg-indigo-100 dark:bg-indigo-900/30' : ''}`}>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">
+    <tr className={`transition-all duration-150 hover:bg-indigo-50/50 dark:hover:bg-gray-800/50 ${!surveillant.is_active ? 'opacity-50' : ''} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}`}>
+        <td className="px-3 py-2 whitespace-nowrap">
             <input 
                 type="checkbox" 
                 checked={isSelected}
                 onChange={() => onToggleSelect(surveillant.id)}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
             />
         </td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.nom.toUpperCase()} {surveillant.prenom}</td>
-        <td className="px-6 py-3 whitespace-nowrap truncate text-sm">{surveillant.email}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{SurveillantTypeLabels[surveillant.type]}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.affectation_faculte || 'N/A'}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm"><Badge variant={surveillant.is_active ? 'success' : 'default'}>{surveillant.is_active ? 'Actif' : 'Inactif'}</Badge></td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.etp_total ?? '-'}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.etp_recherche ?? '-'}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-sm">{surveillant.quota_surveillances ?? 0}</td>
-        <td className="px-6 py-3 whitespace-nowrap text-right text-sm">
-            <Button variant="ghost" size="sm" onClick={() => onEdit(surveillant)}><Edit className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={() => onDelete(surveillant)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></Button>
+        <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900 dark:text-gray-100">
+            {surveillant.nom.toUpperCase()} {surveillant.prenom}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400 truncate max-w-[200px]">
+            {surveillant.email}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                {SurveillantTypeLabels[surveillant.type]}
+            </span>
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
+            {surveillant.affectation_faculte || '-'}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs">
+            <Badge variant={surveillant.is_active ? 'success' : 'default'} className="text-xs py-0">
+                {surveillant.is_active ? 'Actif' : 'Inactif'}
+            </Badge>
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-center font-mono text-gray-700 dark:text-gray-300">
+            {surveillant.etp_total ?? '-'}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-center font-mono text-gray-700 dark:text-gray-300">
+            {surveillant.etp_recherche ?? '-'}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-center font-semibold text-indigo-600 dark:text-indigo-400">
+            {surveillant.quota_surveillances ?? 0}
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap text-right">
+            <div className="flex items-center justify-end gap-1">
+                <Button variant="ghost" size="sm" onClick={() => onEdit(surveillant)} className="h-7 w-7 p-0">
+                    <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => onDelete(surveillant)} className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                    <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+            </div>
         </td>
     </tr>
 ));
@@ -382,25 +408,38 @@ const SurveillantsPage: React.FC = () => {
                 </DialogContent>
             </Dialog>
             <Card>
-                <CardHeader>
+                <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="flex items-center gap-2"><Users /> Base de données des surveillants</CardTitle>
-                            <CardDescription>Ajoutez, modifiez et consultez la liste des surveillants.</CardDescription>
+                            <CardTitle className="flex items-center gap-2 text-xl">
+                                <Users className="h-5 w-5" /> 
+                                Base de données des surveillants
+                            </CardTitle>
+                            <CardDescription className="text-xs mt-1">
+                                Ajoutez, modifiez et consultez la liste des surveillants.
+                            </CardDescription>
                         </div>
                         <div className="flex gap-2">
                              {selectedIds.size > 0 && (
                                  <Button 
                                      variant="destructive" 
                                      onClick={() => setIsConfirmBulkDeleteOpen(true)}
+                                     size="sm"
+                                     className="h-9"
                                  >
-                                     <Trash2 className="mr-2 h-4 w-4" /> 
+                                     <Trash2 className="mr-1.5 h-3.5 w-3.5" /> 
                                      Supprimer ({selectedIds.size})
                                  </Button>
                              )}
-                             <Button variant="outline" onClick={() => setIsImportOpen(true)}><Upload className="mr-2 h-4 w-4" /> Importer</Button>
+                             <Button variant="outline" onClick={() => setIsImportOpen(true)} size="sm" className="h-9">
+                                 <Upload className="mr-1.5 h-3.5 w-3.5" /> Importer
+                             </Button>
                              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                                 <DialogTrigger asChild><Button onClick={() => setSelectedSurveillant(null)}><PlusCircle className="mr-2 h-4 w-4" /> Ajouter</Button></DialogTrigger>
+                                 <DialogTrigger asChild>
+                                     <Button onClick={() => setSelectedSurveillant(null)} size="sm" className="h-9">
+                                         <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Ajouter
+                                     </Button>
+                                 </DialogTrigger>
                                  <DialogContent>
                                      <DialogHeader><DialogTitle>{selectedSurveillant ? `Modifier : ${selectedSurveillant.nom.toUpperCase()} ${selectedSurveillant.prenom}` : 'Nouveau surveillant'}</DialogTitle></DialogHeader>
                                      <SurveillantForm surveillant={selectedSurveillant} onSave={handleSave} onCancel={handleCancel} />
@@ -408,16 +447,21 @@ const SurveillantsPage: React.FC = () => {
                              </Dialog>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-4 border-t mt-4 dark:border-gray-700">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-4 border-t mt-4 dark:border-gray-700">
                         <div className="relative flex-grow min-w-[250px] max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input placeholder="Rechercher par nom, prénom, email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                            <Input 
+                                placeholder="Rechercher par nom, prénom, email..." 
+                                value={searchQuery} 
+                                onChange={e => setSearchQuery(e.target.value)} 
+                                className="pl-8 h-9 text-xs"
+                            />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Statut:</label>
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Statut:</label>
                             <Select onValueChange={v => setFilters(f => ({...f, active: v}))} defaultValue="all">
-                                <SelectTrigger className="w-[130px]"><SelectValue/></SelectTrigger>
+                                <SelectTrigger className="w-[110px] h-9 text-xs"><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Tous</SelectItem>
                                     <SelectItem value="active">Actifs</SelectItem>
@@ -426,10 +470,10 @@ const SurveillantsPage: React.FC = () => {
                             </Select>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Type:</label>
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Type:</label>
                             <Select onValueChange={v => setFilters(f => ({...f, type: v}))} defaultValue="all">
-                                <SelectTrigger className="w-[150px]"><SelectValue/></SelectTrigger>
+                                <SelectTrigger className="w-[130px] h-9 text-xs"><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Tous</SelectItem>
                                     {Object.entries(SurveillantTypeLabels).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
@@ -437,10 +481,10 @@ const SurveillantsPage: React.FC = () => {
                             </Select>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Faculté:</label>
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Faculté:</label>
                             <Select onValueChange={v => setFilters(f => ({...f, faculte: v}))} defaultValue="all">
-                                <SelectTrigger className="w-[130px]"><SelectValue/></SelectTrigger>
+                                <SelectTrigger className="w-[110px] h-9 text-xs"><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Toutes</SelectItem>
                                     {uniqueFaculties.map(fac => <SelectItem key={fac} value={fac}>{fac}</SelectItem>)}
@@ -448,17 +492,17 @@ const SurveillantsPage: React.FC = () => {
                             </Select>
                         </div>
 
-                        <div className="flex items-center gap-2 ml-auto">
-                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Trier par:</label>
+                        <div className="flex items-center gap-1.5 ml-auto">
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Trier:</label>
                             <Select onValueChange={v => setFilters(f => ({...f, sort: v}))} defaultValue="nom-asc">
-                                <SelectTrigger className="w-[180px]"><SelectValue/></SelectTrigger>
+                                <SelectTrigger className="w-[160px] h-9 text-xs"><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="nom-asc">Nom (A-Z)</SelectItem>
                                     <SelectItem value="nom-desc">Nom (Z-A)</SelectItem>
                                     <SelectItem value="prenom-asc">Prénom (A-Z)</SelectItem>
                                     <SelectItem value="prenom-desc">Prénom (Z-A)</SelectItem>
-                                    <SelectItem value="quota_surveillances-asc">Quota (Croissant)</SelectItem>
-                                    <SelectItem value="quota_surveillances-desc">Quota (Décroissant)</SelectItem>
+                                    <SelectItem value="quota_surveillances-asc">Quota ↑</SelectItem>
+                                    <SelectItem value="quota_surveillances-desc">Quota ↓</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -466,39 +510,40 @@ const SurveillantsPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
-                    : <div className="border rounded-lg dark:border-gray-700 overflow-x-auto">
-                        <table className="w-full table-auto divide-y divide-gray-200 dark:divide-gray-700">
+                    : <div className="border rounded-lg dark:border-gray-700 overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto max-h-[calc(100vh-400px)]">
+                            <table className="w-full table-auto"
                             <colgroup>
-                                <col style={{ width: '4%' }} />
-                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '3%' }} />
+                                <col style={{ width: '18%' }} />
                                 <col style={{ width: '20%' }} />
                                 <col style={{ width: '10%' }} />
                                 <col style={{ width: '8%' }} />
                                 <col style={{ width: '8%' }} />
-                                <col style={{ width: '6%' }} />
-                                <col style={{ width: '6%' }} />
-                                <col style={{ width: '6%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '7%' }} />
+                                <col style={{ width: '7%' }} />
                                 <col style={{ width: '12%' }} />
                             </colgroup>
-                            <thead className="bg-gray-50 dark:bg-gray-800">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                            <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0 z-10">
+                                <tr className="border-b border-gray-200 dark:border-gray-700">
+                                    <th className="px-3 py-2.5 text-left">
                                         <input 
                                             type="checkbox" 
                                             checked={selectedIds.size === paginatedSurveillants.length && paginatedSurveillants.length > 0}
                                             onChange={toggleSelectAll}
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
                                         />
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Nom</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Affect. fac.</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Statut</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">EFT T.</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">EFT R.</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Quota</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nom</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Faculté</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Statut</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">EFT T.</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">EFT R.</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Quota</th>
+                                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -514,19 +559,33 @@ const SurveillantsPage: React.FC = () => {
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>}
                 </CardContent>
-                <CardFooter className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                         {filteredAndSortedSurveillants.length > 0 ? `Page ${currentPage} sur ${totalPages}` : 'Aucun résultat'} ({filteredAndSortedSurveillants.length} surveillants)
-                    </span>
+                <CardFooter className="flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50 py-3">
+                    <div className="flex items-center gap-4">
+                        <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                            {filteredAndSortedSurveillants.length > 0 ? (
+                                <>
+                                    <span className="text-gray-900 dark:text-gray-100">{filteredAndSortedSurveillants.length}</span> surveillant{filteredAndSortedSurveillants.length > 1 ? 's' : ''}
+                                    {totalPages > 1 && <span className="ml-2">• Page {currentPage}/{totalPages}</span>}
+                                </>
+                            ) : 'Aucun résultat'}
+                        </span>
+                        {selectedIds.size > 0 && (
+                            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                                {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
                     {totalPages > 1 && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
+                                className="h-8 px-3 text-xs"
                             >
                                 Précédent
                             </Button>
@@ -535,6 +594,7 @@ const SurveillantsPage: React.FC = () => {
                                 size="sm"
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
+                                className="h-8 px-3 text-xs"
                             >
                                 Suivant
                             </Button>
