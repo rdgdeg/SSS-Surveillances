@@ -80,7 +80,7 @@
 
 ## Phase 5 : Page de Gestion des Créneaux
 
-- [ ] 9. Modifier la page CreneauxPage pour la capacité
+- [x] 9. Modifier la page CreneauxPage pour la capacité
   - Ajouter une colonne "Surveillants requis" dans le tableau
   - Intégrer le composant CapacityInput pour chaque créneau
   - Ajouter un indicateur visuel pour les créneaux sans capacité
@@ -119,22 +119,22 @@
 
 ## Phase 6 : Page d'Analyse des Disponibilités
 
-- [ ] 12. Ajouter le tableau de bord récapitulatif
+- [x] 12. Ajouter le tableau de bord récapitulatif
   - Intégrer le composant CapacityDashboard en haut de DisponibilitesPage
   - Calculer les statistiques globales à partir des créneaux
   - Mettre à jour les statistiques lors des changements de filtres
   - Ajouter une animation de chargement
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 13. Modifier le tableau des disponibilités
-- [ ] 13.1 Ajouter les colonnes de capacité
+- [x] 13. Modifier le tableau des disponibilités
+- [x] 13.1 Ajouter les colonnes de capacité
   - Ajouter une colonne "Requis" affichant `nb_surveillants_requis`
   - Ajouter une colonne "Disponibles" affichant le nombre de disponibilités
   - Ajouter une colonne "Taux" avec le composant FillRateIndicator
   - Gérer l'affichage pour les créneaux sans capacité définie
   - _Requirements: 2.2, 2.4_
 
-- [ ] 13.2 Ajouter les indicateurs visuels
+- [x] 13.2 Ajouter les indicateurs visuels
   - Colorer les lignes selon le statut (critique/alerte/ok)
   - Ajouter des icônes d'avertissement pour les créneaux critiques
   - Mettre en évidence les créneaux nécessitant attention

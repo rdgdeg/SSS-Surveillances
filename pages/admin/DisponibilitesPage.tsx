@@ -1,17 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { Creneau, SoumissionDisponibilite, SurveillantTypeLabels } from '../../types';
-import { getDisponibilitesData, updateSoumissionDisponibilites } from '../../lib/api';
+import { Creneau, SoumissionDisponibilite, SurveillantTypeLabels, CreneauWithStats } from '../../types';
+import { getDisponibilitesData, updateSoumissionDisponibilites, getCreneauxWithStats, calculateCapacityStats } from '../../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/shared/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
 import { Input } from '../../components/shared/Input';
 import { CheckIcon } from '../../components/icons/CheckIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import { MinusIcon } from '../../components/icons/MinusIcon';
-import { Filter, FileText, Search, Loader2, List, Columns, Edit, Clock, History, Calendar } from 'lucide-react';
+import { Filter, FileText, Search, Loader2, List, Columns, Edit, Clock, History, Calendar, Users } from 'lucide-react';
 import { Badge } from '../../components/shared/Badge';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import { Button } from '../../components/shared/Button';
 import toast from 'react-hot-toast';
+import { CapacityDashboard } from '../../components/admin/CapacityDashboard';
+import { FillRateIndicator } from '../../components/shared/FillRateIndicator';
 
 interface DisponibilitesData {
     creneaux: Creneau[];
@@ -241,7 +243,21 @@ const CreneauView: React.FC<{
                             <td className="sticky left-0 bg-white dark:bg-gray-900 px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100 border-r dark:border-gray-700 z-10">
                                 <div>{creneau.date_surveillance ? new Date(creneau.date_surveillance + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }) : 'N/A'}</div>
                                 <div className="text-xs text-gray-500">{creneau.heure_debut_surveillance} - {creneau.heure_fin_surveillance}</div>
-                                <div className="mt-1"><Badge variant={badgeVariant}>{availableCount} disponible{availableCount !== 1 && 's'}</Badge></div>
+                                <div className="mt-1 space-y-1">
+                                    <Badge variant={badgeVariant}>{availableCount} disponible{availableCount !== 1 && 's'}</Badge>
+                                    {creneau.nb_surveillants_requis && (
+                                        <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                            <Users className="h-3 w-3" />
+                                            <span>{creneau.nb_surveillants_requis} requis</span>
+                                        </div>
+                                    )}
+                                    <FillRateIndicator 
+                                        disponibles={availableCount} 
+                                        requis={creneau.nb_surveillants_requis}
+                                        showDetails={false}
+                                        size="sm"
+                                    />
+                                </div>
                             </td>
                             {soumissions.map(submission => {
                                 const key = `${submission.surveillant_id ?? submission.email}-${creneau.id}`;
@@ -354,6 +370,46 @@ const DisponibilitesPage: React.FC = () => {
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
 
+    // Calculer les statistiques de capacité
+    const creneauxWithStats = useMemo<CreneauWithStats[]>(() => {
+        return creneaux.map(creneau => {
+            // Compter le nombre de disponibles pour ce créneau
+            const nb_disponibles = soumissions.reduce((count, submission) => {
+                const isAvailable = submission.historique_disponibilites.some(
+                    h => h.creneau_id === creneau.id && h.est_disponible
+                );
+                return count + (isAvailable ? 1 : 0);
+            }, 0);
+
+            // Calculer le taux et le statut
+            let taux_remplissage: number | undefined;
+            let statut_remplissage: 'critique' | 'alerte' | 'ok' | 'non-defini' = 'non-defini';
+
+            if (creneau.nb_surveillants_requis) {
+                taux_remplissage = (nb_disponibles / creneau.nb_surveillants_requis) * 100;
+                
+                if (taux_remplissage < 50) {
+                    statut_remplissage = 'critique';
+                } else if (taux_remplissage < 100) {
+                    statut_remplissage = 'alerte';
+                } else {
+                    statut_remplissage = 'ok';
+                }
+            }
+
+            return {
+                ...creneau,
+                nb_disponibles,
+                taux_remplissage,
+                statut_remplissage
+            };
+        });
+    }, [creneaux, soumissions]);
+
+    const capacityStats = useMemo(() => {
+        return calculateCapacityStats(creneauxWithStats);
+    }, [creneauxWithStats]);
+
     const handleToggleAvailability = async (submission: SoumissionDisponibilite, creneauId: string) => {
         if (!editMode) return;
         
@@ -447,6 +503,10 @@ const DisponibilitesPage: React.FC = () => {
                 submission={selectedSubmission} 
                 onClose={() => setSelectedSubmission(null)} 
             />
+            
+            {/* Tableau de bord de capacité */}
+            <CapacityDashboard stats={capacityStats} isLoading={isLoading} />
+            
             <Card>
                 <CardHeader>
                 <CardTitle className="flex items-center"><FileText className="mr-2 h-6 w-6" />Analyse des Disponibilités</CardTitle>

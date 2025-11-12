@@ -4,11 +4,12 @@ import { Button } from '../../components/shared/Button';
 import { Input } from '../../components/shared/Input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/shared/Dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
-import { Clock, PlusCircle, Edit, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { Clock, PlusCircle, Edit, Trash2, Loader2, AlertTriangle, Users } from 'lucide-react';
 import { getSessions, getCreneauxBySession, createCreneau, updateCreneau, deleteCreneau } from '../../lib/api';
 import { Session, Creneau } from '../../types';
 import toast from 'react-hot-toast';
 import { useDataFetching } from '../../hooks/useDataFetching';
+import { CapacityInput } from '../../components/shared/CapacityInput';
 
 const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: string; onSave: () => void; onCancel: () => void; }> = ({ creneau, sessionId, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Partial<Creneau>>({
@@ -178,6 +179,12 @@ const CreneauxPage: React.FC = () => {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Date</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Horaires</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <Users className="h-4 w-4" />
+                                            <span>Surveillants requis</span>
+                                        </div>
+                                    </th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
                                 </tr>
                             </thead>
@@ -186,6 +193,14 @@ const CreneauxPage: React.FC = () => {
                                     <tr key={c.id} className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-gray-800">
                                         <td className="px-6 py-3 whitespace-nowrap text-sm">{c.date_surveillance ? new Date(c.date_surveillance + 'T00:00:00').toLocaleDateString('fr-FR') : 'N/A'}</td>
                                         <td className="px-6 py-3 whitespace-nowrap text-sm">{c.heure_debut_surveillance} - {c.heure_fin_surveillance}</td>
+                                        <td className="px-6 py-3 whitespace-nowrap text-sm text-center">
+                                            <CapacityInput 
+                                                creneauId={c.id} 
+                                                value={c.nb_surveillants_requis} 
+                                                onChange={() => refetch()}
+                                                autoSave={true}
+                                            />
+                                        </td>
                                         <td className="px-6 py-3 whitespace-nowrap text-sm text-right">
                                             <Button variant="ghost" size="sm" onClick={() => handleEdit(c)}><Edit className="h-4 w-4" /></Button>
                                             <Button variant="ghost" size="sm" onClick={() => openDeleteConfirmation(c)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></Button>
