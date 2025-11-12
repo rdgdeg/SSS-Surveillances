@@ -2,14 +2,14 @@
 
 ## Phase 1 : Modifications de la Base de Données
 
-- [ ] 1. Ajouter la colonne de capacité à la table creneaux
+- [x] 1. Ajouter la colonne de capacité à la table creneaux
   - Créer le fichier de migration SQL `supabase-add-capacity-column.sql`
   - Ajouter la colonne `nb_surveillants_requis` avec contrainte CHECK (1-20)
   - Créer un index sur cette colonne pour optimiser les requêtes
   - Tester la migration sur un environnement de développement
   - _Requirements: 1.1, 1.3_
 
-- [ ] 2. Créer la vue SQL pour les statistiques
+- [x] 2. Créer la vue SQL pour les statistiques
   - Créer la vue `v_creneaux_with_stats` qui calcule le nombre de disponibles et le taux de remplissage
   - Optimiser la requête pour les performances
   - Tester la vue avec différents scénarios de données
@@ -17,7 +17,7 @@
 
 ## Phase 2 : Modifications du Modèle de Données
 
-- [ ] 3. Mettre à jour les types TypeScript
+- [x] 3. Mettre à jour les types TypeScript
   - Ajouter `nb_surveillants_requis?: number` au type `Creneau` dans `types.ts`
   - Créer le nouveau type `CreneauWithStats` avec les champs calculés
   - Créer le type `CapacityStats` pour les statistiques globales
@@ -27,26 +27,26 @@
 ## Phase 3 : Fonctions API
 
 - [ ] 4. Implémenter les fonctions API de base
-- [ ] 4.1 Créer `updateCreneauCapacity` pour mettre à jour un créneau
+- [x] 4.1 Créer `updateCreneauCapacity` pour mettre à jour un créneau
   - Implémenter la fonction dans `lib/api.ts`
   - Ajouter la validation de la capacité (1-20)
   - Gérer les erreurs de mise à jour
   - _Requirements: 1.4, 1.5_
 
-- [ ] 4.2 Créer `getCreneauxWithStats` pour récupérer les créneaux avec statistiques
+- [x] 4.2 Créer `getCreneauxWithStats` pour récupérer les créneaux avec statistiques
   - Utiliser la vue SQL créée précédemment
   - Calculer le statut de remplissage côté client
   - Optimiser pour les performances
   - _Requirements: 2.1, 2.2_
 
 - [ ] 5. Implémenter les fonctions API avancées
-- [ ] 5.1 Créer `bulkUpdateCreneauCapacity` pour la mise à jour en masse
+- [x] 5.1 Créer `bulkUpdateCreneauCapacity` pour la mise à jour en masse
   - Implémenter la mise à jour de plusieurs créneaux en une transaction
   - Gérer les erreurs partielles
   - Retourner un rapport détaillé (succès/erreurs)
   - _Requirements: 5.3, 5.4, 5.5_
 
-- [ ] 5.2 Créer `copyCapacitiesFromSession` pour copier depuis une session
+- [x] 5.2 Créer `copyCapacitiesFromSession` pour copier depuis une session
   - Identifier les créneaux correspondants (même date et heure)
   - Copier les capacités en masse
   - Générer un rapport de copie

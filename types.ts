@@ -16,6 +16,8 @@ export interface Creneau {
   heure_debut_surveillance: string | null; // HH:MM
   heure_fin_surveillance: string | null; // HH:MM
   type_creneau: 'PRINCIPAL' | 'RESERVE' | string;
+  nb_surveillants_requis?: number; // Nombre de surveillants nécessaires (1-20) - Admin only
+  created_at?: string;
 }
 
 // Based on `surveillants.type` column CHECK constraint
@@ -100,4 +102,33 @@ export interface Message {
     archive: boolean;
     created_at: string;
     priorite: 'basse' | 'normale' | 'haute' | 'urgente' | string;
+}
+
+// Types pour la gestion de la capacité des créneaux (Admin only)
+
+export type StatutRemplissage = 'critique' | 'alerte' | 'ok' | 'non-defini';
+
+export interface CreneauWithStats extends Creneau {
+  nb_disponibles: number;
+  taux_remplissage?: number; // Pourcentage (0-100+), undefined si pas de capacité définie
+  statut_remplissage: StatutRemplissage;
+}
+
+export interface CapacityStats {
+  total_creneaux_avec_capacite: number;
+  creneaux_critiques: number; // < 50%
+  creneaux_alerte: number; // 50-99%
+  creneaux_ok: number; // >= 100%
+  taux_remplissage_moyen: number;
+}
+
+export interface BulkUpdateResult {
+  success: number;
+  errors: string[];
+}
+
+export interface CopyCapacityResult {
+  copied: number;
+  skipped: number;
+  errors: string[];
 }

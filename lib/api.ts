@@ -322,3 +322,242 @@ export async function updateSoumissionDisponibilites(id: string, historique_disp
     if (error) throw error;
     return data;
 }
+
+// --- Capacity Management API Functions (Admin only) ---
+
+/**
+ * Met à jour la capacité requise d'un créneau
+ * @param id ID du créneau
+ * @param nb_surveillants_requis Nombre de surveillants requis (1-20) ou null pour supprimer
+ */
+export async function updateCreneauCapacity(
+  id: string, 
+  nb_surveillants_requis: number | null
+): Promise<Creneau> {
+  // Validation côté client
+  if (nb_surveillants_requis !== null && (nb_surveillants_requis < 1 || nb_surveillants_requis > 20)) {
+    throw new Error('La capacité doit être un nombre entre 1 et 20');
+  }
+
+  const { data, error } = await supabase
+    .from('creneaux')
+    .update({ nb_surveillants_requis })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Récupère les créneaux avec leurs statistiques de remplissage
+ * Utilise la vue v_creneaux_with_stats pour les performances
+ * @param sessionId ID de la session
+ */
+export async function getCreneauxWithStats(sessionId: string): Promise<import('../types').CreneauWithStats[]> {
+  const { data, error } = await supabase
+    .from('v_creneaux_with_stats')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('date_surveillance')
+    .order('heure_debut_surveillance');
+
+  if (error) throw error;
+
+  // Calculer le statut de remplissage côté client
+  return (data || []).map(creneau => {
+    let statut_remplissage: import('../types').StatutRemplissage = 'non-defini';
+    
+    if (creneau.nb_surveillants_requis && creneau.taux_remplissage !== null) {
+      if (creneau.taux_remplissage < 50) {
+        statut_remplissage = 'critique';
+      } else if (creneau.taux_remplissage < 100) {
+        statut_remplissage = 'alerte';
+      } else {
+        statut_remplissage = 'ok';
+      }
+    }
+
+    return {
+      ...creneau,
+      statut_remplissage
+    };
+  });
+}
+
+/**
+ * Calcule les statistiques globales de capacité pour une session
+ * @param creneaux Liste des créneaux avec statistiques
+ */
+export function calculateCapacityStats(creneaux: import('../types').CreneauWithStats[]): import('../types').CapacityStats {
+  const creneauxAvecCapacite = creneaux.filter(c => c.nb_surveillants_requis);
+  
+  if (creneauxAvecCapacite.length === 0) {
+    return {
+      total_creneaux_avec_capacite: 0,
+      creneaux_critiques: 0,
+      creneaux_alerte: 0,
+      creneaux_ok: 0,
+      taux_remplissage_moyen: 0
+    };
+  }
+
+  const stats = {
+    total_creneaux_avec_capacite: creneauxAvecCapacite.length,
+    creneaux_critiques: creneauxAvecCapacite.filter(c => c.statut_remplissage === 'critique').length,
+    creneaux_alerte: creneauxAvecCapacite.filter(c => c.statut_remplissage === 'alerte').length,
+    creneaux_ok: creneauxAvecCapacite.filter(c => c.statut_remplissage === 'ok').length,
+    taux_remplissage_moyen: 0
+  };
+
+  // Calculer la moyenne des taux de remplissage
+  const somme = creneauxAvecCapacite.reduce((acc, c) => acc + (c.taux_remplissage || 0), 0);
+  stats.taux_remplissage_moyen = somme / creneauxAvecCapacite.length;
+
+  return stats;
+}
+
+/**
+ * Met à jour la capacité de plusieurs créneaux en une seule opération
+ * @param creneauIds Liste des IDs des créneaux à mettre à jour
+ * @param nb_surveillants_requis Capacité à appliquer
+ */
+export async function bulkUpdateCreneauCapacity(
+  creneauIds: string[], 
+  nb_surveillants_requis: number
+): Promise<import('../types').BulkUpdateResult> {
+  // Validation
+  if (nb_surveillants_requis < 1 || nb_surveillants_requis > 20) {
+    throw new Error('La capacité doit être un nombre entre 1 et 20');
+  }
+
+  if (creneauIds.length === 0) {
+    return { success: 0, errors: [] };
+  }
+
+  const errors: string[] = [];
+  let successCount = 0;
+
+  // Mettre à jour en batch (Supabase supporte les updates avec .in())
+  try {
+    const { data, error } = await supabase
+      .from('creneaux')
+      .update({ nb_surveillants_requis })
+      .in('id', creneauIds)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    successCount = data?.length || 0;
+
+    // Si certains créneaux n'ont pas été mis à jour
+    if (successCount < creneauIds.length) {
+      const updatedIds = new Set(data?.map(c => c.id) || []);
+      const failedIds = creneauIds.filter(id => !updatedIds.has(id));
+      errors.push(`${failedIds.length} créneau(x) n'ont pas pu être mis à jour`);
+    }
+  } catch (error) {
+    console.error('Bulk update error:', error);
+    errors.push(`Erreur lors de la mise à jour: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+  }
+
+  return { success: successCount, errors };
+}
+
+/**
+ * Copie les capacités d'une session source vers une session cible
+ * Les créneaux sont appariés par date et heure
+ * @param sourceSessionId ID de la session source
+ * @param targetSessionId ID de la session cible
+ */
+export async function copyCapacitiesFromSession(
+  sourceSessionId: string,
+  targetSessionId: string
+): Promise<import('../types').CopyCapacityResult> {
+  // Récupérer les créneaux de la session source avec capacité définie
+  const { data: sourceCreneaux, error: sourceError } = await supabase
+    .from('creneaux')
+    .select('*')
+    .eq('session_id', sourceSessionId)
+    .not('nb_surveillants_requis', 'is', null);
+
+  if (sourceError) {
+    throw new Error(`Erreur lors de la récupération de la session source: ${sourceError.message}`);
+  }
+
+  if (!sourceCreneaux || sourceCreneaux.length === 0) {
+    return { copied: 0, skipped: 0, errors: ['Aucun créneau avec capacité définie dans la session source'] };
+  }
+
+  // Récupérer les créneaux de la session cible
+  const { data: targetCreneaux, error: targetError } = await supabase
+    .from('creneaux')
+    .select('*')
+    .eq('session_id', targetSessionId);
+
+  if (targetError) {
+    throw new Error(`Erreur lors de la récupération de la session cible: ${targetError.message}`);
+  }
+
+  if (!targetCreneaux || targetCreneaux.length === 0) {
+    return { copied: 0, skipped: 0, errors: ['Aucun créneau dans la session cible'] };
+  }
+
+  // Créer un map des créneaux source par date+heure
+  const sourceMap = new Map<string, number>();
+  sourceCreneaux.forEach(c => {
+    if (c.date_surveillance && c.heure_debut_surveillance && c.nb_surveillants_requis) {
+      const key = `${c.date_surveillance}_${c.heure_debut_surveillance}`;
+      sourceMap.set(key, c.nb_surveillants_requis);
+    }
+  });
+
+  // Trouver les correspondances et mettre à jour
+  const updates: Array<{ id: string; capacity: number }> = [];
+  let skipped = 0;
+
+  targetCreneaux.forEach(c => {
+    if (c.date_surveillance && c.heure_debut_surveillance) {
+      const key = `${c.date_surveillance}_${c.heure_debut_surveillance}`;
+      const capacity = sourceMap.get(key);
+      
+      if (capacity !== undefined) {
+        updates.push({ id: c.id, capacity });
+      } else {
+        skipped++;
+      }
+    } else {
+      skipped++;
+    }
+  });
+
+  if (updates.length === 0) {
+    return { copied: 0, skipped, errors: ['Aucun créneau correspondant trouvé'] };
+  }
+
+  // Effectuer les mises à jour
+  const errors: string[] = [];
+  let copied = 0;
+
+  for (const update of updates) {
+    try {
+      const { error } = await supabase
+        .from('creneaux')
+        .update({ nb_surveillants_requis: update.capacity })
+        .eq('id', update.id);
+
+      if (error) {
+        errors.push(`Erreur pour le créneau ${update.id}: ${error.message}`);
+      } else {
+        copied++;
+      }
+    } catch (error) {
+      errors.push(`Erreur inattendue pour le créneau ${update.id}`);
+    }
+  }
+
+  return { copied, skipped, errors };
+}
