@@ -79,11 +79,32 @@ const StatistiquesPage: React.FC = () => {
 
                     creneauxDisponibles.forEach((disp: any) => {
                         const creneau = creneaux.find((c: any) => c.id === disp.creneau_id);
-                        if (creneau?.heure_debut_surveillance) {
-                            const heure = parseInt(creneau.heure_debut_surveillance.split(':')[0]);
-                            if (heure >= 6 && heure < 12) creneauxMatin++;
-                            else if (heure >= 12 && heure < 18) creneauxApresMidi++;
-                            else if (heure >= 18 && heure < 22) creneauxSoir++;
+                        if (creneau) {
+                            // Utiliser l'heure de début pour déterminer la période
+                            const heureDebut = creneau.heure_debut_surveillance || '';
+                            const heureFin = creneau.heure_fin_surveillance || '';
+                            
+                            // Convertir en minutes depuis minuit pour comparaison précise
+                            const parseTime = (time: string) => {
+                                const [h, m] = time.split(':').map(Number);
+                                return h * 60 + m;
+                            };
+                            
+                            const minutesDebut = parseTime(heureDebut);
+                            const minutesFin = parseTime(heureFin);
+                            
+                            // Matin : créneaux qui finissent jusqu'à 12h00 inclus
+                            if (minutesFin <= 12 * 60) {
+                                creneauxMatin++;
+                            }
+                            // Soir : créneaux qui commencent à partir de 15h45 (945 minutes)
+                            else if (minutesDebut >= 15 * 60 + 45) {
+                                creneauxSoir++;
+                            }
+                            // Après-midi : tout le reste (finit après 12h00 et commence avant 15h45)
+                            else {
+                                creneauxApresMidi++;
+                            }
                         }
                     });
 
