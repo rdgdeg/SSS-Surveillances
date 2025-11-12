@@ -367,12 +367,17 @@ const DisponibilitesPage: React.FC = () => {
             // Créer le nouvel historique
             let newHistorique;
             if (currentAvail) {
-                // Toggle la disponibilité existante
-                newHistorique = submission.historique_disponibilites.map(h =>
-                    h.creneau_id === creneauId
-                        ? { ...h, est_disponible: !h.est_disponible }
-                        : h
-                );
+                if (currentAvail.est_disponible) {
+                    // Si actuellement disponible, on supprime l'entrée (toggle vers indisponible)
+                    newHistorique = submission.historique_disponibilites.filter(h => h.creneau_id !== creneauId);
+                } else {
+                    // Si actuellement indisponible, on remet à disponible
+                    newHistorique = submission.historique_disponibilites.map(h =>
+                        h.creneau_id === creneauId
+                            ? { ...h, est_disponible: true }
+                            : h
+                    );
+                }
             } else {
                 // Ajouter une nouvelle disponibilité
                 newHistorique = [
@@ -380,6 +385,9 @@ const DisponibilitesPage: React.FC = () => {
                     { creneau_id: creneauId, est_disponible: true }
                 ];
             }
+
+            // Filtrer pour ne garder que les disponibilités vraies
+            newHistorique = newHistorique.filter(h => h.est_disponible);
 
             // Mettre à jour dans la base de données
             await updateSoumissionDisponibilites(submission.id, newHistorique);

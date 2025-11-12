@@ -241,6 +241,10 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
     const totalCreneaux = Object.values(groupedCreneaux).reduce((acc, creneaux) => acc + creneaux.length, 0);
     const totalDates = Object.keys(groupedCreneaux).length;
     
+    // Vérifier si le nombre de créneaux est insuffisant
+    const minRequired = isFasbPat ? 12 : 6;
+    const isInsufficientSlots = selectedCount < minRequired;
+    
     // Vérifier si le contenu est scrollable
     useEffect(() => {
         if (scrollContainerRef) {
@@ -276,6 +280,15 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
             <CardContent className="space-y-6 relative">
                 <div ref={setScrollContainerRef} className="max-h-[60vh] overflow-y-auto pr-3 scroll-smooth">
                  <div className="space-y-4">
+                    {isInsufficientSlots && (
+                        <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 p-3 rounded-lg flex items-start gap-3">
+                            <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h4 className="font-semibold">Créneaux insuffisants</h4>
+                                <p className="text-sm">Veuillez remplir plus de créneaux pour permettre une attribution de surveillances. Vous avez sélectionné {selectedCount} créneau{selectedCount > 1 ? 'x' : ''}, minimum requis : {minRequired}.</p>
+                            </div>
+                        </div>
+                    )}
                     {isFasbPat && (
                         <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 p-3 rounded-lg flex items-start gap-3">
                             <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
