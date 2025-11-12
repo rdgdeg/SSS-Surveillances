@@ -1,0 +1,35 @@
+/* Masquer la scrollbar pour les navigations horizontales */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Empêcher le zoom sur les inputs en mobile */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Améliorer les transitions */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Assurer que le body ne scroll pas quand le menu mobile est ouvert */
+body.menu-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
