@@ -93,7 +93,7 @@ export function useCoursMutation() {
 /**
  * Hook pour l'import CSV de cours
  */
-export function useCoursImport() {
+export function useCoursImport(onProgress?: (current: number, total: number) => void) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -114,8 +114,8 @@ export function useCoursImport() {
         throw new Error('Aucun cours valide trouvé dans le fichier');
       }
 
-      // Importer les cours
-      const result = await importCours(courses);
+      // Importer les cours avec suivi de progression
+      const result = await importCours(courses, onProgress);
 
       // Ajouter les erreurs de parsing aux erreurs d'import
       return {

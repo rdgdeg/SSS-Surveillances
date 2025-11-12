@@ -136,12 +136,17 @@ export async function deleteCours(id: string): Promise<void> {
  * Importe des cours depuis un tableau (Admin)
  * Met à jour les cours existants et crée les nouveaux
  */
-export async function importCours(courses: { code: string; intitule_complet: string }[]): Promise<CoursImportResult> {
+export async function importCours(
+  courses: { code: string; intitule_complet: string }[],
+  onProgress?: (current: number, total: number) => void
+): Promise<CoursImportResult> {
   let imported = 0;
   let updated = 0;
   const errors: string[] = [];
+  const total = courses.length;
 
-  for (const course of courses) {
+  for (let i = 0; i < courses.length; i++) {
+    const course = courses[i];
     try {
       // Vérifier si le cours existe déjà
       const existing = await getCoursByCode(course.code);
@@ -167,6 +172,11 @@ export async function importCours(courses: { code: string; intitule_complet: str
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       errors.push(`${course.code}: ${errorMessage}`);
+    }
+
+    // Notifier la progression
+    if (onProgress) {
+      onProgress(i + 1, total);
     }
   }
 

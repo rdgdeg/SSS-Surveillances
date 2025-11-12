@@ -3,8 +3,11 @@ import { useCoursImport } from '../../src/hooks/useCours';
 
 export function CourseImport() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const importMutation = useCoursImport();
+  const importMutation = useCoursImport((current, total) => {
+    setProgress({ current, total });
+  });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -17,6 +20,7 @@ export function CourseImport() {
     if (!selectedFile) return;
 
     try {
+      setProgress({ current: 0, total: 0 });
       const result = await importMutation.mutateAsync(selectedFile);
       
       // Show success message
@@ -34,10 +38,12 @@ export function CourseImport() {
       
       // Reset
       setSelectedFile(null);
+      setProgress(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (error) {
+      setProgress(null);
       alert(`Erreur lors de l'import: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   };
@@ -95,12 +101,23 @@ export function CourseImport() {
           </div>
         )}
 
-        {importMutation.isPending && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600 mr-3"></div>
-              <span className="text-sm text-yellow-900">Import en cours...</span>
+        {importMutation.isPending && progress && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-900">Import en cours...</span>
+              <span className="text-sm text-blue-700">
+                {progress.current} / {progress.total}
+              </span>
             </div>
+            <div className="w-full bg-blue-200 rounded-full h-2.5">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}% complété
+            </p>
           </div>
         )}
 
