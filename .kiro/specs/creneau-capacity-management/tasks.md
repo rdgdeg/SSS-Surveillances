@@ -26,7 +26,7 @@
 
 ## Phase 3 : Fonctions API
 
-- [ ] 4. Implémenter les fonctions API de base
+- [x] 4. Implémenter les fonctions API de base
 - [x] 4.1 Créer `updateCreneauCapacity` pour mettre à jour un créneau
   - Implémenter la fonction dans `lib/api.ts`
   - Ajouter la validation de la capacité (1-20)
@@ -39,7 +39,7 @@
   - Optimiser pour les performances
   - _Requirements: 2.1, 2.2_
 
-- [ ] 5. Implémenter les fonctions API avancées
+- [x] 5. Implémenter les fonctions API avancées
 - [x] 5.1 Créer `bulkUpdateCreneauCapacity` pour la mise à jour en masse
   - Implémenter la mise à jour de plusieurs créneaux en une transaction
   - Gérer les erreurs partielles
@@ -54,7 +54,7 @@
 
 ## Phase 4 : Composants Partagés
 
-- [ ] 6. Créer le composant CapacityInput
+- [x] 6. Créer le composant CapacityInput
   - Créer `components/shared/CapacityInput.tsx`
   - Implémenter l'input numérique avec validation (1-20)
   - Ajouter le placeholder "Non défini"
@@ -62,7 +62,7 @@
   - Ajouter les états de chargement et de succès
   - _Requirements: 1.2, 1.3, 1.4_
 
-- [ ] 7. Créer le composant FillRateIndicator
+- [x] 7. Créer le composant FillRateIndicator
   - Créer `components/shared/FillRateIndicator.tsx`
   - Implémenter le badge coloré selon le taux (rouge/orange/vert)
   - Afficher le ratio et le pourcentage (ex: "8/10 - 80%")
@@ -70,7 +70,7 @@
   - Gérer le cas "Non défini"
   - _Requirements: 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 8. Créer le composant CapacityDashboard
+- [x] 8. Créer le composant CapacityDashboard
   - Créer `components/admin/CapacityDashboard.tsx`
   - Afficher les cartes de statistiques (total, critiques, alerte, ok)
   - Calculer et afficher le taux de remplissage moyen
