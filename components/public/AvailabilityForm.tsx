@@ -234,6 +234,32 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
 
 const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount }) => {
     const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
+    const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(null);
+    const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+    
+    // Calculer le nombre total de créneaux
+    const totalCreneaux = Object.values(groupedCreneaux).reduce((acc, creneaux) => acc + creneaux.length, 0);
+    const totalDates = Object.keys(groupedCreneaux).length;
+    
+    // Vérifier si le contenu est scrollable
+    useEffect(() => {
+        if (scrollContainerRef) {
+            const checkScroll = () => {
+                const hasScroll = scrollContainerRef.scrollHeight > scrollContainerRef.clientHeight;
+                const isAtBottom = scrollContainerRef.scrollHeight - scrollContainerRef.scrollTop <= scrollContainerRef.clientHeight + 10;
+                setShowScrollIndicator(hasScroll && !isAtBottom);
+            };
+            
+            checkScroll();
+            scrollContainerRef.addEventListener('scroll', checkScroll);
+            window.addEventListener('resize', checkScroll);
+            
+            return () => {
+                scrollContainerRef.removeEventListener('scroll', checkScroll);
+                window.removeEventListener('resize', checkScroll);
+            };
+        }
+    }, [scrollContainerRef, groupedCreneaux]);
     
     return (
     <>
@@ -244,10 +270,11 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                 <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités {isModification && '(Modification)'}</CardTitle>
                 <CardDescription>
                     {isModification && <span className="text-blue-600 dark:text-blue-400 font-medium">Vous modifiez vos disponibilités existantes. </span>}
-                    Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux.
+                    Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date{totalDates > 1 ? 's' : ''}).
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 max-h-[60vh] overflow-y-auto pr-3">
+            <CardContent className="space-y-6 relative">
+                <div ref={setScrollContainerRef} className="max-h-[60vh] overflow-y-auto pr-3 scroll-smooth">
                  <div className="space-y-4">
                     {isFasbPat && (
                         <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 p-3 rounded-lg flex items-start gap-3">
@@ -288,6 +315,18 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                         </div>
                     )
                 })}
+                </div>
+                
+                {/* Indicateur de scroll */}
+                {showScrollIndicator && (
+                    <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white dark:from-gray-900 to-transparent pointer-events-none flex items-end justify-center pb-2">
+                        <div className="bg-indigo-600 dark:bg-indigo-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-bounce pointer-events-auto">
+                            <ArrowRight className="h-4 w-4 rotate-90" />
+                            <span className="text-sm font-medium">Faites défiler pour voir plus de créneaux</span>
+                            <ArrowRight className="h-4 w-4 rotate-90" />
+                        </div>
+                    </div>
+                )}
             </CardContent>
             <CardFooter className="flex justify-between">
                 <Button onClick={onPrev} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</Button>
