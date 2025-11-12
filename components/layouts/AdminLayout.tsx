@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3 } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../shared/Button';
@@ -26,6 +26,7 @@ const AdminLayout: React.FC = () => {
         { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList },
         { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare },
         { to: 'messages', label: 'Messages', icon: MessageSquare },
+        { to: 'cours', label: 'Cours', icon: BookOpen },
     ];
 
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>

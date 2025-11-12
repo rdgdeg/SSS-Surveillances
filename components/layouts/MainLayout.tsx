@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { University, Sun, Moon, Home } from 'lucide-react';
+import { University, Sun, Moon, Home, BookOpen } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../shared/Button';
 
@@ -19,6 +19,12 @@ const MainLayout: React.FC = () => {
                             <span className="ml-2 font-light text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">SSS - UCLouvain</span>
                         </NavLink>
                         <div className="flex items-center space-x-2">
+                            <NavLink to="/consignes">
+                                <Button variant="outline" size="sm">
+                                    <BookOpen className="mr-2 h-4 w-4" />
+                                    Consignes
+                                </Button>
+                            </NavLink>
                             <NavLink to="/">
                                 <Button variant="outline" size="sm">
                                     <Home className="mr-2 h-4 w-4" />

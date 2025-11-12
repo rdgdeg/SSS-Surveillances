@@ -132,3 +132,41 @@ export interface CopyCapacityResult {
   skipped: number;
   errors: string[];
 }
+
+// Types pour le registre des consignes de cours
+
+export interface Cours {
+  id: string;
+  code: string;
+  intitule_complet: string;
+  consignes: string | null;
+  updated_at: string;
+  created_at: string;
+}
+
+export interface CoursListItem {
+  id: string;
+  code: string;
+  intitule_complet: string;
+  has_consignes: boolean;
+  updated_at: string;
+}
+
+export interface CoursFormData {
+  code: string;
+  intitule_complet: string;
+  consignes?: string;
+}
+
+export interface CoursSearchParams {
+  search?: string;
+  sortBy?: 'code' | 'intitule_complet' | 'updated_at';
+  sortOrder?: 'asc' | 'desc';
+  hasInstructions?: boolean;
+}
+
+export interface CoursImportResult {
+  imported: number;
+  updated: number;
+  errors: string[];
+}

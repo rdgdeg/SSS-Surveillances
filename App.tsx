@@ -29,6 +29,10 @@ const SoumissionsPage = lazy(() => import('./pages/admin/SoumissionsPage'));
 const SuiviSoumissionsPage = lazy(() => import('./pages/admin/SuiviSoumissionsPage'));
 const MessagesPage = lazy(() => import('./pages/admin/MessagesPage'));
 const StatistiquesPage = lazy(() => import('./pages/admin/StatistiquesPage'));
+const CoursPage = lazy(() => import('./pages/admin/CoursPage'));
+
+// Lazy load public pages
+const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
 
 
 const AppToaster = () => {
@@ -74,6 +78,7 @@ const AppContent: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<MainLayout />}>
                             <Route index element={<HomePage />} />
+                            <Route path="consignes" element={<ConsignesPage />} />
                         </Route>
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/admin" element={
@@ -91,6 +96,7 @@ const AppContent: React.FC = () => {
                             <Route path="suivi-soumissions" element={<SuiviSoumissionsPage />} />
                             <Route path="statistiques" element={<StatistiquesPage />} />
                             <Route path="messages" element={<MessagesPage />} />
+                            <Route path="cours" element={<CoursPage />} />
                         </Route>
                     </Routes>
                 </Suspense>
