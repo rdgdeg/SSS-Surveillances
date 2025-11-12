@@ -6,7 +6,7 @@ import { CourseImport } from '../../components/admin/CourseImport';
 import { useCoursQuery, useCoursDetailQuery, useCoursStatsQuery } from '../../src/hooks/useCours';
 import { CoursSearchParams, CoursListItem } from '../../types';
 
-export function CoursPage() {
+function CoursPage() {
   const [searchParams, setSearchParams] = useState<CoursSearchParams>({});
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -142,3 +142,6 @@ export function CoursPage() {
     </div>
   );
 }
+
+
+export default CoursPage;

@@ -5,7 +5,7 @@ import { CourseInstructionsModal } from '../components/public/CourseInstructions
 import { useCoursQuery, useCoursDetailQuery } from '../src/hooks/useCours';
 import { CoursSearchParams, CoursListItem } from '../types';
 
-export function ConsignesPage() {
+function ConsignesPage() {
   const [searchParams, setSearchParams] = useState<CoursSearchParams>({});
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
@@ -54,3 +54,6 @@ export function ConsignesPage() {
     </div>
   );
 }
+
+
+export default ConsignesPage;
