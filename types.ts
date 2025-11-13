@@ -345,7 +345,8 @@ export interface Examen {
 
 export interface PresenceEnseignant {
   id: string;
-  examen_id: string;
+  cours_id: string;
+  session_id: string;
   enseignant_email: string;
   enseignant_nom: string;
   enseignant_prenom: string;
@@ -368,13 +369,12 @@ export interface NotificationAdmin {
   created_at: string;
 }
 
-export interface ExamenWithPresence extends Examen {
+export interface CoursWithPresence extends Cours {
+  session_id: string;
   presences: PresenceEnseignant[];
   nb_presences_declarees: number;
-  nb_enseignants_total: number;
   nb_enseignants_presents: number;
   nb_surveillants_accompagnants_total: number;
-  besoin_surveillants_calcule: number | null;
 }
 
 export interface ExamenImportResult {
