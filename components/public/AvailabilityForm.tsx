@@ -1,17 +1,16 @@
 
-import React, { useState, useEffect, memo } from 'react';
-import { Creneau, Session, SurveillantType, AvailabilityData, SurveillantTypeLabels, Surveillant } from '../../types';
+import React, { useState, useEffect, memo, useCallback } from 'react';
+import { Creneau, Session, SurveillantType, AvailabilityData, SurveillantTypeLabels, Surveillant, FormProgressData } from '../../types';
 import { getActiveSessionWithCreneaux, findSurveillantByEmail, submitAvailability, getExistingSubmission } from '../../lib/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shared/Select';
 import { Checkbox } from '../shared/Checkbox';
-import { User, Calendar, MessageSquare, Send, ArrowLeft, ArrowRight, Mail, Search, Lightbulb, AlertTriangle, Frown, RefreshCw, Plus, Loader2, Users, Check } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, ArrowLeft, ArrowRight, Mail, Search, Lightbulb, AlertTriangle, Frown, RefreshCw, Plus, Loader2, Users, Check, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDebug } from '../../contexts/DebugContext';
-
-const STORAGE_KEY = 'availabilityFormProgress';
+import localStorageManager from '../../lib/localStorageManager';
 
 // --- Helper Functions ---
 
@@ -468,10 +467,26 @@ const AvailabilityForm: React.FC = () => {
     }, [step, isLoading, isCheckingEmail, isSubmitting, session, formData, availabilities, foundSurveillant, setDebugData]);
 
 
+    // Vérifier la disponibilité du LocalStorage au chargement
+    const [localStorageAvailable, setLocalStorageAvailable] = useState(true);
+    const [hasRestoredData, setHasRestoredData] = useState(false);
+
     useEffect(() => {
         const loadInitialData = async () => {
             try {
                 setIsLoading(true);
+                
+                // Vérifier la disponibilité du LocalStorage
+                const isLSAvailable = localStorageManager.isAvailable();
+                setLocalStorageAvailable(isLSAvailable);
+                
+                if (!isLSAvailable) {
+                    toast.error('Le stockage local n\'est pas disponible. Vos données ne seront pas sauvegardées automatiquement.', {
+                        duration: 5000,
+                        icon: '⚠️'
+                    });
+                }
+                
                 const data = await getActiveSessionWithCreneaux();
                 if (data) {
                     setSession(data);
@@ -486,6 +501,29 @@ const AvailabilityForm: React.FC = () => {
                     setCreneaux(sortedCreneaux);
                     const initialAvailabilities: AvailabilityData = sortedCreneaux.reduce((acc, c) => ({ ...acc, [c.id]: { available: false } }), {});
                     setAvailabilities(initialAvailabilities);
+                    
+                    // Tenter de restaurer les données sauvegardées
+                    if (isLSAvailable) {
+                        const savedData = localStorageManager.loadFormProgress();
+                        if (savedData && savedData.sessionId === data.id) {
+                            // Restaurer les données
+                            setFormData({
+                                email: savedData.email,
+                                nom: savedData.nom,
+                                prenom: savedData.prenom,
+                                type_surveillant: savedData.type_surveillant,
+                                remarque_generale: savedData.remarque_generale
+                            });
+                            setAvailabilities(savedData.availabilities);
+                            setFoundSurveillantId(savedData.foundSurveillantId);
+                            setHasRestoredData(true);
+                            
+                            toast.success('Vos données ont été restaurées !', {
+                                duration: 4000,
+                                icon: '💾'
+                            });
+                        }
+                    }
                 } else {
                     toast.error("Aucune session active trouvée.");
                 }
@@ -499,15 +537,32 @@ const AvailabilityForm: React.FC = () => {
         loadInitialData();
     }, []);
     
+    // Sauvegarde automatique avec debounce via le LocalStorage Manager
     useEffect(() => {
-        if (step > 0 && step < 4) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, availabilities, foundSurveillantId }));
-            } catch (error) {
-                console.error("Could not save form progress:", error);
-            }
+        if (step > 0 && step < 4 && session && localStorageAvailable) {
+            const progressData: FormProgressData = {
+                email: formData.email,
+                nom: formData.nom,
+                prenom: formData.prenom,
+                type_surveillant: formData.type_surveillant,
+                remarque_generale: formData.remarque_generale,
+                availabilities,
+                foundSurveillantId,
+                lastSaved: new Date().toISOString(),
+                sessionId: session.id
+            };
+            
+            localStorageManager.saveFormProgress(progressData).catch(error => {
+                if (error.message === 'QUOTA_EXCEEDED') {
+                    toast.error('Espace de stockage local insuffisant. Vos données ne seront pas sauvegardées automatiquement.', {
+                        duration: 5000,
+                        icon: '⚠️'
+                    });
+                    setLocalStorageAvailable(false);
+                }
+            });
         }
-    }, [formData, availabilities, step, foundSurveillantId]);
+    }, [formData, availabilities, step, foundSurveillantId, session, localStorageAvailable]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -611,7 +666,10 @@ const AvailabilityForm: React.FC = () => {
                   .filter(([, val]) => val.available)
                   .map(([creneauId]) => ({ creneau_id: creneauId, est_disponible: true })),
             });
-            localStorage.removeItem(STORAGE_KEY);
+            
+            // Nettoyer le LocalStorage après soumission réussie
+            localStorageManager.clearFormProgress();
+            
             const successMessage = hasExistingSubmission 
                 ? 'Vos disponibilités ont été mises à jour avec succès !' 
                 : 'Vos disponibilités ont été soumises avec succès !';
@@ -628,12 +686,16 @@ const AvailabilityForm: React.FC = () => {
         setFormData(initialFormData);
         const initialAvailabilities: AvailabilityData = creneaux.reduce((acc, c) => ({ ...acc, [c.id]: { available: false } }), {});
         setAvailabilities(initialAvailabilities);
-        localStorage.removeItem(STORAGE_KEY);
+        
+        // Nettoyer le LocalStorage
+        localStorageManager.clearFormProgress();
+        
         setFoundSurveillantId(null);
         setFoundSurveillant(null);
         setExistingSubmissionId(null);
         setHasExistingSubmission(false);
         setSubmissionTimestamps({});
+        setHasRestoredData(false);
         toast('Formulaire réinitialisé.', { icon: '🔄' });
         setStep(0);
     };
@@ -665,6 +727,37 @@ const AvailabilityForm: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto">
+            {/* Avertissement si LocalStorage non disponible */}
+            {!localStorageAvailable && step > 0 && step < 4 && (
+                <div className="mb-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                            <h4 className="font-semibold text-yellow-800 dark:text-yellow-300">Sauvegarde automatique désactivée</h4>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+                                Le stockage local n'est pas disponible. Vos données ne seront pas sauvegardées automatiquement. 
+                                Veuillez compléter le formulaire en une seule session.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Indicateur de données restaurées */}
+            {hasRestoredData && step > 0 && step < 4 && (
+                <div className="mb-4 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <Save className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                            <h4 className="font-semibold text-green-800 dark:text-green-300">Données restaurées</h4>
+                            <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                                Vos données précédentes ont été restaurées. Vous pouvez continuer où vous vous étiez arrêté.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             {step > 0 && step < 4 && <Stepper currentStep={step} steps={formSteps} />}
             {renderStep()}
         </div>
