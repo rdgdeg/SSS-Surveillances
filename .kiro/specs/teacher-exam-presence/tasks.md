@@ -176,14 +176,14 @@
   - Rendre tous les composants responsive (mobile, tablet, desktop)
   - _Requirements: 2.2, 5.1, 5.5_
 
-- [ ] 21. Créer les tests unitaires
+- [x] 21. Créer les tests unitaires
   - Tester le parser CSV avec différents formats et cas d'erreur
   - Tester les fonctions de validation
   - Tester les calculs de besoins en surveillants
   - Tester les hooks React Query
   - _Requirements: 1.1, 1.2, 4.5, 7.1_
 
-- [ ] 22. Créer les tests d'intégration
+- [x] 22. Créer les tests d'intégration
   - Tester le flow complet d'import CSV
   - Tester le flow enseignant: recherche → déclaration
   - Tester le flow de saisie manuelle avec notification
