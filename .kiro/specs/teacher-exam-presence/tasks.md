@@ -13,7 +13,7 @@
   - Ajouter l'enum `ExamenErrorType` pour la gestion d'erreurs
   - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1_
 
-- [ ] 3. Créer le parser CSV pour les examens
+- [x] 3. Créer le parser CSV pour les examens
   - Créer le fichier `lib/examenCsvParser.ts`
   - Implémenter la fonction `parseExamenCSV` pour parser le format CSV avec validation
   - Implémenter la fonction `validateExamenCSVFile` pour valider le fichier avant parsing
@@ -22,7 +22,7 @@
   - Parser les emails multiples séparés par des virgules dans le champ Enseignants
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 4. Implémenter les fonctions API pour les examens
+- [x] 4. Implémenter les fonctions API pour les examens
   - Créer le fichier `lib/examenApi.ts`
   - Implémenter `searchExamens` pour rechercher par code ou nom avec filtrage par session
   - Implémenter `getExamenById` pour récupérer un examen spécifique
@@ -33,14 +33,14 @@
   - Implémenter `deleteExamen` pour supprimer un examen
   - _Requirements: 1.1, 1.3, 1.6, 2.1, 2.2, 3.1, 3.2, 3.3, 5.1, 6.2, 6.4_
 
-- [ ] 5. Implémenter les fonctions API pour les présences
+- [x] 5. Implémenter les fonctions API pour les présences
   - Dans `lib/examenApi.ts`, ajouter `submitPresence` pour soumettre une déclaration
   - Implémenter `getExistingPresence` pour vérifier si une présence existe déjà
   - Implémenter `updatePresence` pour modifier une déclaration existante
   - Ajouter la validation: nombre de surveillants >= 0
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 6. Implémenter les fonctions API pour les notifications admin
+- [x] 6. Implémenter les fonctions API pour les notifications admin
   - Dans `lib/examenApi.ts`, ajouter `getUnreadNotifications` pour récupérer les notifications non lues
   - Implémenter `markNotificationAsRead` pour marquer comme lu
   - Implémenter `archiveNotification` pour archiver une notification
