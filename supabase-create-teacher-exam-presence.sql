@@ -38,6 +38,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_examens_updated_at ON examens;
 CREATE TRIGGER trigger_examens_updated_at
   BEFORE UPDATE ON examens
   FOR EACH ROW
@@ -72,6 +73,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_presences_updated_at ON presences_enseignants;
 CREATE TRIGGER trigger_presences_updated_at
   BEFORE UPDATE ON presences_enseignants
   FOR EACH ROW
@@ -116,18 +118,22 @@ GROUP BY e.id;
 ALTER TABLE examens ENABLE ROW LEVEL SECURITY;
 
 -- Politique de lecture: tout le monde peut lire les examens
+DROP POLICY IF EXISTS "Examens lisibles par tous" ON examens;
 CREATE POLICY "Examens lisibles par tous" ON examens
   FOR SELECT USING (true);
 
 -- Politique d'insertion: tout le monde peut créer (pour saisie manuelle)
+DROP POLICY IF EXISTS "Examens créables par tous" ON examens;
 CREATE POLICY "Examens créables par tous" ON examens
   FOR INSERT WITH CHECK (true);
 
 -- Politique de mise à jour: tout le monde peut modifier (admin validera)
+DROP POLICY IF EXISTS "Examens modifiables par tous" ON examens;
 CREATE POLICY "Examens modifiables par tous" ON examens
   FOR UPDATE USING (true);
 
 -- Politique de suppression: tout le monde peut supprimer (à restreindre en production)
+DROP POLICY IF EXISTS "Examens supprimables par tous" ON examens;
 CREATE POLICY "Examens supprimables par tous" ON examens
   FOR DELETE USING (true);
 
@@ -135,18 +141,22 @@ CREATE POLICY "Examens supprimables par tous" ON examens
 ALTER TABLE presences_enseignants ENABLE ROW LEVEL SECURITY;
 
 -- Politique de lecture: tout le monde peut lire
+DROP POLICY IF EXISTS "Presences lisibles par tous" ON presences_enseignants;
 CREATE POLICY "Presences lisibles par tous" ON presences_enseignants
   FOR SELECT USING (true);
 
 -- Politique d'insertion: tout le monde peut créer sa présence
+DROP POLICY IF EXISTS "Presences créables par tous" ON presences_enseignants;
 CREATE POLICY "Presences créables par tous" ON presences_enseignants
   FOR INSERT WITH CHECK (true);
 
 -- Politique de mise à jour: tout le monde peut modifier sa présence
+DROP POLICY IF EXISTS "Presences modifiables par tous" ON presences_enseignants;
 CREATE POLICY "Presences modifiables par tous" ON presences_enseignants
   FOR UPDATE USING (true);
 
 -- Politique de suppression: tout le monde peut supprimer
+DROP POLICY IF EXISTS "Presences supprimables par tous" ON presences_enseignants;
 CREATE POLICY "Presences supprimables par tous" ON presences_enseignants
   FOR DELETE USING (true);
 
@@ -154,18 +164,22 @@ CREATE POLICY "Presences supprimables par tous" ON presences_enseignants
 ALTER TABLE notifications_admin ENABLE ROW LEVEL SECURITY;
 
 -- Politique de lecture: tout le monde peut lire (admin)
+DROP POLICY IF EXISTS "Notifications lisibles par tous" ON notifications_admin;
 CREATE POLICY "Notifications lisibles par tous" ON notifications_admin
   FOR SELECT USING (true);
 
 -- Politique d'insertion: tout le monde peut créer
+DROP POLICY IF EXISTS "Notifications créables par tous" ON notifications_admin;
 CREATE POLICY "Notifications créables par tous" ON notifications_admin
   FOR INSERT WITH CHECK (true);
 
 -- Politique de mise à jour: tout le monde peut modifier
+DROP POLICY IF EXISTS "Notifications modifiables par tous" ON notifications_admin;
 CREATE POLICY "Notifications modifiables par tous" ON notifications_admin
   FOR UPDATE USING (true);
 
 -- Politique de suppression: tout le monde peut supprimer
+DROP POLICY IF EXISTS "Notifications supprimables par tous" ON notifications_admin;
 CREATE POLICY "Notifications supprimables par tous" ON notifications_admin
   FOR DELETE USING (true);
 
