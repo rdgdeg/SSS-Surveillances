@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { University, Sun, Moon, Home, BookOpen, Menu, X, Mail, Phone, MapPin } from 'lucide-react';
+import { University, Sun, Moon, Home, BookOpen, Menu, X, Mail } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../shared/Button';
 import NetworkStatusIndicator from '../shared/NetworkStatusIndicator';
@@ -122,7 +122,7 @@ const MainLayout: React.FC = () => {
                                 SSS - UCLouvain
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Système de gestion des surveillances d'examens pour l'Université catholique de Louvain.
+                                Système de gestion des surveillances d'examens pour le Secteur des Sciences de la Santé de l'UCLouvain (Woluwe).
                             </p>
                         </div>
 
@@ -153,7 +153,7 @@ const MainLayout: React.FC = () => {
                         {/* Contact */}
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                Besoin d'aide ?
+                                Contactez-nous
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                 En cas de problème ou de question, n'hésitez pas à nous contacter.
