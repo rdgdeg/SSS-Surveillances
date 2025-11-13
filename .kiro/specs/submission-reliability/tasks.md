@@ -145,7 +145,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 6 : Audit Logger
 
-- [ ] 14. Implémenter le Audit Logger
+- [x] 14. Implémenter le Audit Logger
   - Créer le fichier `lib/auditLogger.ts`
   - Implémenter la fonction `log(entry: AuditEntry)` pour enregistrer une opération dans la table `audit_logs`
   - Capturer automatiquement l'IP et le user agent depuis les headers de requête
@@ -153,7 +153,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Ajouter la gestion des erreurs avec fallback silencieux (ne pas bloquer l'opération principale)
   - _Requirements: 3.1, 3.5_
 
-- [ ] 15. Intégrer l'Audit Logger dans les opérations critiques
+- [x] 15. Intégrer l'Audit Logger dans les opérations critiques
   - Ajouter un log lors de chaque création de soumission (operation: 'create')
   - Ajouter un log lors de chaque modification de soumission (operation: 'update')
   - Ajouter un log lors de chaque consultation de soumission (operation: 'view')
@@ -194,7 +194,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 8 : Gestion des erreurs et UX
 
-- [ ] 19. Créer le Error Handler centralisé
+- [x] 19. Créer le Error Handler centralisé
   - Créer le fichier `lib/errorHandler.ts`
   - Implémenter la fonction `handle(error: Error, context: ErrorContext): ErrorResponse`
   - Classifier les erreurs par type (NETWORK_ERROR, VALIDATION_ERROR, DATABASE_ERROR, QUOTA_ERROR, UNKNOWN_ERROR)
@@ -203,7 +203,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Logger les erreurs dans la console et dans audit_logs si pertinent
   - _Requirements: 7.1, 7.2_
 
-- [ ] 20. Créer le composant ErrorDisplay
+- [x] 20. Créer le composant ErrorDisplay
   - Créer le fichier `components/shared/ErrorDisplay.tsx`
   - Afficher le message d'erreur de manière claire et non-intrusive
   - Afficher les actions correctives sous forme de boutons
@@ -212,14 +212,14 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Intégrer avec le Error Handler pour afficher les ErrorResponse
   - _Requirements: 7.1, 7.2_
 
-- [ ] 21. Ajouter la confirmation avant navigation
+- [x] 21. Ajouter la confirmation avant navigation
   - Ajouter un event listener `beforeunload` dans AvailabilityForm
   - Vérifier si des modifications non sauvegardées existent (comparer avec LocalStorage)
   - Afficher une confirmation native du navigateur si des modifications sont en attente
   - Désactiver la confirmation après une soumission réussie
   - _Requirements: 7.4_
 
-- [ ] 22. Améliorer les indicateurs de chargement
+- [x] 22. Améliorer les indicateurs de chargement
   - Ajouter un spinner avec le texte "Soumission en cours..." pendant la soumission
   - Afficher le nombre de tentatives si retry en cours : "Tentative 2/5..."
   - Désactiver tous les boutons et champs pendant la soumission

@@ -430,6 +430,7 @@ const AvailabilityForm: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submissionAttempts, setSubmissionAttempts] = useState(0);
     
     const initialFormData: AvailabilityFormData = {
         email: '',
@@ -564,6 +565,35 @@ const AvailabilityForm: React.FC = () => {
             });
         }
     }, [formData, availabilities, step, foundSurveillantId, session, localStorageAvailable]);
+
+    // Confirmation avant navigation si des modifications non sauvegardées existent
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            // Ne pas afficher la confirmation si on est à l'étape de succès (step 4)
+            if (step === 4) {
+                return;
+            }
+
+            // Vérifier s'il y a des données non soumises
+            const hasUnsavedData = step > 0 && step < 4 && (
+                formData.email || 
+                formData.nom || 
+                formData.prenom || 
+                Object.values(availabilities).some(a => a.available)
+            );
+
+            if (hasUnsavedData) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome nécessite returnValue
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [step, formData, availabilities]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;

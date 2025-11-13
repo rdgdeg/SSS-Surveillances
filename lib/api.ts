@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { Session, Creneau, Surveillant, SoumissionDisponibilite, Message } from '../types';
+import * as auditLogger from './auditLogger';
 
 // --- Public API Functions ---
 
@@ -302,8 +303,30 @@ export async function getSubmissionStatusData(): Promise<{ soumissions: Soumissi
 }
 
 export async function deleteSoumission(id: string): Promise<void> {
+    // Récupérer les infos avant suppression pour l'audit
+    const { data: submission } = await supabase
+        .from('soumissions_disponibilites')
+        .select('email, surveillant_id, session_id')
+        .eq('id', id)
+        .single();
+
     const { error } = await supabase.from('soumissions_disponibilites').delete().eq('id', id);
     if (error) throw error;
+
+    // Logger la suppression
+    if (submission) {
+        await auditLogger.log({
+            operation: 'delete',
+            entity: 'submission',
+            entity_id: id,
+            user_email: submission.email,
+            user_id: submission.surveillant_id || undefined,
+            details: {
+                session_id: submission.session_id,
+                deleted_by: 'admin', // À améliorer avec l'authentification admin
+            },
+        });
+    }
 }
 
 export async function updateSoumissionRemark(id: string, remarque_generale: string): Promise<SoumissionDisponibilite> {

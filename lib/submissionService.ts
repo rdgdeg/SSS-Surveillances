@@ -3,6 +3,7 @@ import { SoumissionDisponibilite, SubmissionResult, SubmissionStatus, Submission
 import { isOnline, submitWithRetry } from './networkManager';
 import { enqueue, processQueue } from './offlineQueueManager';
 import { clearFormProgress } from './localStorageManager';
+import * as auditLogger from './auditLogger';
 
 /**
  * Valide le payload côté client
@@ -120,6 +121,16 @@ async function submitToAPI(payload: SubmissionPayload): Promise<SoumissionDispon
     submitted_at: new Date().toISOString(),
   };
 
+  // Vérifier si c'est une création ou une mise à jour
+  const { data: existing } = await supabase
+    .from('soumissions_disponibilites')
+    .select('id')
+    .eq('session_id', payload.session_id)
+    .eq('email', payload.email.toLowerCase().trim())
+    .single();
+
+  const isUpdate = !!existing;
+
   // Effectuer l'upsert
   const { data, error } = await supabase
     .from('soumissions_disponibilites')
@@ -135,6 +146,22 @@ async function submitToAPI(payload: SubmissionPayload): Promise<SoumissionDispon
     }
     throw new Error(`DATABASE_ERROR: ${error.message}`);
   }
+
+  // Logger l'opération dans audit_logs
+  await auditLogger.log({
+    operation: isUpdate ? 'update' : 'create',
+    entity: 'submission',
+    entity_id: data.id,
+    user_email: payload.email,
+    user_id: payload.surveillant_id || undefined,
+    details: {
+      session_id: payload.session_id,
+      nb_disponibilites: payload.availabilities.length,
+      nb_disponibles: payload.availabilities.filter(a => a.est_disponible).length,
+      type_surveillant: payload.type_surveillant,
+      is_update: isUpdate,
+    },
+  });
 
   return data;
 }
@@ -247,6 +274,20 @@ export async function checkStatus(
         return null;
       }
       throw error;
+    }
+
+    // Logger la consultation
+    if (data) {
+      await auditLogger.log({
+        operation: 'view',
+        entity: 'submission',
+        entity_id: data.id,
+        user_email: email,
+        user_id: data.surveillant_id || undefined,
+        details: {
+          session_id: sessionId,
+        },
+      });
     }
 
     return data;
