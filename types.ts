@@ -3,7 +3,7 @@ export interface Session {
   id: string;
   name: string;
   year: number;
-  period: 1 | 2 | 3; // 1=Jan, 2=Jun, 3=Aug
+  period: 1 | 2 | 3 | 4 | 5; // 1=Jan, 2=Jun, 3=Aug, 4=Hors-Session Jan, 5=Hors-Session Jun
   is_active: boolean;
   created_at?: string;
 }

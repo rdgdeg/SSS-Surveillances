@@ -15,7 +15,9 @@ import { useDataFetching } from '../../hooks/useDataFetching';
 const periodLabels: { [key: number]: string } = {
     1: 'Janvier',
     2: 'Juin',
-    3: 'Août/Septembre'
+    3: 'Août/Septembre',
+    4: 'Hors-Session Janvier',
+    5: 'Hors-Session Juin'
 };
 
 const SessionForm: React.FC<{ session?: Session | null; onSave: () => void; onCancel: () => void; }> = ({ session, onSave, onCancel }) => {
@@ -34,7 +36,7 @@ const SessionForm: React.FC<{ session?: Session | null; onSave: () => void; onCa
     };
 
     const handleSelectChange = (value: string) => {
-        setFormData(prev => ({ ...prev, period: parseInt(value) as (1 | 2 | 3) }));
+        setFormData(prev => ({ ...prev, period: parseInt(value) as (1 | 2 | 3 | 4 | 5) }));
     };
     
     const handleSwitchChange = (checked: boolean) => {
