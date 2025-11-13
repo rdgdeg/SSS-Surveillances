@@ -332,7 +332,7 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                         </div>
                     </div>
                 </div>
-                {Object.keys(groupedCreneaux).map(date => {
+                {Object.keys(groupedCreneaux).sort().map(date => {
                     const creneauxOnDate = groupedCreneaux[date];
                     return (
                         <div key={date}>
