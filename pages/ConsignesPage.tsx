@@ -7,13 +7,13 @@ import { useCoursQuery, useCoursDetailQuery } from '../src/hooks/useCours';
 import { CoursSearchParams, CoursListItem } from '../types';
 
 function ConsignesPage() {
-  const [searchParams, setSearchParams] = useState<CoursSearchParams>({ page: 1, pageSize: 50 });
+  const [searchParams, setSearchParams] = useState<CoursSearchParams>({ page: 1, pageSize: 25 });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const { data: coursData, isLoading } = useCoursQuery(searchParams);
   const { data: selectedCours } = useCoursDetailQuery(selectedCourseId);
 
-  const totalPages = coursData ? Math.ceil(coursData.total / (searchParams.pageSize || 50)) : 0;
+  const totalPages = coursData ? Math.ceil(coursData.total / (searchParams.pageSize || 25)) : 0;
 
   const handleCourseClick = (course: CoursListItem) => {
     setSelectedCourseId(course.id);
@@ -24,7 +24,7 @@ function ConsignesPage() {
   };
 
   const handleSearchChange = (params: CoursSearchParams) => {
-    setSearchParams({ ...params, page: 1, pageSize: 50 }); // Reset à la page 1 lors d'une recherche
+    setSearchParams({ ...params, page: 1, pageSize: 25 }); // Reset à la page 1 lors d'une recherche
   };
 
   const handlePageChange = (page: number) => {
@@ -63,7 +63,7 @@ function ConsignesPage() {
             totalPages={totalPages}
             onPageChange={handlePageChange}
             totalItems={coursData.total}
-            pageSize={searchParams.pageSize || 50}
+            pageSize={searchParams.pageSize || 25}
           />
         )}
 

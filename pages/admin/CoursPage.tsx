@@ -3,17 +3,20 @@ import { CourseSearch } from '../../components/public/CourseSearch';
 import { CourseListAdmin } from '../../components/admin/CourseListAdmin';
 import { CourseInstructionsForm } from '../../components/admin/CourseInstructionsForm';
 import { CourseImport } from '../../components/admin/CourseImport';
+import { Pagination } from '../../components/shared/Pagination';
 import { useCoursQuery, useCoursDetailQuery, useCoursStatsQuery } from '../../src/hooks/useCours';
 import { CoursSearchParams, CoursListItem } from '../../types';
 
 function CoursPage() {
-  const [searchParams, setSearchParams] = useState<CoursSearchParams>({});
+  const [searchParams, setSearchParams] = useState<CoursSearchParams>({ page: 1, pageSize: 25 });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
 
   const { data: coursData, isLoading, refetch } = useCoursQuery(searchParams);
   const { data: selectedCours } = useCoursDetailQuery(selectedCourseId);
   const { data: stats } = useCoursStatsQuery();
+
+  const totalPages = coursData ? Math.ceil(coursData.total / (searchParams.pageSize || 25)) : 0;
 
   const handleEditClick = (course: CoursListItem) => {
     setSelectedCourseId(course.id);
@@ -25,6 +28,15 @@ function CoursPage() {
 
   const handleSuccess = () => {
     refetch();
+  };
+
+  const handleSearchChange = (params: CoursSearchParams) => {
+    setSearchParams({ ...params, page: 1, pageSize: 25 }); // Reset à la page 1 lors d'une recherche
+  };
+
+  const handlePageChange = (page: number) => {
+    setSearchParams(prev => ({ ...prev, page }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -119,7 +131,7 @@ function CoursPage() {
 
         {/* Search and filters */}
         <CourseSearch
-          onSearchChange={setSearchParams}
+          onSearchChange={handleSearchChange}
           resultCount={coursData?.total}
         />
 
@@ -129,6 +141,17 @@ function CoursPage() {
           onEditClick={handleEditClick}
           isLoading={isLoading}
         />
+
+        {/* Pagination */}
+        {!isLoading && coursData && coursData.total > 0 && (
+          <Pagination
+            currentPage={searchParams.page || 1}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            totalItems={coursData.total}
+            pageSize={searchParams.pageSize || 25}
+          />
+        )}
 
         {/* Edit form modal */}
         {selectedCours && (

@@ -31,7 +31,7 @@ export async function getCours(params?: CoursSearchParams): Promise<{ data: Cour
 
   // Pagination
   const page = params?.page || 1;
-  const pageSize = params?.pageSize || 50;
+  const pageSize = params?.pageSize || 25;
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
   query = query.range(from, to);
