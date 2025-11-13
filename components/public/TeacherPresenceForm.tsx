@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { usePresenceMutation, useExistingPresenceQuery } from '../../src/hooks/useExamens';
-import { Examen, PresenceFormData } from '../../types';
+import { usePresenceMutation, useExistingPresenceQuery } from '../../src/hooks/useTeacherPresence';
+import { Cours, PresenceFormData } from '../../types';
 
 interface TeacherPresenceFormProps {
-  examen: Examen;
+  cours: Cours;
+  sessionId: string;
   defaultEmail?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCancel }: TeacherPresenceFormProps) {
+export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuccess, onCancel }: TeacherPresenceFormProps) {
   const [formData, setFormData] = useState<PresenceFormData>({
     enseignant_email: defaultEmail,
     enseignant_nom: '',
@@ -21,9 +22,10 @@ export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCa
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const { submit, update } = usePresenceMutation();
+  const { submit } = usePresenceMutation();
   const { data: existingPresence } = useExistingPresenceQuery(
-    examen.id,
+    cours.id,
+    sessionId,
     formData.enseignant_email || null
   );
 
@@ -84,7 +86,8 @@ export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCa
   const handleConfirm = async () => {
     try {
       await submit.mutateAsync({
-        examenId: examen.id,
+        coursId: cours.id,
+        sessionId: sessionId,
         data: {
           ...formData,
           enseignant_email: formData.enseignant_email.toLowerCase().trim(),
@@ -124,39 +127,18 @@ export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCa
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900">Déclaration de présence</h3>
         
-        {/* Exam info */}
+        {/* Cours info */}
         <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Informations de l'examen</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Informations du cours</h4>
           <dl className="grid grid-cols-1 gap-2 text-sm">
             <div>
               <dt className="text-gray-600 inline">Code:</dt>
-              <dd className="text-gray-900 inline ml-2 font-medium">{examen.code_examen}</dd>
+              <dd className="text-gray-900 inline ml-2 font-medium">{cours.code}</dd>
             </div>
             <div>
               <dt className="text-gray-600 inline">Nom:</dt>
-              <dd className="text-gray-900 inline ml-2">{examen.nom_examen}</dd>
+              <dd className="text-gray-900 inline ml-2">{cours.intitule_complet}</dd>
             </div>
-            {examen.date_examen && (
-              <div>
-                <dt className="text-gray-600 inline">Date:</dt>
-                <dd className="text-gray-900 inline ml-2">
-                  {new Date(examen.date_examen).toLocaleDateString('fr-FR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </dd>
-              </div>
-            )}
-            {examen.heure_debut && (
-              <div>
-                <dt className="text-gray-600 inline">Horaire:</dt>
-                <dd className="text-gray-900 inline ml-2">
-                  {examen.heure_debut} {examen.heure_fin && `- ${examen.heure_fin}`}
-                </dd>
-              </div>
-            )}
           </dl>
         </div>
 
@@ -316,7 +298,7 @@ export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCa
         {/* Remarque */}
         <div>
           <label htmlFor="remarque" className="block text-sm font-medium text-gray-700">
-            Remarque (optionnel)
+            Consignes particulières (optionnel)
           </label>
           <textarea
             id="remarque"
@@ -324,8 +306,11 @@ export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCa
             value={formData.remarque}
             onChange={(e) => handleChange('remarque', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="Informations complémentaires..."
+            placeholder="Consignes spécifiques pour cet examen (seront ajoutées à la fiche du cours)..."
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Ces consignes seront ajoutées à la fiche du cours et visibles par l'administration
+          </p>
         </div>
 
         {/* Buttons */}
@@ -374,7 +359,7 @@ export function TeacherPresenceForm({ examen, defaultEmail = '', onSuccess, onCa
             <div className="text-sm text-gray-600 space-y-2 mb-6">
               <p>Vous êtes sur le point de soumettre votre déclaration de présence :</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Examen: <strong>{examen.code_examen}</strong></li>
+                <li>Cours: <strong>{cours.code}</strong></li>
                 <li>Présence: <strong>{formData.est_present ? 'Oui' : 'Non'}</strong></li>
                 {formData.est_present && (
                   <li>Surveillants: <strong>{formData.nb_surveillants_accompagnants}</strong></li>

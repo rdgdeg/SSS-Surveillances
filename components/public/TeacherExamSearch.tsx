@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
-import { useExamenSearchQuery } from '../../src/hooks/useExamens';
-import { Examen } from '../../types';
+import { useCoursSearchQuery } from '../../src/hooks/useTeacherPresence';
+import { Cours } from '../../types';
 
 interface TeacherExamSearchProps {
-  sessionId: string;
-  onExamenSelect: (examen: Examen) => void;
-  onManualEntry: () => void;
+  onCoursSelect: (cours: Cours) => void;
 }
 
-export function TeacherExamSearch({ sessionId, onExamenSelect, onManualEntry }: TeacherExamSearchProps) {
+export function TeacherExamSearch({ onCoursSelect }: TeacherExamSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: searchResults, isLoading, error } = useExamenSearchQuery(sessionId, searchQuery);
+  const { data: searchResults, isLoading, error } = useCoursSearchQuery(searchQuery);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
-  const handleExamenClick = (examen: Examen) => {
-    onExamenSelect(examen);
+  const handleCoursClick = (cours: Cours) => {
+    onCoursSelect(cours);
     setSearchQuery(''); // Reset search
   };
 
@@ -91,31 +89,20 @@ export function TeacherExamSearch({ sessionId, onExamenSelect, onManualEntry }: 
             </h4>
           </div>
           <ul className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-            {searchResults.map((examen) => (
-              <li key={examen.id}>
+            {searchResults.map((cours) => (
+              <li key={cours.id}>
                 <button
-                  onClick={() => handleExamenClick(examen)}
+                  onClick={() => handleCoursClick(cours)}
                   className="w-full px-4 py-3 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors text-left"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {examen.code_examen}
+                        {cours.code}
                       </p>
                       <p className="text-sm text-gray-600 mt-1">
-                        {examen.nom_examen}
+                        {cours.intitule_complet}
                       </p>
-                      {examen.date_examen && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(examen.date_examen).toLocaleDateString('fr-FR', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                          {examen.heure_debut && ` à ${examen.heure_debut}`}
-                        </p>
-                      )}
                     </div>
                     <svg className="h-5 w-5 text-gray-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -145,18 +132,7 @@ export function TeacherExamSearch({ sessionId, onExamenSelect, onManualEntry }: 
         </div>
       )}
 
-      {/* Manual entry option */}
-      <div className="border-t border-gray-200 pt-4">
-        <button
-          onClick={onManualEntry}
-          className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <svg className="h-5 w-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Examen non trouvé ? Saisir manuellement
-        </button>
-      </div>
+
     </div>
   );
 }

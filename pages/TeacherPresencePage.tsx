@@ -1,41 +1,31 @@
 import React, { useState } from 'react';
 import { TeacherExamSearch } from '../components/public/TeacherExamSearch';
-import { ManualExamForm } from '../components/public/ManualExamForm';
 import { TeacherPresenceForm } from '../components/public/TeacherPresenceForm';
-import { Examen } from '../types';
+import { Cours } from '../types';
 
-type ViewMode = 'search' | 'manual' | 'presence';
+type ViewMode = 'search' | 'presence';
 
 function TeacherPresencePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('search');
-  const [selectedExamen, setSelectedExamen] = useState<Examen | null>(null);
+  const [selectedCours, setSelectedCours] = useState<Cours | null>(null);
   const [defaultEmail, setDefaultEmail] = useState('');
 
   // Get active session (you might want to fetch this from your API)
   const activeSessionId = 'your-active-session-id'; // TODO: Replace with actual session fetching
 
-  const handleExamenSelect = (examen: Examen) => {
-    setSelectedExamen(examen);
-    setViewMode('presence');
-  };
-
-  const handleManualEntry = () => {
-    setViewMode('manual');
-  };
-
-  const handleManualExamenCreated = (examen: Examen) => {
-    setSelectedExamen(examen);
+  const handleCoursSelect = (cours: Cours) => {
+    setSelectedCours(cours);
     setViewMode('presence');
   };
 
   const handleCancel = () => {
-    setSelectedExamen(null);
+    setSelectedCours(null);
     setViewMode('search');
   };
 
   const handleSuccess = () => {
     // Reset to search view after successful submission
-    setSelectedExamen(null);
+    setSelectedCours(null);
     setViewMode('search');
   };
 
@@ -70,25 +60,15 @@ function TeacherPresencePage() {
           {viewMode === 'search' && (
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <TeacherExamSearch
-                sessionId={activeSessionId}
-                onExamenSelect={handleExamenSelect}
-                onManualEntry={handleManualEntry}
+                onCoursSelect={handleCoursSelect}
               />
             </div>
           )}
 
-          {viewMode === 'manual' && (
-            <ManualExamForm
-              sessionId={activeSessionId}
-              enseignantEmail={defaultEmail}
-              onSuccess={handleManualExamenCreated}
-              onCancel={handleCancel}
-            />
-          )}
-
-          {viewMode === 'presence' && selectedExamen && (
+          {viewMode === 'presence' && selectedCours && (
             <TeacherPresenceForm
-              examen={selectedExamen}
+              cours={selectedCours}
+              sessionId={activeSessionId}
               defaultEmail={defaultEmail}
               onSuccess={handleSuccess}
               onCancel={handleCancel}
@@ -105,19 +85,19 @@ function TeacherPresencePage() {
                 <svg className="h-5 w-5 mr-2 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                <span>Recherchez votre examen par code (ex: MATH101) ou par nom</span>
-              </li>
-              <li className="flex items-start">
-                <svg className="h-5 w-5 mr-2 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span>Si votre examen n'apparaît pas, vous pouvez le saisir manuellement</span>
+                <span>Recherchez votre cours par code (ex: LINFO1101) ou par nom</span>
               </li>
               <li className="flex items-start">
                 <svg className="h-5 w-5 mr-2 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <span>Vous pouvez modifier votre déclaration à tout moment</span>
+              </li>
+              <li className="flex items-start">
+                <svg className="h-5 w-5 mr-2 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span>Vos remarques seront ajoutées aux consignes du cours</span>
               </li>
             </ul>
           </div>
