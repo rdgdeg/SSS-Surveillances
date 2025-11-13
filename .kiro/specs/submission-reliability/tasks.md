@@ -88,7 +88,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 4 : Network Manager et Retry Logic
 
-- [ ] 9. Implémenter le Network Manager
+- [x] 9. Implémenter le Network Manager
   - Créer le fichier `lib/networkManager.ts`
   - Implémenter la fonction `isOnline(): boolean` utilisant `navigator.onLine`
   - Implémenter la fonction `onConnectionChange(callback)` pour écouter les événements `online` et `offline`
@@ -98,7 +98,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Retourner un `SubmissionResult` avec success, submissionId, error, et attempts
   - _Requirements: 2.2, 2.3_
 
-- [ ] 10. Créer le composant NetworkStatusIndicator
+- [x] 10. Créer le composant NetworkStatusIndicator
   - Créer le fichier `components/shared/NetworkStatusIndicator.tsx`
   - Afficher un indicateur visuel de l'état de la connexion (online/offline)
   - Utiliser le Network Manager pour détecter les changements de connexion
@@ -110,7 +110,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 5 : Submission Service et orchestration
 
-- [ ] 11. Implémenter le Submission Service
+- [x] 11. Implémenter le Submission Service
   - Créer le fichier `lib/submissionService.ts`
   - Implémenter la fonction `submit(payload)` qui orchestre toute la logique de soumission
   - Étape 1 : Valider le payload côté client avec des règles strictes

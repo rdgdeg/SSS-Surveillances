@@ -193,11 +193,11 @@ export interface FormProgressData {
 // Types pour Offline Queue Manager
 export interface PendingSubmission {
   id: string; // UUID local
-  data: SubmissionPayload;
-  timestamp: string;
+  payload: SubmissionPayload;
+  timestamp: number;
   attempts: number;
-  lastAttempt?: string;
-  error?: string;
+  lastAttempt?: number;
+  lastError?: string;
 }
 
 export interface ProcessResult {
@@ -215,32 +215,31 @@ export interface RetryOptions {
   backoffMultiplier: number; // Default: 2
 }
 
-export interface SubmissionResult {
+export interface SubmissionResult<T = any> {
   success: boolean;
-  submissionId?: string;
-  error?: string;
-  attempts?: number;
-  message?: string;
+  data?: T;
+  error?: Error;
+  attempts: number;
 }
 
 // Types pour Submission Service
 export interface SubmissionPayload {
   session_id: string;
-  surveillant_id: string | null;
   email: string;
   nom: string;
   prenom: string;
-  type_surveillant: string;
-  remarque_generale?: string;
-  availabilities: Array<{ creneau_id: string; est_disponible: boolean }>;
+  telephone: string;
+  creneau_ids: string[];
+  commentaire?: string;
 }
 
 export interface SubmissionStatus {
-  exists: boolean;
-  submittedAt?: string;
-  updatedAt?: string;
-  modificationsCount: number;
-  creneauxCount: number;
+  success: boolean;
+  message: string;
+  submissionId?: string;
+  data?: SoumissionDisponibilite;
+  queued?: boolean;
+  errors?: string[];
 }
 
 // Types pour Error Handler
