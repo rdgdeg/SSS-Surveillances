@@ -8,10 +8,11 @@ import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shared/Select';
 import { Checkbox } from '../shared/Checkbox';
-import { User, Calendar, MessageSquare, Send, ArrowLeft, ArrowRight, Mail, Search, Lightbulb, AlertTriangle, Frown, RefreshCw, Plus, Loader2, Users, Check, Save } from 'lucide-react';
+import { User, Calendar, MessageSquare, Send, ArrowLeft, ArrowRight, Mail, Search, Lightbulb, AlertTriangle, Frown, RefreshCw, Plus, Loader2, Users, Check, Save, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDebug } from '../../contexts/DebugContext';
 import localStorageManager from '../../lib/localStorageManager';
+import SubmissionHistoryModal from './SubmissionHistoryModal';
 
 // --- Helper Functions ---
 
@@ -58,7 +59,12 @@ const Stepper: React.FC<{ currentStep: number; steps: string[] }> = memo(({ curr
     );
 });
 
-const SubmissionInfoBanner: React.FC<{ submittedAt?: string; updatedAt?: string; modificationsCount?: number }> = memo(({ submittedAt, updatedAt, modificationsCount }) => {
+const SubmissionInfoBanner: React.FC<{ 
+    submittedAt?: string; 
+    updatedAt?: string; 
+    modificationsCount?: number;
+    onViewHistory?: () => void;
+}> = memo(({ submittedAt, updatedAt, modificationsCount, onViewHistory }) => {
     if (!submittedAt) return null;
     
     const formatDate = (dateStr: string) => {
@@ -91,6 +97,15 @@ const SubmissionInfoBanner: React.FC<{ submittedAt?: string; updatedAt?: string;
                                 </span>
                             )}
                         </p>
+                    )}
+                    {modificationsCount && modificationsCount > 0 && onViewHistory && (
+                        <button
+                            onClick={onViewHistory}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 flex items-center gap-1"
+                        >
+                            <Clock className="h-3 w-3" />
+                            Voir l'historique complet
+                        </button>
                     )}
                 </div>
             </div>
@@ -232,7 +247,7 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
     </>
 ));
 
-const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount }) => {
+const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; onViewHistory?: () => void; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount, onViewHistory }) => {
     const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
     const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(null);
     const [showScrollIndicator, setShowScrollIndicator] = useState(false);
@@ -268,7 +283,7 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
     return (
     <>
         <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
-        <SubmissionInfoBanner submittedAt={submittedAt} updatedAt={updatedAt} modificationsCount={modificationsCount} />
+        <SubmissionInfoBanner submittedAt={submittedAt} updatedAt={updatedAt} modificationsCount={modificationsCount} onViewHistory={onViewHistory} />
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités {isModification && '(Modification)'}</CardTitle>
@@ -431,6 +446,7 @@ const AvailabilityForm: React.FC = () => {
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionAttempts, setSubmissionAttempts] = useState(0);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
     
     const initialFormData: AvailabilityFormData = {
         email: '',
@@ -446,7 +462,12 @@ const AvailabilityForm: React.FC = () => {
     const [availabilities, setAvailabilities] = useState<AvailabilityData>({});
     const [existingSubmissionId, setExistingSubmissionId] = useState<string | null>(null);
     const [hasExistingSubmission, setHasExistingSubmission] = useState(false);
-    const [submissionTimestamps, setSubmissionTimestamps] = useState<{ submittedAt?: string; updatedAt?: string; modificationsCount?: number }>({});
+    const [submissionTimestamps, setSubmissionTimestamps] = useState<{ 
+        submittedAt?: string; 
+        updatedAt?: string; 
+        modificationsCount?: number;
+        history?: any[];
+    }>({});
     
     const formSteps = ["Identification", "Disponibilités", "Confirmation"];
     const { setDebugData } = useDebug();
@@ -635,11 +656,12 @@ const AvailabilityForm: React.FC = () => {
                     remarque_generale: existingSubmission.remarque_generale || ''
                 }));
                 
-                // Charger les timestamps
+                // Charger les timestamps et l'historique
                 setSubmissionTimestamps({
                     submittedAt: existingSubmission.submitted_at,
                     updatedAt: existingSubmission.updated_at,
-                    modificationsCount: existingSubmission.historique_modifications?.length || 0
+                    modificationsCount: existingSubmission.historique_modifications?.length || 0,
+                    history: existingSubmission.historique_modifications || []
                 });
                 
                 // Charger les disponibilités existantes
@@ -767,7 +789,7 @@ const AvailabilityForm: React.FC = () => {
             case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} onEmailChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
-            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} />;
+            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} />;
             case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
             case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
             default: return null;
@@ -818,6 +840,14 @@ const AvailabilityForm: React.FC = () => {
             
             {step > 0 && step < 4 && <Stepper currentStep={step} steps={formSteps} />}
             {renderStep()}
+            
+            {/* Modal d'historique */}
+            <SubmissionHistoryModal
+                isOpen={showHistoryModal}
+                onClose={() => setShowHistoryModal(false)}
+                history={submissionTimestamps.history || []}
+                submittedAt={submissionTimestamps.submittedAt || ''}
+            />
         </div>
     );
 };

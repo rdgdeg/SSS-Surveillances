@@ -230,14 +230,14 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 9 : Vérification et historique
 
-- [ ] 23. Améliorer l'affichage de l'historique dans AvailabilityForm
+- [x] 23. Améliorer l'affichage de l'historique dans AvailabilityForm
   - Modifier le composant `SubmissionInfoBanner` pour afficher plus de détails
   - Afficher clairement la date de première soumission et de dernière modification
   - Afficher le nombre total de modifications effectuées
   - Ajouter un bouton "Voir l'historique complet" qui ouvre un modal
   - _Requirements: 3.2, 3.3, 3.4, 8.2, 8.3_
 
-- [ ] 24. Créer le composant SubmissionHistoryModal
+- [x] 24. Créer le composant SubmissionHistoryModal
   - Créer le fichier `components/public/SubmissionHistoryModal.tsx`
   - Afficher l'historique complet des modifications depuis `historique_modifications`
   - Pour chaque modification, afficher : date, type (création/modification), nombre de créneaux
@@ -245,7 +245,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Permettre de fermer le modal
   - _Requirements: 3.2, 3.3, 3.4, 8.5_
 
-- [ ] 25. Améliorer la vérification de soumission existante
+- [x] 25. Améliorer la vérification de soumission existante
   - Modifier la fonction `handleEmailCheck` dans AvailabilityForm
   - Utiliser `submissionService.checkStatus()` pour vérifier l'existence d'une soumission
   - Afficher un message clair si une soumission existe déjà
