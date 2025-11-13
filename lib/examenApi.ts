@@ -341,6 +341,13 @@ export async function submitPresence(
   examenId: string,
   data: PresenceFormData
 ): Promise<PresenceEnseignant> {
+  // Récupérer les informations de l'examen pour le message
+  const { data: examen } = await supabase
+    .from('examens')
+    .select('code_examen, nom_examen, session_id')
+    .eq('id', examenId)
+    .single();
+
   const presenceData = {
     examen_id: examenId,
     enseignant_email: data.enseignant_email.toLowerCase(),
@@ -363,6 +370,27 @@ export async function submitPresence(
   if (error) {
     console.error('Error submitting presence:', error);
     throw error;
+  }
+
+  // Si une remarque est fournie, créer un message
+  if (data.remarque && data.remarque.trim() && examen) {
+    const newMessage = {
+      session_id: examen.session_id,
+      expediteur_email: data.enseignant_email.toLowerCase(),
+      expediteur_nom: data.enseignant_nom,
+      expediteur_prenom: data.enseignant_prenom,
+      sujet: `Remarque enseignant - ${examen.code_examen}`,
+      contenu: `Examen: ${examen.code_examen} - ${examen.nom_examen}\n\nRemarque:\n${data.remarque}`,
+      lu: false,
+      archive: false,
+      priorite: 'normale',
+    };
+    
+    const { error: messageError } = await supabase.from('messages').insert(newMessage);
+    if (messageError) {
+      console.error("Error creating message from remark:", messageError);
+      // Ne pas bloquer la soumission si le message échoue
+    }
   }
   
   return presence;
