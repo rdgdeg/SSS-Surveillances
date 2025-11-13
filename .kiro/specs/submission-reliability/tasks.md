@@ -277,7 +277,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 11 : Sauvegardes automatiques
 
-- [ ] 28. Créer le script de sauvegarde quotidienne
+- [x] 28. Créer le script de sauvegarde quotidienne
   - Créer un script `scripts/backup-submissions.ts` ou une Edge Function Supabase
   - Exporter toutes les soumissions de la table `soumissions_disponibilites` au format JSON
   - Compresser le fichier avec gzip
@@ -287,7 +287,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Configurer un cron job pour exécution quotidienne à 2h du matin
   - _Requirements: 6.1_
 
-- [ ] 29. Implémenter la rétention des sauvegardes
+- [x] 29. Implémenter la rétention des sauvegardes
   - Créer un script `scripts/cleanup-old-backups.ts`
   - Identifier les sauvegardes de plus de 90 jours
   - Supprimer les fichiers de sauvegarde obsolètes
