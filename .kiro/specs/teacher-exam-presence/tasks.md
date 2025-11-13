@@ -101,7 +101,7 @@
   - Afficher un message de confirmation
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 13. Créer le formulaire de déclaration de présence (Enseignant)
+- [x] 13. Créer le formulaire de déclaration de présence (Enseignant)
   - Créer `components/public/TeacherPresenceForm.tsx`
   - Afficher les informations de l'examen en lecture seule
   - Implémenter les champs: email, nom, prénom, présent/absent
@@ -113,7 +113,7 @@
   - Gérer les états de chargement et les erreurs
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-- [ ] 14. Créer le dashboard des présences (Admin)
+- [x] 14. Créer le dashboard des présences (Admin)
   - Créer `components/admin/ExamPresencesDashboard.tsx`
   - Afficher la liste des examens de la session sélectionnée
   - Afficher pour chaque examen: code, nom, date, heure, horaire complet
@@ -125,7 +125,7 @@
   - Implémenter le tri par colonne (date, code, statut)
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 15. Créer le composant de gestion des notifications (Admin)
+- [x] 15. Créer le composant de gestion des notifications (Admin)
   - Créer `components/admin/ManualExamNotifications.tsx`
   - Afficher la liste des examens saisis manuellement en attente
   - Afficher les détails: code, nom, enseignant, date de saisie
