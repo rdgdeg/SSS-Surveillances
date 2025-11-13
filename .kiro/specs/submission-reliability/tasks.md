@@ -257,14 +257,14 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 10 : Soft Delete et récupération
 
-- [ ] 26. Implémenter le soft delete
+- [x] 26. Implémenter le soft delete
   - Modifier la fonction `deleteSoumission` dans `lib/api.ts`
   - Au lieu de supprimer physiquement, définir `deleted_at = now()`
   - Ajouter un log dans audit_logs avec l'utilisateur qui a effectué la suppression
   - Modifier toutes les requêtes SELECT pour exclure les enregistrements avec `deleted_at IS NOT NULL`
   - _Requirements: 6.4, 6.5_
 
-- [ ] 27. Créer l'interface admin de récupération
+- [x] 27. Créer l'interface admin de récupération
   - Créer le composant `components/admin/DeletedSubmissionsManager.tsx`
   - Afficher la liste des soumissions supprimées (deleted_at IS NOT NULL)
   - Pour chaque soumission, afficher : email, date de soumission, date de suppression, qui a supprimé

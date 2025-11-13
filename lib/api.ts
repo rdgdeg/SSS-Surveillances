@@ -302,7 +302,7 @@ export async function getSubmissionStatusData(): Promise<{ soumissions: Soumissi
     return { soumissions: soumissions || [], allActiveSurveillants: allActiveSurveillants || [], activeSessionName: activeSession.name };
 }
 
-export async function deleteSoumission(id: string): Promise<void> {
+export async function deleteSoumission(id: string, hardDelete: boolean = false): Promise<void> {
     // Récupérer les infos avant suppression pour l'audit
     const { data: submission } = await supabase
         .from('soumissions_disponibilites')
@@ -310,8 +310,18 @@ export async function deleteSoumission(id: string): Promise<void> {
         .eq('id', id)
         .single();
 
-    const { error } = await supabase.from('soumissions_disponibilites').delete().eq('id', id);
-    if (error) throw error;
+    if (hardDelete) {
+        // Suppression physique définitive
+        const { error } = await supabase.from('soumissions_disponibilites').delete().eq('id', id);
+        if (error) throw error;
+    } else {
+        // Soft delete : définir deleted_at
+        const { error } = await supabase
+            .from('soumissions_disponibilites')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', id);
+        if (error) throw error;
+    }
 
     // Logger la suppression
     if (submission) {
@@ -324,9 +334,54 @@ export async function deleteSoumission(id: string): Promise<void> {
             details: {
                 session_id: submission.session_id,
                 deleted_by: 'admin', // À améliorer avec l'authentification admin
+                hard_delete: hardDelete,
             },
         });
     }
+}
+
+export async function restoreSoumission(id: string): Promise<void> {
+    // Récupérer les infos pour l'audit
+    const { data: submission } = await supabase
+        .from('soumissions_disponibilites')
+        .select('email, surveillant_id, session_id')
+        .eq('id', id)
+        .single();
+
+    // Restaurer en définissant deleted_at à null
+    const { error } = await supabase
+        .from('soumissions_disponibilites')
+        .update({ deleted_at: null })
+        .eq('id', id);
+    
+    if (error) throw error;
+
+    // Logger la restauration
+    if (submission) {
+        await auditLogger.log({
+            operation: 'update',
+            entity: 'submission',
+            entity_id: id,
+            user_email: submission.email,
+            user_id: submission.surveillant_id || undefined,
+            details: {
+                session_id: submission.session_id,
+                action: 'restore',
+                restored_by: 'admin',
+            },
+        });
+    }
+}
+
+export async function getDeletedSoumissions(): Promise<SoumissionDisponibilite[]> {
+    const { data, error } = await supabase
+        .from('soumissions_disponibilites')
+        .select('*')
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
 }
 
 export async function updateSoumissionRemark(id: string, remarque_generale: string): Promise<SoumissionDisponibilite> {
