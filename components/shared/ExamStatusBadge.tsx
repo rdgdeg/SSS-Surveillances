@@ -1,61 +1,56 @@
 import React from 'react';
-import { ExamenStatusBadgeVariant } from '../../types';
 
 interface ExamStatusBadgeProps {
-  status: ExamenStatusBadgeVariant;
-  className?: string;
+  hasDeclarations: boolean;
+  count?: number;
+  showCount?: boolean;
 }
 
 /**
- * Badge pour afficher le statut d'un examen
- * - declared (vert): Présence déclarée
- * - pending (orange): En attente de déclaration
- * - manual (bleu): Saisi manuellement
+ * Badge component to display exam response status
+ * Shows "Declared" (green) or "Pending" (yellow/orange) based on presence declarations
  */
-export function ExamStatusBadge({ status, className = '' }: ExamStatusBadgeProps) {
-  const variants = {
-    declared: {
-      bg: 'bg-green-100',
-      text: 'text-green-800',
-      label: 'Déclaré',
-      icon: (
-        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+export function ExamStatusBadge({ 
+  hasDeclarations, 
+  count = 0,
+  showCount = false 
+}: ExamStatusBadgeProps) {
+  if (hasDeclarations) {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <svg 
+          className="mr-1 h-3 w-3" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path 
+            fillRule="evenodd" 
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
+            clipRule="evenodd" 
+          />
         </svg>
-      )
-    },
-    pending: {
-      bg: 'bg-orange-100',
-      text: 'text-orange-800',
-      label: 'En attente',
-      icon: (
-        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-        </svg>
-      )
-    },
-    manual: {
-      bg: 'bg-blue-100',
-      text: 'text-blue-800',
-      label: 'Saisie manuelle',
-      icon: (
-        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-        </svg>
-      )
-    }
-  };
-
-  const variant = variants[status];
+        Déclaré
+        {showCount && count > 0 && (
+          <span className="ml-1">({count})</span>
+        )}
+      </span>
+    );
+  }
 
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variant.bg} ${variant.text} ${className}`}
-      role="status"
-      aria-label={`Statut: ${variant.label}`}
-    >
-      {variant.icon}
-      {variant.label}
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <svg 
+        className="mr-1 h-3 w-3" 
+        fill="currentColor" 
+        viewBox="0 0 20 20"
+      >
+        <path 
+          fillRule="evenodd" 
+          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
+          clipRule="evenodd" 
+        />
+      </svg>
+      En attente
     </span>
   );
 }

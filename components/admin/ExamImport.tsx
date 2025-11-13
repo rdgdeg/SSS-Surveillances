@@ -10,18 +10,43 @@ export function ExamImport({ sessionId }: ExamImportProps) {
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<string[][] | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const importMutation = useExamenImport((current, total) => {
     setProgress({ current, total });
   });
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setImportResult(null);
       setShowErrors(false);
+      setPreviewError(null);
+      
+      // Generate preview
+      try {
+        const content = await file.text();
+        const lines = content.split('\n').filter(line => line.trim());
+        
+        if (lines.length === 0) {
+          setPreviewError('Le fichier est vide');
+          setPreviewData(null);
+          return;
+        }
+        
+        // Parse first 10 rows (including header)
+        const preview = lines.slice(0, 11).map(line => 
+          line.split(';').map(col => col.trim())
+        );
+        
+        setPreviewData(preview);
+      } catch (error) {
+        setPreviewError('Erreur lors de la lecture du fichier');
+        setPreviewData(null);
+      }
     }
   };
 
@@ -50,6 +75,8 @@ export function ExamImport({ sessionId }: ExamImportProps) {
     setSelectedFile(null);
     setImportResult(null);
     setShowErrors(false);
+    setPreviewData(null);
+    setPreviewError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -97,6 +124,60 @@ export function ExamImport({ sessionId }: ExamImportProps) {
                   ({(selectedFile.size / 1024).toFixed(1)} KB)
                 </span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Preview */}
+        {previewData && previewData.length > 0 && (
+          <div className="border border-gray-200 rounded-md overflow-hidden">
+            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <h4 className="text-sm font-medium text-gray-900">
+                Aperçu (10 premières lignes)
+              </h4>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
+                  <tr>
+                    {previewData[0].map((header, idx) => (
+                      <th
+                        key={idx}
+                        className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider whitespace-nowrap"
+                      >
+                        {header || `Col ${idx + 1}`}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {previewData.slice(1).map((row, rowIdx) => (
+                    <tr key={rowIdx} className="hover:bg-gray-50">
+                      {row.map((cell, cellIdx) => (
+                        <td
+                          key={cellIdx}
+                          className="px-3 py-2 text-xs text-gray-900 whitespace-nowrap max-w-xs truncate"
+                          title={cell}
+                        >
+                          {cell || '-'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Preview Error */}
+        {previewError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="flex items-center">
+              <svg className="h-5 w-5 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm text-red-900">{previewError}</span>
             </div>
           </div>
         )}

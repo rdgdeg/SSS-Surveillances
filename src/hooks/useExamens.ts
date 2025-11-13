@@ -1,286 +1,176 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
-import {
-  searchExamens,
-  getExamenById,
-  getExamensBySession,
-  createManualExamen,
-  importExamens,
-  getExamensWithPresences,
-  validateManualExamen,
-  deleteExamen,
-  submitPresence,
-  getExistingPresence,
-  updatePresence,
-  getUnreadNotifications,
-  getAllNotifications,
-  markNotificationAsRead,
-  archiveNotification,
-  getUnreadNotificationCount
-} from '../../lib/examenApi';
-import { parseExamenCSV, readFileAsText, validateExamenCSVFile } from '../../lib/examenCsvParser';
-import {
-  Examen,
-  ExamenWithPresence,
-  ExamenImportResult,
-  PresenceFormData,
-  ManualExamenFormData,
-  NotificationAdmin
-} from '../../types';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import { ExamenWithStatus, ExamenFilters, ExamenImportResult } from '../../types';
+import { getExamens, importExamensFromCSV } from '../../lib/examenManagementApi';
+import { parseExamenCSV } from '../../lib/examenCsvParser';
 
-// ============================================
-// Hooks pour les examens
-// ============================================
-
-/**
- * Hook pour récupérer les examens d'une session
- */
-export function useExamensQuery(sessionId: string | null) {
-  return useQuery({
-    queryKey: ['examens', sessionId],
-    queryFn: () => getExamensBySession(sessionId!),
-    enabled: !!sessionId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+interface UseExamensResult {
+  examens: ExamenWithStatus[];
+  loading: boolean;
+  error: Error | null;
+  total: number;
+  refetch: () => Promise<void>;
 }
 
 /**
- * Hook pour récupérer un examen par son ID
+ * Hook to fetch and manage examens with filters and pagination
+ * @param sessionId Session ID
+ * @param filters Optional filters
+ * @param page Page number (1-indexed)
+ * @param pageSize Number of items per page
+ * @returns Examens data, loading state, error, total count, and refetch function
  */
-export function useExamenDetailQuery(id: string | null) {
-  return useQuery({
-    queryKey: ['examen', id],
-    queryFn: () => getExamenById(id!),
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000,
-  });
-}
+export function useExamens(
+  sessionId: string,
+  filters?: ExamenFilters,
+  page: number = 1,
+  pageSize: number = 25
+): UseExamensResult {
+  const [examens, setExamens] = useState<ExamenWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [total, setTotal] = useState(0);
 
-/**
- * Hook pour la recherche d'examens avec debounce
- */
-export function useExamenSearchQuery(sessionId: string | null, query: string, debounceMs: number = 300) {
-  const [debouncedQuery, setDebouncedQuery] = useState(query);
-  
-  // Debounce the search query
+  const fetchExamens = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const result = await getExamens(sessionId, filters, page, pageSize);
+      
+      setExamens(result.data);
+      setTotal(result.total);
+    } catch (err) {
+      console.error('Error fetching examens:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch examens'));
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, filters, page, pageSize]);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, debounceMs);
-    
-    return () => clearTimeout(timer);
-  }, [query, debounceMs]);
-  
-  return useQuery({
-    queryKey: ['examens', 'search', sessionId, debouncedQuery],
-    queryFn: () => searchExamens(sessionId!, debouncedQuery),
-    enabled: !!sessionId && debouncedQuery.length >= 2,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-}
+    if (sessionId) {
+      fetchExamens();
+    }
+  }, [sessionId, fetchExamens]);
 
-/**
- * Hook pour les mutations d'examens (CRUD)
- */
-export function useExamenMutation() {
-  const queryClient = useQueryClient();
-  
-  const createManualMutation = useMutation({
-    mutationFn: ({ sessionId, data, email }: { sessionId: string; data: ManualExamenFormData; email: string }) =>
-      createManualExamen(sessionId, data, email),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['examens'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.setQueryData(['examen', data.id], data);
-    },
-  });
-  
-  const validateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates?: Partial<Examen> }) =>
-      validateManualExamen(id, updates),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['examens'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.setQueryData(['examen', data.id], data);
-    },
-  });
-  
-  const deleteMutation = useMutation({
-    mutationFn: deleteExamen,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['examens'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
-  
+  // Set up real-time subscription for exam changes
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase
+      .channel('examens-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'examens',
+          filter: `session_id=eq.${sessionId}`
+        },
+        () => {
+          // Refetch when exams change
+          fetchExamens();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'presences_enseignants'
+        },
+        () => {
+          // Refetch when presences change (affects status badges)
+          fetchExamens();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId, fetchExamens]);
+
   return {
-    createManual: createManualMutation,
-    validate: validateMutation,
-    delete: deleteMutation,
+    examens,
+    loading,
+    error,
+    total,
+    refetch: fetchExamens
   };
 }
 
 /**
- * Hook pour l'import CSV d'examens
+ * Hook to import examens from CSV file
+ * @param onProgress Optional callback for progress updates
+ * @returns Mutation object with mutateAsync function
  */
-export function useExamenImport(onProgress?: (current: number, total: number) => void) {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ sessionId, file }: { sessionId: string; file: File }): Promise<ExamenImportResult> => {
-      // Valider le fichier
-      const validationError = validateExamenCSVFile(file);
-      if (validationError) {
-        throw new Error(validationError);
+export function useExamenImport(
+  onProgress?: (current: number, total: number) => void
+) {
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const mutateAsync = async ({ 
+    sessionId, 
+    file 
+  }: { 
+    sessionId: string; 
+    file: File 
+  }): Promise<ExamenImportResult> => {
+    try {
+      setIsPending(true);
+      setError(null);
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error('Le fichier est trop volumineux (max 10 MB)');
+      }
+
+      // Validate file type
+      if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+        throw new Error('Le fichier doit être au format CSV (.csv ou .txt)');
+      }
+
+      // Read file content
+      const content = await file.text();
+      
+      // Parse CSV
+      const parseResult = parseExamenCSV(content);
+      
+      // If parsing failed completely, return errors
+      if (parseResult.examens.length === 0 && parseResult.errors.length > 0) {
+        return {
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          errors: parseResult.errors,
+          warnings: parseResult.warnings
+        };
       }
       
-      // Lire le contenu du fichier
-      const content = await readFileAsText(file);
+      // Import examens
+      const result = await importExamensFromCSV(sessionId, parseResult.examens, onProgress);
       
-      // Parser le CSV
-      const { examens, errors: parseErrors, warnings: parseWarnings } = parseExamenCSV(content);
+      // Merge parsing warnings with import result
+      result.warnings = [...parseResult.warnings, ...result.warnings];
+      result.errors = [...parseResult.errors, ...result.errors];
       
-      if (examens.length === 0) {
-        throw new Error('Aucun examen valide trouvé dans le fichier');
-      }
-      
-      // Importer les examens avec suivi de progression
-      const result = await importExamens(sessionId, examens, onProgress);
-      
-      // Ajouter les erreurs et warnings de parsing aux résultats
-      return {
-        ...result,
-        errors: [...parseErrors, ...result.errors],
-        warnings: [...parseWarnings, ...result.warnings]
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['examens'] });
-    },
-  });
-}
-
-/**
- * Hook pour récupérer les examens avec leurs présences
- */
-export function useExamensWithPresencesQuery(sessionId: string | null) {
-  return useQuery({
-    queryKey: ['examens', 'with-presences', sessionId],
-    queryFn: () => getExamensWithPresences(sessionId!),
-    enabled: !!sessionId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-}
-
-// ============================================
-// Hooks pour les présences
-// ============================================
-
-/**
- * Hook pour récupérer la présence existante d'un enseignant
- */
-export function useExistingPresenceQuery(examenId: string | null, enseignantEmail: string | null) {
-  return useQuery({
-    queryKey: ['presence', examenId, enseignantEmail],
-    queryFn: () => getExistingPresence(examenId!, enseignantEmail!),
-    enabled: !!examenId && !!enseignantEmail,
-    staleTime: 1 * 60 * 1000, // 1 minute
-  });
-}
-
-/**
- * Hook pour les mutations de présences
- */
-export function usePresenceMutation() {
-  const queryClient = useQueryClient();
-  
-  const submitMutation = useMutation({
-    mutationFn: ({ examenId, data }: { examenId: string; data: PresenceFormData }) =>
-      submitPresence(examenId, data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['examens'] });
-      queryClient.invalidateQueries({ queryKey: ['presence'] });
-      queryClient.setQueryData(['presence', data.examen_id, data.enseignant_email], data);
-    },
-  });
-  
-  const updateMutation = useMutation({
-    mutationFn: ({ presenceId, data }: { presenceId: string; data: Partial<PresenceFormData> }) =>
-      updatePresence(presenceId, data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['examens'] });
-      queryClient.invalidateQueries({ queryKey: ['presence'] });
-      queryClient.setQueryData(['presence', data.examen_id, data.enseignant_email], data);
-    },
-  });
-  
-  return {
-    submit: submitMutation,
-    update: updateMutation,
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to import examens');
+      setError(error);
+      throw error;
+    } finally {
+      setIsPending(false);
+    }
   };
-}
 
-// ============================================
-// Hooks pour les notifications admin
-// ============================================
-
-/**
- * Hook pour récupérer les notifications non lues
- */
-export function useUnreadNotificationsQuery() {
-  return useQuery({
-    queryKey: ['notifications', 'unread'],
-    queryFn: getUnreadNotifications,
-    staleTime: 30 * 1000, // 30 secondes
-    refetchInterval: 30 * 1000, // Polling toutes les 30 secondes
-  });
-}
-
-/**
- * Hook pour récupérer toutes les notifications
- */
-export function useAllNotificationsQuery(includeArchived: boolean = false) {
-  return useQuery({
-    queryKey: ['notifications', 'all', includeArchived],
-    queryFn: () => getAllNotifications(includeArchived),
-    staleTime: 1 * 60 * 1000, // 1 minute
-  });
-}
-
-/**
- * Hook pour le compteur de notifications non lues
- */
-export function useUnreadNotificationCountQuery() {
-  return useQuery({
-    queryKey: ['notifications', 'count'],
-    queryFn: getUnreadNotificationCount,
-    staleTime: 30 * 1000, // 30 secondes
-    refetchInterval: 30 * 1000, // Polling toutes les 30 secondes
-  });
-}
-
-/**
- * Hook pour les mutations de notifications
- */
-export function useNotificationMutation() {
-  const queryClient = useQueryClient();
-  
-  const markAsReadMutation = useMutation({
-    mutationFn: markNotificationAsRead,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
-  
-  const archiveMutation = useMutation({
-    mutationFn: archiveNotification,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
-  
   return {
-    markAsRead: markAsReadMutation,
-    archive: archiveMutation,
+    mutateAsync,
+    isPending,
+    error
   };
 }

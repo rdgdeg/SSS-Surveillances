@@ -330,12 +330,17 @@ export interface BackupStats {
 export interface Examen {
   id: string;
   session_id: string;
+  cours_id: string | null;
   code_examen: string;
   nom_examen: string;
-  enseignants: string[]; // Array d'emails des enseignants
   date_examen: string | null; // YYYY-MM-DD
   heure_debut: string | null; // HH:MM
   heure_fin: string | null; // HH:MM
+  duree_minutes: number | null;
+  auditoires: string | null;
+  enseignants: string[]; // Array d'emails/noms des enseignants
+  secretariat: string | null;
+  nb_surveillants_requis: number | null;
   saisie_manuelle: boolean;
   cree_par_email: string | null;
   valide: boolean;
@@ -347,6 +352,7 @@ export interface PresenceEnseignant {
   id: string;
   cours_id: string;
   session_id: string;
+  examen_id: string | null; // Link to exam (new field)
   enseignant_email: string;
   enseignant_nom: string;
   enseignant_prenom: string;
@@ -428,3 +434,72 @@ export interface ExamenCSVParseResult {
 
 export type ExamenStatusFilter = 'all' | 'declared' | 'pending' | 'manual';
 export type ExamenStatusBadgeVariant = 'declared' | 'pending' | 'manual';
+
+// ============================================
+// Types pour le système de gestion des examens
+// ============================================
+
+export interface ExamenWithStatus extends Examen {
+  cours?: Cours; // Joined course data
+  has_presence_declarations: boolean;
+  nb_presences_declarees: number;
+  nb_enseignants_presents: number;
+  nb_surveillants_accompagnants: number;
+}
+
+export interface ExamenFormData {
+  cours_id: string | null;
+  code_examen: string;
+  nom_examen: string;
+  date_examen: string;
+  heure_debut: string;
+  heure_fin: string;
+  duree_minutes: number | null;
+  auditoires: string;
+  enseignants: string[];
+  secretariat: string;
+  nb_surveillants_requis: number | null;
+}
+
+export interface ExamenFilters {
+  search?: string; // Search in code or name
+  dateFrom?: string;
+  dateTo?: string;
+  secretariat?: string;
+  responseStatus?: 'all' | 'declared' | 'pending';
+  hasCoursLinked?: boolean;
+  hasSupervisorRequirement?: boolean;
+}
+
+export interface ExamenDashboardStats {
+  total_examens: number;
+  examens_with_declarations: number;
+  examens_pending_declarations: number;
+  total_supervisors_required: number;
+  examens_without_course: number;
+  examens_without_supervisor_requirement: number;
+  completion_percentage: number;
+  examens_by_secretariat: Array<{ secretariat: string; count: number }>;
+  examens_by_date: Array<{ date: string; count: number }>;
+}
+
+export interface ParsedCSVExamen {
+  date: string; // DD-MM-YY
+  jour: string;
+  duree: string; // "02h00"
+  debut: string; // "09h00"
+  fin: string; // "11h00"
+  activite: string; // "WMDS2221=E"
+  code: string; // "SECTEUR HÉMATOLOGIE"
+  auditoires: string;
+  enseignants: string;
+  secretariat: string;
+}
+
+export interface ExamenImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+  warnings: string[];
+}

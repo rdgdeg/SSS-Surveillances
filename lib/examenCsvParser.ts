@@ -1,206 +1,262 @@
 /**
- * CSV Parser utility for exam import
- * Format: Code Examen;Nom Examen;Enseignants;Date;Heure Début;Heure Fin
+ * CSV Parser for Exam Import
+ * Parses semicolon-delimited CSV files containing exam schedules
  */
 
-import { ParsedExamen, ExamenCSVParseResult } from '../types';
+export interface ParsedCSVExamen {
+  date: string; // DD-MM-YY
+  jour: string;
+  duree: string; // "02h00"
+  debut: string; // "09h00"
+  fin: string; // "11h00"
+  activite: string; // "WMDS2221=E"
+  code: string; // "SECTEUR HÉMATOLOGIE"
+  auditoires: string;
+  enseignants: string;
+  secretariat: string;
+}
 
-/**
- * Valide un email
- */
-function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+export interface ExamenCSVParseResult {
+  examens: ParsedCSVExamen[];
+  errors: string[];
+  warnings: string[];
 }
 
 /**
- * Valide une date au format YYYY-MM-DD
- */
-function isValidDate(dateStr: string): boolean {
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(dateStr)) return false;
-  
-  const date = new Date(dateStr);
-  return date instanceof Date && !isNaN(date.getTime());
-}
-
-/**
- * Valide une heure au format HH:MM
- */
-function isValidTime(timeStr: string): boolean {
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  return timeRegex.test(timeStr);
-}
-
-/**
- * Parse CSV content with semicolon separator
- * Expected format: Code Examen;Nom Examen;Enseignants;Date;Heure Début;Heure Fin
- * Enseignants: emails séparés par des virgules
+ * Parse CSV content into exam records
+ * @param csvContent Raw CSV file content
+ * @returns Parsed exams with errors and warnings
  */
 export function parseExamenCSV(csvContent: string): ExamenCSVParseResult {
-  const examens: ParsedExamen[] = [];
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  
-  // Split by lines and remove empty lines
-  const lines = csvContent
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
-  
-  if (lines.length === 0) {
-    errors.push('Le fichier CSV est vide');
-    return { examens, errors, warnings };
+  const result: ExamenCSVParseResult = {
+    examens: [],
+    errors: [],
+    warnings: []
+  };
+
+  try {
+    // Split into lines and remove empty lines
+    const lines = csvContent.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) {
+      result.errors.push('Le fichier CSV est vide');
+      return result;
+    }
+
+    // Parse header
+    const header = lines[0].split(';').map(h => h.trim());
+    const expectedHeaders = ['Date', 'Jour', 'Durée (h)', 'Début', 'Fin', 'Activité', 'Code', 'Auditoires', 'Enseignants', 'Secrétariat en charge'];
+    
+    // Validate header
+    const hasValidHeader = expectedHeaders.every((expected, index) => 
+      header[index] && header[index].toLowerCase().includes(expected.toLowerCase().substring(0, 4))
+    );
+
+    if (!hasValidHeader) {
+      result.warnings.push('En-têtes de colonnes non reconnus. Tentative de parsing quand même...');
+    }
+
+    // Parse data rows (skip header)
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      try {
+        const columns = line.split(';').map(col => col.trim());
+        
+        // Validate minimum columns
+        if (columns.length < 10) {
+          result.errors.push(`Ligne ${i + 1}: Nombre de colonnes insuffisant (${columns.length}/10)`);
+          continue;
+        }
+
+        const examen: ParsedCSVExamen = {
+          date: columns[0] || '',
+          jour: columns[1] || '',
+          duree: columns[2] || '',
+          debut: columns[3] || '',
+          fin: columns[4] || '',
+          activite: columns[5] || '',
+          code: columns[6] || '',
+          auditoires: columns[7] || '',
+          enseignants: columns[8] || '',
+          secretariat: columns[9] || ''
+        };
+
+        // Validate required fields
+        if (!examen.date) {
+          result.errors.push(`Ligne ${i + 1}: Date manquante`);
+          continue;
+        }
+
+        if (!examen.activite) {
+          result.errors.push(`Ligne ${i + 1}: Code d'activité manquant`);
+          continue;
+        }
+
+        result.examens.push(examen);
+      } catch (error) {
+        result.errors.push(`Ligne ${i + 1}: Erreur de parsing - ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      }
+    }
+
+    if (result.examens.length === 0 && result.errors.length === 0) {
+      result.errors.push('Aucun examen valide trouvé dans le fichier');
+    }
+
+  } catch (error) {
+    result.errors.push(`Erreur générale de parsing: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
   }
-  
-  // Check header
-  const header = lines[0].toLowerCase();
-  const requiredHeaders = ['code', 'nom', 'enseignant'];
-  const hasRequiredHeaders = requiredHeaders.every(h => header.includes(h));
-  
-  if (!hasRequiredHeaders) {
-    errors.push('En-tête CSV invalide. Format attendu: Code Examen;Nom Examen;Enseignants;Date;Heure Début;Heure Fin');
-  }
-  
-  // Parse data rows (skip header)
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNumber = i + 1;
-    
-    // Split by semicolon
-    const parts = line.split(';').map(p => p.trim());
-    
-    if (parts.length < 3) {
-      errors.push(`Ligne ${lineNumber}: Format invalide (colonnes manquantes). Minimum requis: Code;Nom;Enseignants`);
-      continue;
-    }
-    
-    const code_examen = parts[0];
-    const nom_examen = parts[1];
-    const enseignantsStr = parts[2];
-    const date_examen = parts[3] || undefined;
-    const heure_debut = parts[4] || undefined;
-    const heure_fin = parts[5] || undefined;
-    
-    // Validate required fields
-    if (!code_examen) {
-      errors.push(`Ligne ${lineNumber}: Code d'examen manquant`);
-      continue;
-    }
-    
-    if (!nom_examen) {
-      errors.push(`Ligne ${lineNumber}: Nom d'examen manquant`);
-      continue;
-    }
-    
-    if (!enseignantsStr) {
-      errors.push(`Ligne ${lineNumber}: Enseignants manquants`);
-      continue;
-    }
-    
-    // Validate code length
-    if (code_examen.length > 50) {
-      errors.push(`Ligne ${lineNumber}: Code trop long (max 50 caractères)`);
-      continue;
-    }
-    
-    // Validate nom length
-    if (nom_examen.length > 500) {
-      errors.push(`Ligne ${lineNumber}: Nom trop long (max 500 caractères)`);
-      continue;
-    }
-    
-    // Parse and validate enseignants (emails separated by commas)
-    const enseignants = enseignantsStr
-      .split(',')
-      .map(email => email.trim())
-      .filter(email => email.length > 0);
-    
-    if (enseignants.length === 0) {
-      errors.push(`Ligne ${lineNumber}: Aucun email d'enseignant valide trouvé`);
-      continue;
-    }
-    
-    // Validate emails
-    const invalidEmails = enseignants.filter(email => !isValidEmail(email));
-    if (invalidEmails.length > 0) {
-      errors.push(`Ligne ${lineNumber}: Emails invalides: ${invalidEmails.join(', ')}`);
-      continue;
-    }
-    
-    // Validate date if present
-    if (date_examen && !isValidDate(date_examen)) {
-      warnings.push(`Ligne ${lineNumber}: Date invalide (${date_examen}), format attendu: YYYY-MM-DD. La date sera ignorée.`);
-    }
-    
-    // Validate heure_debut if present
-    if (heure_debut && !isValidTime(heure_debut)) {
-      warnings.push(`Ligne ${lineNumber}: Heure de début invalide (${heure_debut}), format attendu: HH:MM. L'heure sera ignorée.`);
-    }
-    
-    // Validate heure_fin if present
-    if (heure_fin && !isValidTime(heure_fin)) {
-      warnings.push(`Ligne ${lineNumber}: Heure de fin invalide (${heure_fin}), format attendu: HH:MM. L'heure sera ignorée.`);
-    }
-    
-    // Add parsed examen
-    examens.push({
-      code_examen,
-      nom_examen,
-      enseignants,
-      date_examen: date_examen && isValidDate(date_examen) ? date_examen : undefined,
-      heure_debut: heure_debut && isValidTime(heure_debut) ? heure_debut : undefined,
-      heure_fin: heure_fin && isValidTime(heure_fin) ? heure_fin : undefined
-    });
-  }
-  
-  return { examens, errors, warnings };
+
+  return result;
 }
 
 /**
- * Read file content as text
+ * Extract clean course code from activity code
+ * Removes suffixes like =E, (T)=E, +2504+2515=E, etc.
+ * @param activite Activity code from CSV
+ * @returns Clean course code
  */
-export function readFileAsText(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      resolve(content);
-    };
-    
-    reader.onerror = () => {
-      reject(new Error('Erreur lors de la lecture du fichier'));
-    };
-    
-    reader.readAsText(file, 'UTF-8');
-  });
+export function extractCourseCode(activite: string): string {
+  if (!activite) return '';
+  
+  // Remove everything after and including =, (, or +
+  let code = activite.split('=')[0]; // Remove =E, =E (Q1), etc.
+  code = code.split('(')[0]; // Remove (T), (Q1), etc.
+  code = code.split('+')[0]; // Remove +2504+2515, etc.
+  
+  return code.trim();
 }
 
 /**
- * Validate CSV file
+ * Convert date from DD-MM-YY to YYYY-MM-DD
+ * @param date Date string in DD-MM-YY format
+ * @returns Date string in YYYY-MM-DD format
  */
-export function validateExamenCSVFile(file: File): string | null {
-  // Check file type
-  const validTypes = ['text/csv', 'text/plain', 'application/vnd.ms-excel'];
-  const validExtensions = ['.csv', '.txt'];
+export function convertDateFormat(date: string): string {
+  if (!date) return '';
   
-  const hasValidType = validTypes.includes(file.type);
-  const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-  
-  if (!hasValidType && !hasValidExtension) {
-    return 'Type de fichier invalide. Veuillez uploader un fichier CSV.';
+  try {
+    // Split by dash
+    const parts = date.split('-');
+    if (parts.length !== 3) {
+      throw new Error('Format de date invalide');
+    }
+
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    let year = parts[2];
+
+    // Handle 2-digit year
+    if (year.length === 2) {
+      const yearNum = parseInt(year, 10);
+      // Assume 20xx for years 00-99
+      // 25 → 2025, 26 → 2026, etc.
+      year = `20${year}`;
+    }
+
+    // Validate date components
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+
+    if (dayNum < 1 || dayNum > 31) {
+      throw new Error('Jour invalide');
+    }
+    if (monthNum < 1 || monthNum > 12) {
+      throw new Error('Mois invalide');
+    }
+    if (yearNum < 2000 || yearNum > 2100) {
+      throw new Error('Année invalide');
+    }
+
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error('Error converting date:', date, error);
+    return '';
   }
+}
+
+/**
+ * Convert time from "09h00" to "09:00"
+ * @param time Time string in "HHhMM" format
+ * @returns Time string in "HH:MM" format
+ */
+export function convertTimeFormat(time: string): string {
+  if (!time) return '';
   
-  // Check file size (max 10MB)
-  const maxSize = 10 * 1024 * 1024;
-  if (file.size > maxSize) {
-    return 'Fichier trop volumineux. Taille maximale: 10MB.';
+  try {
+    // Replace 'h' with ':'
+    let converted = time.replace('h', ':');
+    
+    // Ensure HH:MM format
+    const parts = converted.split(':');
+    if (parts.length !== 2) {
+      throw new Error('Format d\'heure invalide');
+    }
+
+    const hours = parts[0].padStart(2, '0');
+    const minutes = parts[1].padStart(2, '0');
+
+    // Validate time components
+    const hoursNum = parseInt(hours, 10);
+    const minutesNum = parseInt(minutes, 10);
+
+    if (hoursNum < 0 || hoursNum > 23) {
+      throw new Error('Heures invalides');
+    }
+    if (minutesNum < 0 || minutesNum > 59) {
+      throw new Error('Minutes invalides');
+    }
+
+    return `${hours}:${minutes}`;
+  } catch (error) {
+    console.error('Error converting time:', time, error);
+    return '';
   }
+}
+
+/**
+ * Parse duration from "02h00" to minutes
+ * @param duree Duration string in "HHhMM" format
+ * @returns Duration in minutes
+ */
+export function parseDuration(duree: string): number {
+  if (!duree) return 0;
   
-  if (file.size === 0) {
-    return 'Le fichier est vide.';
+  try {
+    // Extract hours and minutes
+    const match = duree.match(/(\d+)h(\d+)/);
+    if (!match) {
+      // Try just hours (e.g., "02h00" or "2h")
+      const hoursMatch = duree.match(/(\d+)h/);
+      if (hoursMatch) {
+        const hours = parseInt(hoursMatch[1], 10);
+        return hours * 60;
+      }
+      throw new Error('Format de durée invalide');
+    }
+
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+
+    return hours * 60 + minutes;
+  } catch (error) {
+    console.error('Error parsing duration:', duree, error);
+    return 0;
   }
+}
+
+/**
+ * Split teachers string into array
+ * @param enseignants Comma-separated teacher names
+ * @returns Array of teacher names
+ */
+export function parseTeachers(enseignants: string): string[] {
+  if (!enseignants) return [];
   
-  return null;
+  return enseignants
+    .split(',')
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
 }
