@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useExamensWithPresencesQuery } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { Pagination } from '../shared/Pagination';
-import { ExamenWithPresence, ExamenStatusFilter, ExamenStatusBadgeVariant } from '../../types';
+import { ExamenWithPresence, ExamenStatusFilter } from '../../types';
 
 interface ExamPresencesDashboardProps {
   sessionId: string;
@@ -60,11 +60,9 @@ export function ExamPresencesDashboard({ sessionId }: ExamPresencesDashboardProp
     currentPage * pageSize
   );
 
-  // Get status badge variant
-  const getStatusVariant = (examen: ExamenWithPresence): ExamenStatusBadgeVariant => {
-    if (examen.saisie_manuelle) return 'manual';
-    if (examen.nb_presences_declarees > 0) return 'declared';
-    return 'pending';
+  // Check if exam has declarations
+  const hasDeclarations = (examen: ExamenWithPresence): boolean => {
+    return examen.nb_presences_declarees > 0;
   };
 
   // Calculate stats
@@ -256,7 +254,11 @@ export function ExamPresencesDashboard({ sessionId }: ExamPresencesDashboardProp
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <ExamStatusBadge status={getStatusVariant(examen)} />
+                      <ExamStatusBadge 
+                        hasDeclarations={hasDeclarations(examen)} 
+                        count={examen.nb_presences_declarees}
+                        showCount={true}
+                      />
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {examen.nb_presences_declarees > 0 ? (

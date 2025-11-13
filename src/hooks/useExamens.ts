@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
-import { ExamenWithStatus, ExamenFilters, ExamenImportResult } from '../../types';
+import { ExamenWithStatus, ExamenFilters, ExamenImportResult, ExamenWithPresence } from '../../types';
 import { getExamens, importExamensFromCSV } from '../../lib/examenManagementApi';
 import { parseExamenCSV } from '../../lib/examenCsvParser';
+import { getExamensWithPresences } from '../../lib/examenApi';
 
 interface UseExamensResult {
   examens: ExamenWithStatus[];
@@ -173,4 +175,18 @@ export function useExamenImport(
     isPending,
     error
   };
+}
+
+/**
+ * Hook to fetch examens with presences for a session
+ * @param sessionId Session ID
+ * @returns Query result with examens and presences data
+ */
+export function useExamensWithPresencesQuery(sessionId: string) {
+  return useQuery<ExamenWithPresence[], Error>({
+    queryKey: ['examens-with-presences', sessionId],
+    queryFn: () => getExamensWithPresences(sessionId),
+    enabled: !!sessionId,
+    staleTime: 30 * 1000, // 30 seconds
+  });
 }

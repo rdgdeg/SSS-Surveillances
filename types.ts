@@ -384,6 +384,14 @@ export interface CoursWithPresence extends Cours {
   nb_surveillants_accompagnants_total: number;
 }
 
+export interface ExamenWithPresence extends Examen {
+  presences: PresenceEnseignant[];
+  nb_presences_declarees: number;
+  nb_enseignants_presents: number;
+  nb_enseignants_total: number;
+  nb_surveillants_accompagnants_total: number;
+}
+
 export interface ExamenImportResult {
   imported: number;
   updated: number;
