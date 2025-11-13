@@ -165,6 +165,8 @@ export interface CoursSearchParams {
   sortBy?: 'code' | 'intitule_complet' | 'updated_at';
   sortOrder?: 'asc' | 'desc';
   hasInstructions?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface CoursImportResult {

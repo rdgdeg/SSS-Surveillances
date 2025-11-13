@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { CourseSearch } from '../components/public/CourseSearch';
 import { CourseList } from '../components/public/CourseList';
 import { CourseInstructionsModal } from '../components/public/CourseInstructionsModal';
+import { Pagination } from '../components/shared/Pagination';
 import { useCoursQuery, useCoursDetailQuery } from '../src/hooks/useCours';
 import { CoursSearchParams, CoursListItem } from '../types';
 
 function ConsignesPage() {
-  const [searchParams, setSearchParams] = useState<CoursSearchParams>({});
+  const [searchParams, setSearchParams] = useState<CoursSearchParams>({ page: 1, pageSize: 50 });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const { data: coursData, isLoading } = useCoursQuery(searchParams);
   const { data: selectedCours } = useCoursDetailQuery(selectedCourseId);
+
+  const totalPages = coursData ? Math.ceil(coursData.total / (searchParams.pageSize || 50)) : 0;
 
   const handleCourseClick = (course: CoursListItem) => {
     setSelectedCourseId(course.id);
@@ -18,6 +21,15 @@ function ConsignesPage() {
 
   const handleCloseModal = () => {
     setSelectedCourseId(null);
+  };
+
+  const handleSearchChange = (params: CoursSearchParams) => {
+    setSearchParams({ ...params, page: 1, pageSize: 50 }); // Reset à la page 1 lors d'une recherche
+  };
+
+  const handlePageChange = (page: number) => {
+    setSearchParams(prev => ({ ...prev, page }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -33,7 +45,7 @@ function ConsignesPage() {
 
         {/* Search and filters */}
         <CourseSearch
-          onSearchChange={setSearchParams}
+          onSearchChange={handleSearchChange}
           resultCount={coursData?.total}
         />
 
@@ -43,6 +55,17 @@ function ConsignesPage() {
           onCourseClick={handleCourseClick}
           isLoading={isLoading}
         />
+
+        {/* Pagination */}
+        {!isLoading && coursData && coursData.total > 0 && (
+          <Pagination
+            currentPage={searchParams.page || 1}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            totalItems={coursData.total}
+            pageSize={searchParams.pageSize || 50}
+          />
+        )}
 
         {/* Instructions modal */}
         <CourseInstructionsModal

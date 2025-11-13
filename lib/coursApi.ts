@@ -29,6 +29,13 @@ export async function getCours(params?: CoursSearchParams): Promise<{ data: Cour
   const sortOrder = params?.sortOrder || 'asc';
   query = query.order(sortBy, { ascending: sortOrder === 'asc' });
 
+  // Pagination
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 50;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  query = query.range(from, to);
+
   const { data, error, count } = await query;
 
   if (error) throw error;
