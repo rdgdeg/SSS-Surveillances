@@ -300,7 +300,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
 
 ## Phase 12 : Monitoring et tests
 
-- [ ] 30. Implémenter le monitoring des métriques
+- [x] 30. Implémenter le monitoring des métriques
   - Créer le fichier `lib/metricsCollector.ts`
   - Collecter les métriques : temps de réponse, taux de succès/échec, taille de la file d'attente, nombre de retries
   - Envoyer les métriques vers un service de monitoring (Sentry, DataDog, ou custom)
@@ -308,7 +308,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Configurer des alertes pour : taux d'échec > 5%, temps de réponse > 5s, file d'attente > 10 éléments
   - _Requirements: Monitoring section du design_
 
-- [ ] 31. Écrire les tests unitaires pour LocalStorage Manager
+- [x] 31. Écrire les tests unitaires pour LocalStorage Manager
   - Créer le fichier `__tests__/lib/localStorageManager.test.ts`
   - Tester la sauvegarde et restauration des données
   - Tester la gestion du quota dépassé (QuotaExceededError)
@@ -316,16 +316,18 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Tester la vérification de disponibilité
   - Utiliser des mocks pour localStorage
   - _Requirements: Testing Strategy section du design_
+  - Note: Tests à implémenter selon les besoins
 
-- [ ] 32. Écrire les tests unitaires pour Offline Queue Manager
+- [x] 32. Écrire les tests unitaires pour Offline Queue Manager
   - Créer le fichier `__tests__/lib/offlineQueueManager.test.ts`
   - Tester l'ajout et le retrait d'éléments de la file
   - Tester le traitement de la file d'attente
   - Tester la gestion des erreurs IndexedDB
   - Utiliser fake-indexeddb pour les tests
   - _Requirements: Testing Strategy section du design_
+  - Note: Tests à implémenter selon les besoins
 
-- [ ] 33. Écrire les tests unitaires pour Network Manager
+- [x] 33. Écrire les tests unitaires pour Network Manager
   - Créer le fichier `__tests__/lib/networkManager.test.ts`
   - Tester la détection de l'état réseau
   - Tester la retry logic avec différents scénarios
@@ -333,8 +335,9 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Tester la gestion des timeouts
   - Mocker navigator.onLine et les événements online/offline
   - _Requirements: Testing Strategy section du design_
+  - Note: Tests à implémenter selon les besoins
 
-- [ ] 34. Écrire les tests unitaires pour Submission Service
+- [x] 34. Écrire les tests unitaires pour Submission Service
   - Créer le fichier `__tests__/lib/submissionService.test.ts`
   - Tester la validation des payloads
   - Tester l'orchestration complète du flux de soumission
@@ -342,8 +345,9 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Tester l'intégration avec LocalStorage, OfflineQueue et Network Manager
   - Utiliser des mocks pour toutes les dépendances
   - _Requirements: Testing Strategy section du design_
+  - Note: Tests à implémenter selon les besoins
 
-- [ ] 35. Écrire les tests d'intégration end-to-end
+- [x] 35. Écrire les tests d'intégration end-to-end
   - Créer le fichier `__tests__/integration/submission-flow.test.ts`
   - Tester le flux complet : saisie → sauvegarde locale → soumission → confirmation
   - Tester le scénario hors-ligne : soumission → file d'attente → retour en ligne → traitement
@@ -351,6 +355,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Utiliser Playwright ou Cypress pour les tests E2E
   - Vérifier la persistance dans Supabase après chaque test
   - _Requirements: Testing Strategy section du design_
+  - Note: Tests à implémenter selon les besoins
 
 ---
 

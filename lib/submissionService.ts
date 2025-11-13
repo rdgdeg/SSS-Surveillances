@@ -4,6 +4,7 @@ import { isOnline, submitWithRetry } from './networkManager';
 import { enqueue, processQueue } from './offlineQueueManager';
 import { clearFormProgress } from './localStorageManager';
 import * as auditLogger from './auditLogger';
+import { recordSubmission } from './metricsCollector';
 
 /**
  * Valide le payload côté client
@@ -207,6 +208,7 @@ export async function submit(payload: SubmissionPayload): Promise<SubmissionStat
   }
 
   // Étape 4 : Si online, soumettre avec retry logic
+  const startTime = Date.now();
   const result = await submitWithRetry<SoumissionDisponibilite>(
     () => submitToAPI(payload),
     {
@@ -216,6 +218,10 @@ export async function submit(payload: SubmissionPayload): Promise<SubmissionStat
       backoffMultiplier: 2,
     }
   );
+  const duration = Date.now() - startTime;
+
+  // Enregistrer les métriques
+  recordSubmission(result.success, duration, result.attempts, result.error?.message);
 
   // Étape 5 : Si succès, nettoyer LocalStorage
   if (result.success && result.data) {
