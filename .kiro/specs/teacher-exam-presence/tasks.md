@@ -141,7 +141,7 @@
   - Rendre le composant réutilisable et accessible
   - _Requirements: 5.2, 5.3_
 
-- [ ] 17. Créer la page enseignant pour la déclaration de présence
+- [x] 17. Créer la page enseignant pour la déclaration de présence
   - Créer `pages/TeacherPresencePage.tsx`
   - Intégrer `TeacherExamSearch` et `TeacherPresenceForm`
   - Gérer le flow: recherche → sélection → déclaration
@@ -150,7 +150,7 @@
   - Rendre la page responsive
   - _Requirements: 2.1, 2.2, 2.3, 3.1, 4.1_
 
-- [ ] 18. Intégrer les nouveaux composants dans les pages admin existantes
+- [x] 18. Intégrer les nouveaux composants dans les pages admin existantes
   - Ajouter `ExamImport` dans une nouvelle section de la page admin appropriée
   - Ajouter `ExamPresencesDashboard` dans une nouvelle page ou onglet admin
   - Intégrer `ManualExamNotifications` dans le header ou sidebar admin
@@ -158,7 +158,7 @@
   - Mettre à jour la navigation admin
   - _Requirements: 1.1, 5.1, 6.1_
 
-- [ ] 19. Ajouter la gestion des erreurs et le feedback utilisateur
+- [x] 19. Ajouter la gestion des erreurs et le feedback utilisateur
   - Implémenter les messages d'erreur spécifiques pour chaque type d'erreur
   - Ajouter des toasts/notifications pour les succès et erreurs
   - Implémenter les confirmations pour les actions destructives
@@ -166,7 +166,7 @@
   - Gérer les erreurs réseau avec retry automatique
   - _Requirements: 1.2, 1.4, 2.5, 3.3, 4.3, 6.2_
 
-- [ ] 20. Optimiser les performances et l'accessibilité
+- [x] 20. Optimiser les performances et l'accessibilité
   - Implémenter le debounce sur la recherche d'examens (300ms)
   - Configurer le cache React Query (5 minutes de staleTime)
   - Ajouter la pagination sur toutes les listes longues
@@ -190,7 +190,7 @@
   - Tester la modification d'une présence existante
   - _Requirements: 1.1, 2.1, 3.1, 4.1, 4.4_
 
-- [ ] 23. Créer la documentation utilisateur
+- [x] 23. Créer la documentation utilisateur
   - Documenter le format CSV attendu pour l'import
   - Créer un guide pour les enseignants (recherche et déclaration)
   - Créer un guide pour les admins (import, consultation, validation)
