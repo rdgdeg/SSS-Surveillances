@@ -15,16 +15,6 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-4xl w-full">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Système de Gestion des Surveillances
-          </h1>
-          <p className="text-lg text-gray-600">
-            Choisissez votre profil pour accéder à l'application
-          </p>
-        </div>
-
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Surveillant Card */}
@@ -130,13 +120,6 @@ function HomePage() {
               </div>
             </div>
           </button>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-500">
-            Besoin d'aide ? Contactez l'administrateur système
-          </p>
         </div>
       </div>
     </div>
