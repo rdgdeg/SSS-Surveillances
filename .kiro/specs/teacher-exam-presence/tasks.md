@@ -47,7 +47,7 @@
   - Implémenter `createNotification` pour créer une notification lors de saisie manuelle
   - _Requirements: 3.3, 6.1, 6.2, 6.3, 6.5_
 
-- [ ] 7. Créer les hooks React Query pour les examens
+- [x] 7. Créer les hooks React Query pour les examens
   - Créer le fichier `src/hooks/useExamens.ts`
   - Implémenter `useExamensQuery` pour récupérer les examens avec cache
   - Implémenter `useExamenDetailQuery` pour un examen spécifique
@@ -57,14 +57,14 @@
   - Configurer l'invalidation du cache après mutations
   - _Requirements: 1.1, 2.1, 2.2, 3.1, 5.1_
 
-- [ ] 8. Créer les hooks React Query pour les présences
+- [x] 8. Créer les hooks React Query pour les présences
   - Dans `src/hooks/useExamens.ts`, ajouter `usePresencesQuery` pour récupérer les présences
   - Implémenter `usePresenceMutation` pour soumettre/modifier une présence
   - Implémenter `useExistingPresenceQuery` pour vérifier l'existence d'une présence
   - Configurer l'invalidation du cache après soumission
   - _Requirements: 4.1, 4.3, 4.4_
 
-- [ ] 9. Créer les hooks React Query pour les notifications
+- [x] 9. Créer les hooks React Query pour les notifications
   - Dans `src/hooks/useExamens.ts`, ajouter `useNotificationsQuery` pour les notifications
   - Implémenter `useNotificationMutation` pour marquer comme lu/archiver
   - Configurer le polling pour les nouvelles notifications (30 secondes)
