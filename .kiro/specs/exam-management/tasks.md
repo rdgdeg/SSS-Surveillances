@@ -298,33 +298,33 @@
     - Show success message
     - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 12. Update navigation and routing
+- [x] 12. Update navigation and routing
   - Add "Exams" menu item to admin navigation
   - Add route for /admin/exams
   - Update AdminLayout to include new route
   - Add icon for exams menu item
   - _Requirements: All requirements_
 
-- [ ] 13. Update presences_enseignants integration
-  - [ ] 13.1 Update presence submission to link to examen
+- [x] 13. Update presences_enseignants integration
+  - [x] 13.1 Update presence submission to link to examen
     - Modify submitPresence API to accept examen_id
     - Update PresenceEnseignant type with examen_id
     - Update database queries to use examen_id
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-  - [ ] 13.2 Update teacher presence form
+  - [x] 13.2 Update teacher presence form
     - Modify TeacherPresenceForm to work with exams
     - Update TeacherExamSearch to search examens table
     - Display exam details (date, time, rooms)
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-  - [ ] 13.3 Update admin presence view
+  - [x] 13.3 Update admin presence view
     - Modify PresencesEnseignantsPage to show exam details
     - Display exam information alongside presence data
     - Update filters to work with exams
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 14. Add error handling and user feedback
+- [x] 14. Add error handling and user feedback
   - Implement error boundaries for components
   - Add toast notifications for success/error messages
   - Add loading skeletons for data fetching
@@ -332,7 +332,7 @@
   - Add confirmation dialogs for destructive actions
   - _Requirements: All requirements_
 
-- [ ] 15. Implement session filtering
+- [x] 15. Implement session filtering
   - Ensure all queries filter by active session
   - Update dashboard to show session-specific stats
   - Prevent cross-session data leakage

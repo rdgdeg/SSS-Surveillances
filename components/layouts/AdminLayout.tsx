@@ -40,6 +40,7 @@ const AdminLayout: React.FC = () => {
         { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList, category: 'surveillants' },
         { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare, category: 'surveillants' },
         { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants' },
+        { to: 'examens', label: 'Examens', icon: FileText, category: 'enseignants' },
         { to: 'presences-enseignants', label: 'Présences', icon: CheckSquare, category: 'enseignants' },
         { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: null },
         { to: 'messages', label: 'Messages', icon: MessageSquare, category: null },
