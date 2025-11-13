@@ -322,3 +322,107 @@ export interface BackupStats {
   avg_duration_seconds: number;
   success_rate: number;
 }
+// =====
+=======================================
+// Types pour la gestion de la présence des enseignants aux examens
+// ============================================
+
+export interface Examen {
+  id: string;
+  session_id: string;
+  code_examen: string;
+  nom_examen: string;
+  enseignants: string[]; // Array d'emails des enseignants
+  date_examen: string | null; // YYYY-MM-DD
+  heure_debut: string | null; // HH:MM
+  heure_fin: string | null; // HH:MM
+  saisie_manuelle: boolean;
+  cree_par_email: string | null;
+  valide: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PresenceEnseignant {
+  id: string;
+  examen_id: string;
+  enseignant_email: string;
+  enseignant_nom: string;
+  enseignant_prenom: string;
+  est_present: boolean;
+  nb_surveillants_accompagnants: number;
+  remarque: string | null;
+  submitted_at: string;
+  updated_at: string;
+}
+
+export interface NotificationAdmin {
+  id: string;
+  type: 'examen_manuel' | string;
+  titre: string;
+  message: string;
+  reference_id: string | null;
+  reference_type: 'examen' | string | null;
+  lu: boolean;
+  archive: boolean;
+  created_at: string;
+}
+
+export interface ExamenWithPresence extends Examen {
+  presences: PresenceEnseignant[];
+  nb_presences_declarees: number;
+  nb_enseignants_total: number;
+  nb_enseignants_presents: number;
+  nb_surveillants_accompagnants_total: number;
+  besoin_surveillants_calcule: number | null;
+}
+
+export interface ExamenImportResult {
+  imported: number;
+  updated: number;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface PresenceFormData {
+  enseignant_email: string;
+  enseignant_nom: string;
+  enseignant_prenom: string;
+  est_present: boolean;
+  nb_surveillants_accompagnants: number;
+  remarque?: string;
+}
+
+export interface ManualExamenFormData {
+  code_examen: string;
+  nom_examen: string;
+  date_examen?: string;
+  heure_debut?: string;
+  heure_fin?: string;
+}
+
+export enum ExamenErrorType {
+  IMPORT_ERROR = 'import_error',
+  VALIDATION_ERROR = 'validation_error',
+  DUPLICATE_ERROR = 'duplicate_error',
+  NOT_FOUND_ERROR = 'not_found_error',
+  PERMISSION_ERROR = 'permission_error'
+}
+
+export interface ParsedExamen {
+  code_examen: string;
+  nom_examen: string;
+  enseignants: string[]; // Array d'emails
+  date_examen?: string;
+  heure_debut?: string;
+  heure_fin?: string;
+}
+
+export interface ExamenCSVParseResult {
+  examens: ParsedExamen[];
+  errors: string[];
+  warnings: string[];
+}
+
+export type ExamenStatusFilter = 'all' | 'declared' | 'pending' | 'manual';
+export type ExamenStatusBadgeVariant = 'declared' | 'pending' | 'manual';
