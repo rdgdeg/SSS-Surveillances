@@ -322,8 +322,8 @@ export interface BackupStats {
   avg_duration_seconds: number;
   success_rate: number;
 }
-// =====
-=======================================
+
+// ============================================
 // Types pour la gestion de la présence des enseignants aux examens
 // ============================================
 
