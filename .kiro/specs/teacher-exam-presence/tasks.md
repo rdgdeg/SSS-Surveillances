@@ -70,7 +70,7 @@
   - Configurer le polling pour les nouvelles notifications (30 secondes)
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 10. Créer le composant d'import CSV des examens (Admin)
+- [x] 10. Créer le composant d'import CSV des examens (Admin)
   - Créer `components/admin/ExamImport.tsx`
   - Implémenter la sélection de fichier avec validation
   - Afficher une barre de progression en temps réel pendant l'import
@@ -80,7 +80,7 @@
   - Gérer les états de chargement et les erreurs
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
 
-- [ ] 11. Créer le composant de recherche d'examens (Enseignant)
+- [x] 11. Créer le composant de recherche d'examens (Enseignant)
   - Créer `components/public/TeacherExamSearch.tsx`
   - Implémenter un champ de recherche avec autocomplétion
   - Afficher les résultats en temps réel avec debounce (300ms)
@@ -90,7 +90,7 @@
   - Gérer les états vides et les erreurs
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 12. Créer le formulaire de saisie manuelle d'examen (Enseignant)
+- [x] 12. Créer le formulaire de saisie manuelle d'examen (Enseignant)
   - Créer `components/public/ManualExamForm.tsx`
   - Implémenter les champs: code, nom, date, heure début, heure fin
   - Ajouter la validation des champs (longueurs, formats)
@@ -135,7 +135,7 @@
   - Gérer les états de chargement et les confirmations
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 16. Créer le composant Badge de statut d'examen
+- [x] 16. Créer le composant Badge de statut d'examen
   - Créer `components/shared/ExamStatusBadge.tsx`
   - Implémenter les variants: declared (vert), pending (orange), manual (bleu)
   - Rendre le composant réutilisable et accessible
