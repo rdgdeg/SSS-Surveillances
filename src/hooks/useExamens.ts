@@ -190,3 +190,49 @@ export function useExamensWithPresencesQuery(sessionId: string) {
     staleTime: 30 * 1000, // 30 seconds
   });
 }
+
+/**
+ * Hook to fetch all notifications (stub implementation)
+ * TODO: Implement full notification system
+ */
+export function useAllNotificationsQuery(_showArchived: boolean) {
+  return {
+    data: [],
+    isLoading: false,
+    error: null
+  };
+}
+
+/**
+ * Hook for notification mutations (stub implementation)
+ * TODO: Implement full notification system
+ */
+export function useNotificationMutation() {
+  return {
+    markAsRead: {
+      mutateAsync: async (_id: string) => {},
+      isPending: false
+    },
+    archive: {
+      mutateAsync: async (_id: string) => {},
+      isPending: false
+    }
+  };
+}
+
+/**
+ * Hook for examen mutations (stub implementation)
+ * TODO: Implement full notification system
+ */
+export function useExamenMutation() {
+  return {
+    validate: {
+      mutateAsync: async (_params: { id: string }) => {},
+      isPending: false
+    },
+    delete: {
+      mutateAsync: async (_id: string) => {},
+      isPending: false
+    }
+  };
+}

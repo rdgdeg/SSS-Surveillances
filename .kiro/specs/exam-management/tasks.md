@@ -332,7 +332,7 @@
   - Add confirmation dialogs for destructive actions
   - _Requirements: All requirements_
 
-- [x] 15. Implement session filtering
+- [ ] 15. Implement session filtering
   - Ensure all queries filter by active session
   - Update dashboard to show session-specific stats
   - Prevent cross-session data leakage
