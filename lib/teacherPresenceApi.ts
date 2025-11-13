@@ -221,6 +221,12 @@ export async function getCoursWithPresences(
   
   // Récupérer toutes les présences pour cette session
   const coursIds = cours.map(c => c.id);
+  
+  // Si aucun cours, retourner un tableau vide
+  if (coursIds.length === 0) {
+    return [];
+  }
+  
   const { data: presences, error: presencesError } = await supabase
     .from('presences_enseignants')
     .select('*')

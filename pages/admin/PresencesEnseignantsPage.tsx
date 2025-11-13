@@ -28,8 +28,14 @@ export default function PresencesEnseignantsPage() {
 
   const { data: coursWithPresences, isLoading, error } = useQuery({
     queryKey: ['cours-presences', activeSession?.id],
-    queryFn: () => getCoursWithPresences(activeSession!.id),
+    queryFn: () => {
+      if (!activeSession?.id) {
+        throw new Error('No active session');
+      }
+      return getCoursWithPresences(activeSession.id);
+    },
     enabled: !!activeSession?.id,
+    retry: false,
   });
 
   // Filter and search logic
