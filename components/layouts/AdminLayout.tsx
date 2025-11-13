@@ -32,16 +32,17 @@ const AdminLayout: React.FC = () => {
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
     
     const navLinks = [
-        { to: 'dashboard', label: 'Tableau de bord', icon: Home },
-        { to: 'sessions', label: 'Sessions', icon: CalendarDays },
-        { to: 'surveillants', label: 'Surveillants', icon: Users },
-        { to: 'creneaux', label: 'Créneaux', icon: Clock },
-        { to: 'disponibilites', label: 'Disponibilités', icon: FileText },
-        { to: 'statistiques', label: 'Statistiques', icon: BarChart3 },
-        { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList },
-        { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare },
-        { to: 'messages', label: 'Messages', icon: MessageSquare },
-        { to: 'cours', label: 'Cours', icon: BookOpen },
+        { to: 'dashboard', label: 'Tableau de bord', icon: Home, category: null },
+        { to: 'sessions', label: 'Sessions', icon: CalendarDays, category: null },
+        { to: 'surveillants', label: 'Surveillants', icon: Users, category: 'surveillants' },
+        { to: 'creneaux', label: 'Créneaux', icon: Clock, category: 'surveillants' },
+        { to: 'disponibilites', label: 'Disponibilités', icon: FileText, category: 'surveillants' },
+        { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList, category: 'surveillants' },
+        { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare, category: 'surveillants' },
+        { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants' },
+        { to: 'presences-enseignants', label: 'Présences', icon: CheckSquare, category: 'enseignants' },
+        { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: null },
+        { to: 'messages', label: 'Messages', icon: MessageSquare, category: null },
     ];
 
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
@@ -116,12 +117,53 @@ const AdminLayout: React.FC = () => {
                 <nav className="hidden md:block border-t dark:border-gray-800">
                     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="py-2 flex space-x-2 overflow-x-auto scrollbar-hide">
-                            {navLinks.map(({ to, label, icon: Icon }) => (
+                            {/* General Links */}
+                            {navLinks.filter(link => !link.category).map(({ to, label, icon: Icon }) => (
                                 <NavLink key={to} to={to} className={navLinkClasses}>
                                     <Icon className="h-4 w-4"/>
                                     <span>{label}</span>
                                 </NavLink>
                             ))}
+                            
+                            {/* Surveillants Section */}
+                            {navLinks.some(link => link.category === 'surveillants') && (
+                                <>
+                                    <div className="flex items-center px-2">
+                                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+                                    </div>
+                                    <div className="flex items-center px-2">
+                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Surveillants
+                                        </span>
+                                    </div>
+                                    {navLinks.filter(link => link.category === 'surveillants').map(({ to, label, icon: Icon }) => (
+                                        <NavLink key={to} to={to} className={navLinkClasses}>
+                                            <Icon className="h-4 w-4"/>
+                                            <span>{label}</span>
+                                        </NavLink>
+                                    ))}
+                                </>
+                            )}
+                            
+                            {/* Enseignants Section */}
+                            {navLinks.some(link => link.category === 'enseignants') && (
+                                <>
+                                    <div className="flex items-center px-2">
+                                        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+                                    </div>
+                                    <div className="flex items-center px-2">
+                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Enseignants
+                                        </span>
+                                    </div>
+                                    {navLinks.filter(link => link.category === 'enseignants').map(({ to, label, icon: Icon }) => (
+                                        <NavLink key={to} to={to} className={navLinkClasses}>
+                                            <Icon className="h-4 w-4"/>
+                                            <span>{label}</span>
+                                        </NavLink>
+                                    ))}
+                                </>
+                            )}
                         </div>
                     </div>
                 </nav>
@@ -130,7 +172,8 @@ const AdminLayout: React.FC = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden fixed inset-0 top-16 bg-white dark:bg-gray-900 z-40 overflow-y-auto">
                         <nav className="container mx-auto px-4 py-4 space-y-1">
-                            {navLinks.map(({ to, label, icon: Icon }) => (
+                            {/* General Links */}
+                            {navLinks.filter(link => !link.category).map(({ to, label, icon: Icon }) => (
                                 <NavLink 
                                     key={to} 
                                     to={to} 
@@ -141,6 +184,51 @@ const AdminLayout: React.FC = () => {
                                     <span>{label}</span>
                                 </NavLink>
                             ))}
+                            
+                            {/* Surveillants Section */}
+                            {navLinks.some(link => link.category === 'surveillants') && (
+                                <>
+                                    <div className="pt-4 pb-2">
+                                        <h3 className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Surveillants
+                                        </h3>
+                                    </div>
+                                    {navLinks.filter(link => link.category === 'surveillants').map(({ to, label, icon: Icon }) => (
+                                        <NavLink 
+                                            key={to} 
+                                            to={to} 
+                                            onClick={closeMobileMenu}
+                                            className={mobileNavLinkClasses}
+                                        >
+                                            <Icon className="h-5 w-5" />
+                                            <span>{label}</span>
+                                        </NavLink>
+                                    ))}
+                                </>
+                            )}
+                            
+                            {/* Enseignants Section */}
+                            {navLinks.some(link => link.category === 'enseignants') && (
+                                <>
+                                    <div className="pt-4 pb-2">
+                                        <h3 className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                            Enseignants
+                                        </h3>
+                                    </div>
+                                    {navLinks.filter(link => link.category === 'enseignants').map(({ to, label, icon: Icon }) => (
+                                        <NavLink 
+                                            key={to} 
+                                            to={to} 
+                                            onClick={closeMobileMenu}
+                                            className={mobileNavLinkClasses}
+                                        >
+                                            <Icon className="h-5 w-5" />
+                                            <span>{label}</span>
+                                        </NavLink>
+                                    ))}
+                                </>
+                            )}
+                            
                             <div className="pt-4 mt-4 border-t dark:border-gray-800 space-y-1">
                                 <button
                                     onClick={() => {

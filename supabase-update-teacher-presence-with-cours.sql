@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS presences_enseignants (
   enseignant_prenom VARCHAR(255) NOT NULL,
   est_present BOOLEAN NOT NULL,
   nb_surveillants_accompagnants INTEGER DEFAULT 0 CHECK (nb_surveillants_accompagnants >= 0),
+  noms_accompagnants TEXT,
   remarque TEXT,
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -124,5 +125,6 @@ COMMENT ON VIEW v_cours_with_presences IS 'Vue des cours avec leurs statistiques
 
 COMMENT ON COLUMN presences_enseignants.cours_id IS 'Référence au cours (table cours)';
 COMMENT ON COLUMN presences_enseignants.session_id IS 'Référence à la session d''examen';
-COMMENT ON COLUMN presences_enseignants.nb_surveillants_accompagnants IS 'Nombre de surveillants que l''enseignant amène avec lui';
+COMMENT ON COLUMN presences_enseignants.nb_surveillants_accompagnants IS 'Nombre de personnes présentes pour surveiller (en plus de l''enseignant s''il est présent, ou total s''il est absent)';
+COMMENT ON COLUMN presences_enseignants.noms_accompagnants IS 'Noms des personnes amenées pour surveiller';
 COMMENT ON COLUMN presences_enseignants.remarque IS 'Remarque de l''enseignant (sera ajoutée aux consignes du cours si fournie)';

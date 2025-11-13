@@ -17,7 +17,7 @@ import SubmissionHistoryModal from './SubmissionHistoryModal';
 // --- Helper Functions ---
 
 const groupCreneauxByDate = (creneaux: Creneau[]) => {
-    return creneaux.reduce((acc, creneau) => {
+    const grouped = creneaux.reduce((acc, creneau) => {
         if (creneau.date_surveillance) {
             const date = creneau.date_surveillance;
             if (!acc[date]) acc[date] = [];
@@ -25,6 +25,17 @@ const groupCreneauxByDate = (creneaux: Creneau[]) => {
         }
         return acc;
     }, {} as Record<string, Creneau[]>);
+    
+    // Trier les créneaux par heure de début dans chaque groupe
+    Object.keys(grouped).forEach(date => {
+        grouped[date].sort((a, b) => {
+            const timeA = a.heure_debut_surveillance || '';
+            const timeB = b.heure_debut_surveillance || '';
+            return timeA.localeCompare(timeB);
+        });
+    });
+    
+    return grouped;
 };
 
 // --- Step Components (Optimized) ---

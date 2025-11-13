@@ -72,7 +72,8 @@ export async function submitPresence(
     enseignant_nom: data.enseignant_nom,
     enseignant_prenom: data.enseignant_prenom,
     est_present: data.est_present,
-    nb_surveillants_accompagnants: data.est_present ? data.nb_surveillants_accompagnants : 0,
+    nb_surveillants_accompagnants: data.nb_surveillants_accompagnants,
+    noms_accompagnants: data.noms_accompagnants || null,
     remarque: data.remarque || null
   };
   

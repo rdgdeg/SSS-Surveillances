@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { usePresenceMutation, useExistingPresenceQuery } from '../../src/hooks/useTeacherPresence';
 import { Cours, PresenceFormData } from '../../types';
+import { 
+  User, 
+  Mail, 
+  CheckCircle, 
+  XCircle,
+  Users,
+  MessageSquare,
+  Info,
+  Loader2
+} from 'lucide-react';
 
 interface TeacherPresenceFormProps {
   cours: Cours;
@@ -17,6 +27,7 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
     enseignant_prenom: '',
     est_present: true,
     nb_surveillants_accompagnants: 0,
+    noms_accompagnants: '',
     remarque: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -38,10 +49,21 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
         enseignant_prenom: existingPresence.enseignant_prenom,
         est_present: existingPresence.est_present,
         nb_surveillants_accompagnants: existingPresence.nb_surveillants_accompagnants,
+        noms_accompagnants: existingPresence.noms_accompagnants || '',
         remarque: existingPresence.remarque || ''
       });
     }
   }, [existingPresence]);
+
+  // Auto-generate email when nom and prenom are filled
+  useEffect(() => {
+    if (formData.enseignant_nom && formData.enseignant_prenom && !formData.enseignant_email) {
+      const nom = formData.enseignant_nom.toLowerCase().trim().replace(/\s+/g, '');
+      const prenom = formData.enseignant_prenom.toLowerCase().trim().replace(/\s+/g, '');
+      const suggestedEmail = `${nom}.${prenom}@uclouvain.be`;
+      handleChange('enseignant_email', suggestedEmail);
+    }
+  }, [formData.enseignant_nom, formData.enseignant_prenom]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -65,8 +87,13 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
     }
 
     // Nb surveillants validation
-    if (formData.est_present && formData.nb_surveillants_accompagnants < 0) {
+    if (formData.nb_surveillants_accompagnants < 0) {
       newErrors.nb_surveillants_accompagnants = 'Le nombre doit être positif ou zéro';
+    }
+
+    // Noms accompagnants validation
+    if (formData.nb_surveillants_accompagnants > 0 && !formData.noms_accompagnants?.trim()) {
+      newErrors.noms_accompagnants = 'Veuillez indiquer les noms des personnes';
     }
 
     setErrors(newErrors);
@@ -93,6 +120,7 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
           enseignant_email: formData.enseignant_email.toLowerCase().trim(),
           enseignant_nom: formData.enseignant_nom.trim(),
           enseignant_prenom: formData.enseignant_prenom.trim(),
+          noms_accompagnants: formData.noms_accompagnants?.trim() || undefined,
           remarque: formData.remarque?.trim() || undefined
         }
       });
@@ -123,66 +151,47 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Déclaration de présence</h3>
+    <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
+            <CheckCircle className="h-6 w-6 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">Déclaration de présence</h3>
+        </div>
         
         {/* Cours info */}
-        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Informations du cours</h4>
-          <dl className="grid grid-cols-1 gap-2 text-sm">
-            <div>
-              <dt className="text-gray-600 inline">Code:</dt>
-              <dd className="text-gray-900 inline ml-2 font-medium">{cours.code}</dd>
-            </div>
-            <div>
-              <dt className="text-gray-600 inline">Nom:</dt>
-              <dd className="text-gray-900 inline ml-2">{cours.intitule_complet}</dd>
+        <div className="mt-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 shadow-sm transition-all duration-300 hover:shadow-md">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="h-5 w-5 text-blue-600" />
+            <h4 className="text-sm font-semibold text-blue-900">Informations du cours</h4>
+          </div>
+          <dl className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-bold">{cours.code}</span>
+              <dd className="text-gray-800 font-medium">{cours.intitule_complet}</dd>
             </div>
           </dl>
         </div>
 
         {existingPresence && (
-          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-3">
-            <p className="text-sm text-blue-800">
-              Vous avez déjà soumis une déclaration pour cet examen. Vous pouvez la modifier ci-dessous.
-            </p>
+          <div className="mt-4 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-300 rounded-xl p-4 shadow-sm animate-pulse-slow">
+            <div className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-amber-600 flex-shrink-0" />
+              <p className="text-sm text-amber-900 font-medium">
+                Vous avez déjà soumis une déclaration pour cet examen. Vous pouvez la modifier ci-dessous.
+              </p>
+            </div>
           </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={formData.enseignant_email}
-            onChange={(e) => handleChange('enseignant_email', e.target.value)}
-            className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-              errors.enseignant_email
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            }`}
-            placeholder="votre.email@univ.be"
-            required
-            aria-invalid={!!errors.enseignant_email}
-            aria-describedby={errors.enseignant_email ? 'email-error' : undefined}
-          />
-          {errors.enseignant_email && (
-            <p id="email-error" className="mt-1 text-sm text-red-600">
-              {errors.enseignant_email}
-            </p>
-          )}
-        </div>
-
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Nom et Prénom */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="nom" className="block text-sm font-medium text-gray-700">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="group">
+            <label htmlFor="nom" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+              <User className="h-4 w-4 text-blue-600" />
               Nom <span className="text-red-500">*</span>
             </label>
             <input
@@ -190,24 +199,27 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
               id="nom"
               value={formData.enseignant_nom}
               onChange={(e) => handleChange('enseignant_nom', e.target.value)}
-              className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
                 errors.enseignant_nom
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
               }`}
+              placeholder="Dupont"
               required
               aria-invalid={!!errors.enseignant_nom}
               aria-describedby={errors.enseignant_nom ? 'nom-error' : undefined}
             />
             {errors.enseignant_nom && (
-              <p id="nom-error" className="mt-1 text-sm text-red-600">
+              <p id="nom-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <XCircle className="h-4 w-4" />
                 {errors.enseignant_nom}
               </p>
             )}
           </div>
 
-          <div>
-            <label htmlFor="prenom" className="block text-sm font-medium text-gray-700">
+          <div className="group">
+            <label htmlFor="prenom" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+              <User className="h-4 w-4 text-blue-600" />
               Prénom <span className="text-red-500">*</span>
             </label>
             <input
@@ -215,125 +227,223 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
               id="prenom"
               value={formData.enseignant_prenom}
               onChange={(e) => handleChange('enseignant_prenom', e.target.value)}
-              className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
                 errors.enseignant_prenom
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
               }`}
+              placeholder="Jean"
               required
               aria-invalid={!!errors.enseignant_prenom}
               aria-describedby={errors.enseignant_prenom ? 'prenom-error' : undefined}
             />
             {errors.enseignant_prenom && (
-              <p id="prenom-error" className="mt-1 text-sm text-red-600">
+              <p id="prenom-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <XCircle className="h-4 w-4" />
                 {errors.enseignant_prenom}
               </p>
             )}
           </div>
         </div>
 
+        {/* Email */}
+        <div className="group">
+          <label htmlFor="email" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <Mail className="h-4 w-4 text-blue-600" />
+            Email <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={formData.enseignant_email}
+            onChange={(e) => handleChange('enseignant_email', e.target.value)}
+            className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
+              errors.enseignant_email
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
+            }`}
+            placeholder="nom.prenom@uclouvain.be"
+            required
+            aria-invalid={!!errors.enseignant_email}
+            aria-describedby={errors.enseignant_email ? 'email-error' : 'email-help'}
+          />
+          {!errors.enseignant_email && (
+            <p id="email-help" className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+              <Info className="h-4 w-4" />
+              Format: nom.prenom@uclouvain.be
+            </p>
+          )}
+          {errors.enseignant_email && (
+            <p id="email-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="h-4 w-4" />
+              {errors.enseignant_email}
+            </p>
+          )}
+        </div>
+
         {/* Présence */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 shadow-sm">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-4">
+            <CheckCircle className="h-5 w-5 text-blue-600" />
             Serez-vous présent à cet examen ? <span className="text-red-500">*</span>
           </label>
-          <div className="space-y-2">
-            <label className="inline-flex items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className={`relative flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+              formData.est_present === true
+                ? 'border-green-500 bg-green-50 shadow-md'
+                : 'border-gray-300 bg-white hover:border-green-300 hover:bg-green-50'
+            }`}>
               <input
                 type="radio"
                 name="presence"
                 checked={formData.est_present === true}
                 onChange={() => handleChange('est_present', true)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                className="h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300"
               />
-              <span className="ml-2 text-sm text-gray-700">Oui, je serai présent</span>
+              <div className="ml-3 flex items-center gap-2">
+                <CheckCircle className={`h-6 w-6 ${formData.est_present === true ? 'text-green-600' : 'text-gray-400'}`} />
+                <span className={`text-sm font-medium ${formData.est_present === true ? 'text-green-900' : 'text-gray-700'}`}>
+                  Oui, je serai présent
+                </span>
+              </div>
             </label>
-            <label className="inline-flex items-center ml-6">
+            <label className={`relative flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+              formData.est_present === false
+                ? 'border-red-500 bg-red-50 shadow-md'
+                : 'border-gray-300 bg-white hover:border-red-300 hover:bg-red-50'
+            }`}>
               <input
                 type="radio"
                 name="presence"
                 checked={formData.est_present === false}
                 onChange={() => {
                   handleChange('est_present', false);
-                  handleChange('nb_surveillants_accompagnants', 0);
                 }}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300"
               />
-              <span className="ml-2 text-sm text-gray-700">Non, je serai absent</span>
+              <div className="ml-3 flex items-center gap-2">
+                <XCircle className={`h-6 w-6 ${formData.est_present === false ? 'text-red-600' : 'text-gray-400'}`} />
+                <span className={`text-sm font-medium ${formData.est_present === false ? 'text-red-900' : 'text-gray-700'}`}>
+                  Non, je serai absent
+                </span>
+              </div>
             </label>
           </div>
         </div>
 
-        {/* Nb surveillants (only if present) */}
-        {formData.est_present && (
-          <div>
-            <label htmlFor="nb_surveillants" className="block text-sm font-medium text-gray-700">
-              Nombre de surveillants que vous amenez
-            </label>
-            <input
-              type="number"
-              id="nb_surveillants"
-              min="0"
-              value={formData.nb_surveillants_accompagnants}
-              onChange={(e) => handleChange('nb_surveillants_accompagnants', parseInt(e.target.value) || 0)}
-              className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                errors.nb_surveillants_accompagnants
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-              }`}
-              aria-invalid={!!errors.nb_surveillants_accompagnants}
-              aria-describedby={errors.nb_surveillants_accompagnants ? 'nb_surveillants-error' : 'nb_surveillants-help'}
-            />
-            <p id="nb_surveillants-help" className="mt-1 text-xs text-gray-500">
-              Indiquez 0 si vous ne venez pas avec des surveillants
+        {/* Nb surveillants */}
+        <div className="group">
+          <label htmlFor="nb_surveillants" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <Users className="h-5 w-5 text-blue-600" />
+            {formData.est_present 
+              ? "Nombre de personnes présentes pour surveiller en plus de moi"
+              : "Nombre de personnes qui seront présentes pour surveiller"
+            }
+          </label>
+          <input
+            type="number"
+            id="nb_surveillants"
+            min="0"
+            value={formData.nb_surveillants_accompagnants}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 0;
+              handleChange('nb_surveillants_accompagnants', value);
+              if (value === 0) {
+                handleChange('noms_accompagnants', '');
+              }
+            }}
+            className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
+              errors.nb_surveillants_accompagnants
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
+            }`}
+            aria-invalid={!!errors.nb_surveillants_accompagnants}
+            aria-describedby={errors.nb_surveillants_accompagnants ? 'nb_surveillants-error' : 'nb_surveillants-help'}
+          />
+          <p id="nb_surveillants-help" className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+            <Info className="h-4 w-4" />
+            Par défaut 0 - Indiquez le nombre de personnes supplémentaires
+          </p>
+          {errors.nb_surveillants_accompagnants && (
+            <p id="nb_surveillants-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
+              <XCircle className="h-4 w-4" />
+              {errors.nb_surveillants_accompagnants}
             </p>
-            {errors.nb_surveillants_accompagnants && (
-              <p id="nb_surveillants-error" className="mt-1 text-sm text-red-600">
-                {errors.nb_surveillants_accompagnants}
+          )}
+        </div>
+
+        {/* Noms accompagnants (if nb > 0) */}
+        {formData.nb_surveillants_accompagnants > 0 && (
+          <div className="group animate-fade-in">
+            <label htmlFor="noms_accompagnants" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Noms des personnes amenées <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="noms_accompagnants"
+              rows={3}
+              value={formData.noms_accompagnants}
+              onChange={(e) => handleChange('noms_accompagnants', e.target.value)}
+              className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
+                errors.noms_accompagnants
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
+              }`}
+              placeholder="Ex: Marie Dubois, Pierre Martin"
+              aria-invalid={!!errors.noms_accompagnants}
+              aria-describedby={errors.noms_accompagnants ? 'noms-error' : 'noms-help'}
+            />
+            {!errors.noms_accompagnants && (
+              <p id="noms-help" className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                <Info className="h-4 w-4" />
+                Indiquez les noms complets, séparés par des virgules
+              </p>
+            )}
+            {errors.noms_accompagnants && (
+              <p id="noms-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <XCircle className="h-4 w-4" />
+                {errors.noms_accompagnants}
               </p>
             )}
           </div>
         )}
 
         {/* Remarque */}
-        <div>
-          <label htmlFor="remarque" className="block text-sm font-medium text-gray-700">
+        <div className="group">
+          <label htmlFor="remarque" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <MessageSquare className="h-5 w-5 text-blue-600" />
             Consignes particulières (optionnel)
           </label>
           <textarea
             id="remarque"
-            rows={3}
+            rows={4}
             value={formData.remarque}
             onChange={(e) => handleChange('remarque', e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm transition-all duration-200 group-hover:border-blue-400"
             placeholder="Consignes spécifiques pour cet examen (seront ajoutées à la fiche du cours)..."
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+            <Info className="h-4 w-4" />
             Ces consignes seront ajoutées à la fiche du cours et visibles par l'administration
           </p>
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-4 pt-4">
           <button
             type="submit"
             disabled={submit.isPending}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-semibold rounded-lg shadow-md text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 active:scale-95"
           >
             {submit.isPending ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                 Enregistrement...
               </>
             ) : (
               <>
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                {existingPresence ? 'Mettre à jour' : 'Soumettre'}
+                <CheckCircle className="h-6 w-6 mr-2" />
+                {existingPresence ? 'Mettre à jour ma déclaration' : 'Soumettre ma déclaration'}
               </>
             )}
           </button>
@@ -343,8 +453,9 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
               type="button"
               onClick={onCancel}
               disabled={submit.isPending}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center px-6 py-3 border-2 border-gray-300 text-base font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
+              <XCircle className="h-5 w-5 mr-2" />
               Annuler
             </button>
           )}
@@ -353,32 +464,79 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
 
       {/* Confirmation Modal */}
       {showConfirmation && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmer votre déclaration</h3>
-            <div className="text-sm text-gray-600 space-y-2 mb-6">
-              <p>Vous êtes sur le point de soumettre votre déclaration de présence :</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Cours: <strong>{cours.code}</strong></li>
-                <li>Présence: <strong>{formData.est_present ? 'Oui' : 'Non'}</strong></li>
-                {formData.est_present && (
-                  <li>Surveillants: <strong>{formData.nb_surveillants_accompagnants}</strong></li>
-                )}
-              </ul>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 transform transition-all animate-scale-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <CheckCircle className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">Confirmer votre déclaration</h3>
             </div>
-            <div className="flex gap-3">
+            
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 mb-6 border border-blue-200">
+              <p className="text-sm text-gray-700 font-medium mb-4">Vous êtes sur le point de soumettre :</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <div>
+                    <span className="text-xs text-gray-500">Cours</span>
+                    <p className="font-semibold text-gray-900">{cours.code}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  {formData.est_present ? (
+                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  )}
+                  <div>
+                    <span className="text-xs text-gray-500">Présence</span>
+                    <p className="font-semibold text-gray-900">
+                      {formData.est_present ? 'Présent' : 'Absent'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <Users className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <div>
+                    <span className="text-xs text-gray-500">
+                      {formData.est_present ? 'Personnes en plus' : 'Personnes présentes'}
+                    </span>
+                    <p className="font-semibold text-gray-900">
+                      {formData.nb_surveillants_accompagnants} {formData.nb_surveillants_accompagnants > 1 ? 'personnes' : 'personne'}
+                    </p>
+                  </div>
+                </div>
+
+                {formData.nb_surveillants_accompagnants > 0 && formData.noms_accompagnants && (
+                  <div className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm">
+                    <Users className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-xs text-gray-500">Noms</span>
+                      <p className="font-medium text-gray-900 text-sm">{formData.noms_accompagnants}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-4">
               <button
                 onClick={handleConfirm}
                 disabled={submit.isPending}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="flex-1 inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-md transition-all duration-200 transform hover:scale-105 active:scale-95"
               >
+                <CheckCircle className="h-5 w-5 mr-2" />
                 Confirmer
               </button>
               <button
                 onClick={() => setShowConfirmation(false)}
                 disabled={submit.isPending}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="flex-1 inline-flex justify-center items-center px-6 py-3 border-2 border-gray-300 text-base font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all duration-200"
               >
+                <XCircle className="h-5 w-5 mr-2" />
                 Annuler
               </button>
             </div>

@@ -24,7 +24,9 @@ export async function getActiveSessionWithCreneaux(): Promise<SessionWithCreneau
     const { data: creneaux, error: creneauxError } = await supabase
         .from('creneaux')
         .select('*')
-        .eq('session_id', activeSession.id);
+        .eq('session_id', activeSession.id)
+        .order('date_surveillance', { ascending: true })
+        .order('heure_debut_surveillance', { ascending: true });
 
     if (creneauxError) {
         console.error('Error fetching creneaux:', creneauxError);
