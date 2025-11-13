@@ -55,15 +55,15 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
     }
   }, [existingPresence]);
 
-  // Auto-generate email when nom and prenom are filled
+  // Auto-generate email when prenom and nom are filled
   useEffect(() => {
-    if (formData.enseignant_nom && formData.enseignant_prenom && !formData.enseignant_email) {
-      const nom = formData.enseignant_nom.toLowerCase().trim().replace(/\s+/g, '');
+    if (formData.enseignant_prenom && formData.enseignant_nom && !formData.enseignant_email) {
       const prenom = formData.enseignant_prenom.toLowerCase().trim().replace(/\s+/g, '');
-      const suggestedEmail = `${nom}.${prenom}@uclouvain.be`;
+      const nom = formData.enseignant_nom.toLowerCase().trim().replace(/\s+/g, '');
+      const suggestedEmail = `${prenom}.${nom}@uclouvain.be`;
       handleChange('enseignant_email', suggestedEmail);
     }
-  }, [formData.enseignant_nom, formData.enseignant_prenom]);
+  }, [formData.enseignant_prenom, formData.enseignant_nom]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -187,36 +187,8 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Nom et Prénom */}
+        {/* Prénom et Nom */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="group">
-            <label htmlFor="nom" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-              <User className="h-4 w-4 text-blue-600" />
-              Nom <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="nom"
-              value={formData.enseignant_nom}
-              onChange={(e) => handleChange('enseignant_nom', e.target.value)}
-              className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
-                errors.enseignant_nom
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
-              }`}
-              placeholder="Dupont"
-              required
-              aria-invalid={!!errors.enseignant_nom}
-              aria-describedby={errors.enseignant_nom ? 'nom-error' : undefined}
-            />
-            {errors.enseignant_nom && (
-              <p id="nom-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <XCircle className="h-4 w-4" />
-                {errors.enseignant_nom}
-              </p>
-            )}
-          </div>
-
           <div className="group">
             <label htmlFor="prenom" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
               <User className="h-4 w-4 text-blue-600" />
@@ -244,6 +216,34 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
               </p>
             )}
           </div>
+
+          <div className="group">
+            <label htmlFor="nom" className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+              <User className="h-4 w-4 text-blue-600" />
+              Nom <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="nom"
+              value={formData.enseignant_nom}
+              onChange={(e) => handleChange('enseignant_nom', e.target.value)}
+              className={`block w-full rounded-lg shadow-sm sm:text-sm transition-all duration-200 ${
+                errors.enseignant_nom
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
+              }`}
+              placeholder="Dupont"
+              required
+              aria-invalid={!!errors.enseignant_nom}
+              aria-describedby={errors.enseignant_nom ? 'nom-error' : undefined}
+            />
+            {errors.enseignant_nom && (
+              <p id="nom-error" className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <XCircle className="h-4 w-4" />
+                {errors.enseignant_nom}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Email */}
@@ -262,7 +262,7 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
                 ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
                 : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 group-hover:border-blue-400'
             }`}
-            placeholder="nom.prenom@uclouvain.be"
+            placeholder="prenom.nom@uclouvain.be"
             required
             aria-invalid={!!errors.enseignant_email}
             aria-describedby={errors.enseignant_email ? 'email-error' : 'email-help'}
@@ -270,7 +270,7 @@ export function TeacherPresenceForm({ cours, sessionId, defaultEmail = '', onSuc
           {!errors.enseignant_email && (
             <p id="email-help" className="mt-2 text-xs text-gray-500 flex items-center gap-1">
               <Info className="h-4 w-4" />
-              Format: nom.prenom@uclouvain.be
+              Format: prenom.nom@uclouvain.be
             </p>
           )}
           {errors.enseignant_email && (
