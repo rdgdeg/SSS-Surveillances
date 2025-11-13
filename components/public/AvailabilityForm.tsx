@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, memo, useCallback } from 'react';
 import { Creneau, Session, SurveillantType, AvailabilityData, SurveillantTypeLabels, Surveillant, FormProgressData } from '../../types';
-import { getActiveSessionWithCreneaux, findSurveillantByEmail, submitAvailability, getExistingSubmission } from '../../lib/api';
+import { getActiveSessionWithCreneaux, findSurveillantByEmail, getExistingSubmission } from '../../lib/api';
+import * as submissionService from '../../lib/submissionService';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
@@ -658,25 +659,52 @@ const AvailabilityForm: React.FC = () => {
         setIsSubmitting(true);
         
         try {
-            await submitAvailability({
+            const payload = {
                 session_id: session.id,
                 surveillant_id: foundSurveillantId,
                 ...formData,
                 availabilities: Object.entries(availabilities)
                   .filter(([, val]) => val.available)
                   .map(([creneauId]) => ({ creneau_id: creneauId, est_disponible: true })),
-            });
+            };
+
+            const result = await submissionService.submit(payload);
             
-            // Nettoyer le LocalStorage après soumission réussie
-            localStorageManager.clearFormProgress();
-            
-            const successMessage = hasExistingSubmission 
-                ? 'Vos disponibilités ont été mises à jour avec succès !' 
-                : 'Vos disponibilités ont été soumises avec succès !';
-            toast.success(successMessage);
-            nextStep();
+            if (result.success) {
+                // LocalStorage est déjà nettoyé par le service
+                const successMessage = hasExistingSubmission 
+                    ? 'Vos disponibilités ont été mises à jour avec succès !' 
+                    : 'Vos disponibilités ont été soumises avec succès !';
+                toast.success(successMessage);
+                nextStep();
+            } else if (result.queued) {
+                // Soumission mise en file d'attente (offline ou échec après retries)
+                toast.success(result.message, { duration: 6000 });
+                // Proposer de télécharger une copie locale
+                const shouldDownload = window.confirm(
+                    'Voulez-vous télécharger une copie locale de votre soumission pour vos archives ?'
+                );
+                if (shouldDownload) {
+                    submissionService.downloadLocalCopy(payload);
+                }
+            } else {
+                // Échec de la soumission
+                const errorMessage = result.errors && result.errors.length > 0
+                    ? result.errors.join(', ')
+                    : result.message;
+                toast.error(errorMessage);
+                
+                // Proposer de télécharger une copie locale en cas d'échec
+                const shouldDownload = window.confirm(
+                    'La soumission a échoué. Voulez-vous télécharger une copie locale pour réessayer plus tard ?'
+                );
+                if (shouldDownload) {
+                    submissionService.downloadLocalCopy(payload);
+                }
+            }
         } catch(error) {
-            toast.error("Erreur lors de la soumission du formulaire.");
+            console.error('Erreur lors de la soumission:', error);
+            toast.error("Erreur inattendue lors de la soumission du formulaire.");
         } finally {
             setIsSubmitting(false);
         }

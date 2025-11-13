@@ -1,18 +1,8 @@
 import { supabase } from './supabaseClient';
-import { SoumissionDisponibilite, SubmissionResult, SubmissionStatus } from '../types';
+import { SoumissionDisponibilite, SubmissionResult, SubmissionStatus, SubmissionPayload } from '../types';
 import { isOnline, submitWithRetry } from './networkManager';
 import { enqueue, processQueue } from './offlineQueueManager';
 import { clearFormProgress } from './localStorageManager';
-
-interface SubmissionPayload {
-  email: string;
-  nom: string;
-  prenom: string;
-  telephone: string;
-  session_id: string;
-  creneau_ids: string[];
-  commentaire?: string;
-}
 
 /**
  * Valide le payload côté client
@@ -34,10 +24,9 @@ function validatePayload(payload: SubmissionPayload): { valid: boolean; errors: 
     errors.push('Le prénom doit contenir au moins 2 caractères');
   }
 
-  // Validation téléphone
-  const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
-  if (!payload.telephone || !phoneRegex.test(payload.telephone)) {
-    errors.push('Numéro de téléphone invalide');
+  // Validation type surveillant
+  if (!payload.type_surveillant) {
+    errors.push('Type de surveillant non spécifié');
   }
 
   // Validation session
@@ -45,9 +34,9 @@ function validatePayload(payload: SubmissionPayload): { valid: boolean; errors: 
     errors.push('Session non spécifiée');
   }
 
-  // Validation créneaux
-  if (!payload.creneau_ids || payload.creneau_ids.length === 0) {
-    errors.push('Aucun créneau sélectionné');
+  // Validation disponibilités
+  if (!payload.availabilities || payload.availabilities.length === 0) {
+    errors.push('Aucune disponibilité spécifiée');
   }
 
   return {
@@ -78,31 +67,73 @@ export function downloadLocalCopy(payload: SubmissionPayload): void {
 }
 
 /**
- * Soumet les disponibilités via l'API Supabase
+ * Soumet les disponibilités via l'API Supabase avec validation serveur
  */
 async function submitToAPI(payload: SubmissionPayload): Promise<SoumissionDisponibilite> {
+  // Vérifier que la session existe et est active
+  const { data: session, error: sessionError } = await supabase
+    .from('sessions')
+    .select('id, is_active')
+    .eq('id', payload.session_id)
+    .single();
+
+  if (sessionError || !session) {
+    throw new Error('VALIDATION_ERROR: Session invalide ou inexistante');
+  }
+
+  if (!session.is_active) {
+    throw new Error('VALIDATION_ERROR: La session n\'est plus active');
+  }
+
+  // Vérifier que tous les créneaux existent et appartiennent à la session
+  const creneauIds = payload.availabilities.map(a => a.creneau_id);
+  if (creneauIds.length > 0) {
+    const { data: creneaux, error: creneauxError } = await supabase
+      .from('creneaux')
+      .select('id, session_id')
+      .in('id', creneauIds);
+
+    if (creneauxError) {
+      throw new Error('VALIDATION_ERROR: Erreur lors de la vérification des créneaux');
+    }
+
+    if (!creneaux || creneaux.length !== creneauIds.length) {
+      throw new Error('VALIDATION_ERROR: Certains créneaux sont invalides');
+    }
+
+    const invalidCreneaux = creneaux.filter(c => c.session_id !== payload.session_id);
+    if (invalidCreneaux.length > 0) {
+      throw new Error('VALIDATION_ERROR: Certains créneaux n\'appartiennent pas à cette session');
+    }
+  }
+
+  // Préparer les données pour l'upsert
+  const submissionData = {
+    session_id: payload.session_id,
+    surveillant_id: payload.surveillant_id,
+    email: payload.email.toLowerCase().trim(),
+    nom: payload.nom.trim(),
+    prenom: payload.prenom.trim(),
+    type_surveillant: payload.type_surveillant,
+    remarque_generale: payload.remarque_generale?.trim() || null,
+    historique_disponibilites: payload.availabilities,
+    submitted_at: new Date().toISOString(),
+  };
+
+  // Effectuer l'upsert
   const { data, error } = await supabase
     .from('soumissions_disponibilites')
-    .upsert(
-      {
-        email: payload.email.toLowerCase().trim(),
-        nom: payload.nom.trim(),
-        prenom: payload.prenom.trim(),
-        telephone: payload.telephone.trim(),
-        session_id: payload.session_id,
-        creneau_ids: payload.creneau_ids,
-        commentaire: payload.commentaire?.trim() || null,
-        submitted_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'session_id,email',
-      }
-    )
+    .upsert(submissionData, {
+      onConflict: 'session_id,email',
+    })
     .select()
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    if (error.code === '23505') {
+      throw new Error('DUPLICATE_SUBMISSION: Une soumission existe déjà pour cet email et cette session');
+    }
+    throw new Error(`DATABASE_ERROR: ${error.message}`);
   }
 
   return data;

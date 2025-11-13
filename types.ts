@@ -225,12 +225,13 @@ export interface SubmissionResult<T = any> {
 // Types pour Submission Service
 export interface SubmissionPayload {
   session_id: string;
+  surveillant_id: string | null;
   email: string;
   nom: string;
   prenom: string;
-  telephone: string;
-  creneau_ids: string[];
-  commentaire?: string;
+  type_surveillant: string;
+  remarque_generale?: string;
+  availabilities: Array<{ creneau_id: string; est_disponible: boolean }>;
 }
 
 export interface SubmissionStatus {

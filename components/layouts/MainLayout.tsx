@@ -4,6 +4,8 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { University, Sun, Moon, Home, BookOpen, Menu, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../shared/Button';
+import NetworkStatusIndicator from '../shared/NetworkStatusIndicator';
+import OfflineQueueIndicator from '../shared/OfflineQueueIndicator';
 
 const MainLayout: React.FC = () => {
     const { isDarkMode, toggleTheme } = useTheme();
@@ -105,6 +107,10 @@ const MainLayout: React.FC = () => {
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <Outlet />
             </main>
+            
+            {/* Indicateurs de fiabilité */}
+            <NetworkStatusIndicator />
+            <OfflineQueueIndicator />
         </div>
     );
 };

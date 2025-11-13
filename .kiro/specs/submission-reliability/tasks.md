@@ -123,7 +123,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Implémenter la fonction `downloadLocalCopy(payload)` pour télécharger un fichier JSON local
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 5.1, 5.2, 5.3, 7.1, 7.2_
 
-- [ ] 12. Mettre à jour la fonction submitAvailability dans api.ts
+- [x] 12. Mettre à jour la fonction submitAvailability dans api.ts
   - Modifier `lib/api.ts` pour utiliser une transaction Supabase explicite si possible
   - Ajouter la validation serveur stricte du payload avant insertion
   - Vérifier que la session existe et est active
@@ -133,7 +133,7 @@ Ce plan d'implémentation transforme la conception en tâches concrètes de dév
   - Gérer les erreurs de contrainte unique avec un message approprié
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 13. Intégrer le Submission Service dans AvailabilityForm
+- [x] 13. Intégrer le Submission Service dans AvailabilityForm
   - Remplacer l'appel direct à `submitAvailability` par `submissionService.submit()`
   - Gérer les différents types de résultats (succès, offline, échec)
   - Afficher des messages appropriés selon le résultat
