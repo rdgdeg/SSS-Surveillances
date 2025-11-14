@@ -6,6 +6,7 @@ import { linkExamenToCours } from '../../lib/examenManagementApi';
 import { extractCourseCode } from '../../lib/examenCsvParser';
 import { Link2, AlertCircle, CheckCircle, Search, Loader2, Plus, X } from 'lucide-react';
 import { Button } from '../shared/Button';
+import toast from 'react-hot-toast';
 
 interface ExamenWithoutCours extends Examen {
   suggested_cours?: Cours;
@@ -122,10 +123,19 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
       setShowCreateCours(false);
       setNewCoursData({ code: '', intitule_complet: '', consignes: '' });
       
-      // Auto-select the newly created course if we're in manual selection mode
+      // Auto-link if we're in manual selection mode
       if (selectedExamen) {
-        setSelectedCoursId(newCours.id);
+        toast.success(`Cours "${newCours.code}" créé et lié avec succès !`);
+        linkMutation.mutate({
+          examenId: selectedExamen.id,
+          coursId: newCours.id
+        });
+      } else {
+        toast.success(`Cours "${newCours.code}" créé avec succès !`);
       }
+    },
+    onError: (error) => {
+      toast.error(`Erreur lors de la création du cours : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   });
 
@@ -136,9 +146,13 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['examens-without-cours'] });
       queryClient.invalidateQueries({ queryKey: ['cours-presences'] });
+      toast.success('Examen lié au cours avec succès !');
       setSelectedExamen(null);
       setSelectedCoursId('');
       setCoursSearchTerm('');
+    },
+    onError: (error) => {
+      toast.error(`Erreur lors de la liaison : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   });
 
