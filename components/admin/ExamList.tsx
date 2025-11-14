@@ -429,27 +429,53 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
                     {/* Time - Inline editable */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {editingField?.examenId === examen.id && editingField?.field === 'heure_debut' ? (
-                        <input
-                          type="time"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(examen.id, 'heure_debut')}
-                          onKeyDown={(e) => handleKeyPress(e, examen.id, 'heure_debut')}
-                          className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          autoFocus
-                          disabled={saving}
-                        />
-                      ) : (
-                        <div
-                          onClick={() => handleStartEdit(examen.id, 'heure_debut', examen.heure_debut || '')}
-                          className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                        >
-                          {examen.heure_debut && examen.heure_fin
-                            ? `${examen.heure_debut} - ${examen.heure_fin}`
-                            : '-'}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {/* Heure début */}
+                        {editingField?.examenId === examen.id && editingField?.field === 'heure_debut' ? (
+                          <input
+                            type="time"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={() => handleSaveEdit(examen.id, 'heure_debut')}
+                            onKeyDown={(e) => handleKeyPress(e, examen.id, 'heure_debut')}
+                            className="w-24 px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            disabled={saving}
+                          />
+                        ) : (
+                          <div
+                            onClick={() => handleStartEdit(examen.id, 'heure_debut', examen.heure_debut || '')}
+                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                            title="Cliquer pour modifier l'heure de début"
+                          >
+                            {examen.heure_debut || '--:--'}
+                          </div>
+                        )}
+                        
+                        <span className="text-gray-400">-</span>
+                        
+                        {/* Heure fin */}
+                        {editingField?.examenId === examen.id && editingField?.field === 'heure_fin' ? (
+                          <input
+                            type="time"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={() => handleSaveEdit(examen.id, 'heure_fin')}
+                            onKeyDown={(e) => handleKeyPress(e, examen.id, 'heure_fin')}
+                            className="w-24 px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            disabled={saving}
+                          />
+                        ) : (
+                          <div
+                            onClick={() => handleStartEdit(examen.id, 'heure_fin', examen.heure_fin || '')}
+                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                            title="Cliquer pour modifier l'heure de fin"
+                          >
+                            {examen.heure_fin || '--:--'}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Code */}
