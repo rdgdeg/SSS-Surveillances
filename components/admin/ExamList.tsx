@@ -3,13 +3,30 @@ import { ExamenWithStatus, ExamenFilters } from '../../types';
 import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { Pagination } from '../shared/Pagination';
-import { updateExamen, deleteExamen } from '../../lib/examenManagementApi';
+import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
+import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Button } from '../shared/Button';
+import toast from 'react-hot-toast';
 
 interface ExamListProps {
   sessionId: string;
   initialFilters?: ExamenFilters;
   onEditExam?: (exam: ExamenWithStatus) => void;
   onCreateExam?: () => void;
+}
+
+interface ExamFormData {
+  cours_id: string | null;
+  code_examen: string;
+  nom_examen: string;
+  date_examen: string;
+  heure_debut: string;
+  heure_fin: string;
+  duree_minutes: number | null;
+  auditoires: string;
+  enseignants: string[];
+  secretariat: string;
+  nb_surveillants_requis: number | null;
 }
 
 export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateExam }: ExamListProps) {
@@ -19,6 +36,22 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   const [editingField, setEditingField] = useState<{ examenId: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<ExamenWithStatus | null>(null);
+  const [formData, setFormData] = useState<ExamFormData>({
+    cours_id: null,
+    code_examen: '',
+    nom_examen: '',
+    date_examen: '',
+    heure_debut: '',
+    heure_fin: '',
+    duree_minutes: null,
+    auditoires: '',
+    enseignants: [],
+    secretariat: '',
+    nb_surveillants_requis: null,
+  });
 
   const { examens, loading, error, total, refetch } = useExamens(sessionId, filters, page, pageSize);
 
@@ -75,6 +108,81 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     }
   };
 
+  // Handle create exam
+  const handleOpenCreateModal = () => {
+    setFormData({
+      cours_id: null,
+      code_examen: '',
+      nom_examen: '',
+      date_examen: '',
+      heure_debut: '',
+      heure_fin: '',
+      duree_minutes: null,
+      auditoires: '',
+      enseignants: [],
+      secretariat: '',
+      nb_surveillants_requis: null,
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleCreateExam = async () => {
+    if (!formData.code_examen || !formData.nom_examen) {
+      toast.error('Le code et le nom de l\'examen sont requis');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await createExamen(sessionId, formData);
+      toast.success('Examen créé avec succès');
+      setShowCreateModal(false);
+      refetch();
+    } catch (err: any) {
+      console.error('Error creating exam:', err);
+      toast.error(`Erreur lors de la création: ${err.message || 'Erreur inconnue'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle edit exam in modal
+  const handleOpenEditModal = (exam: ExamenWithStatus) => {
+    setSelectedExam(exam);
+    setFormData({
+      cours_id: exam.cours_id || null,
+      code_examen: exam.code_examen,
+      nom_examen: exam.nom_examen,
+      date_examen: exam.date_examen || '',
+      heure_debut: exam.heure_debut || '',
+      heure_fin: exam.heure_fin || '',
+      duree_minutes: exam.duree_minutes || null,
+      auditoires: exam.auditoires || '',
+      enseignants: [],
+      secretariat: exam.secretariat || '',
+      nb_surveillants_requis: exam.nb_surveillants_requis,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateExam = async () => {
+    if (!selectedExam) return;
+
+    try {
+      setSaving(true);
+      await updateExamen(selectedExam.id, formData);
+      toast.success('Examen modifié avec succès');
+      setShowEditModal(false);
+      setSelectedExam(null);
+      refetch();
+    } catch (err: any) {
+      console.error('Error updating exam:', err);
+      toast.error(`Erreur lors de la modification: ${err.message || 'Erreur inconnue'}`);
+    } finally {
+      setSaving(false);
+    }
+  };;
+
   if (loading && examens.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -99,6 +207,15 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
   return (
     <div className="space-y-4">
+      {/* Header with Create Button */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-gray-900">Liste des examens ({total})</h2>
+        <Button onClick={handleOpenCreateModal}>
+          <Plus className="h-4 w-4 mr-2" />
+          Créer un examen
+        </Button>
+      </div>
+
       {/* Filters */}
       <div className="bg-white shadow-sm rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -344,7 +461,6 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                             className="ml-2 h-4 w-4 text-yellow-500"
                             fill="currentColor"
                             viewBox="0 0 20 20"
-                            title="Cours non lié"
                           >
                             <path
                               fillRule="evenodd"
@@ -425,32 +541,18 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => onEditExam?.(examen)}
+                        onClick={() => handleOpenEditModal(examen)}
                         className="text-blue-600 hover:text-blue-900 mr-3"
                         title="Modifier"
                       >
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
+                        <Edit2 className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => handleDelete(examen.id, examen.code_examen)}
                         className="text-red-600 hover:text-red-900"
                         title="Supprimer"
                       >
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        <Trash2 className="h-5 w-5" />
                       </button>
                     </td>
                   </tr>
@@ -465,11 +567,304 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
       {total > pageSize && (
         <Pagination
           currentPage={page}
+          totalPages={Math.ceil(total / pageSize)}
           totalItems={total}
-          itemsPerPage={pageSize}
+          pageSize={pageSize}
           onPageChange={setPage}
-          onItemsPerPageChange={setPageSize}
         />
+      )}
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-indigo-600" />
+                  Créer un nouvel examen
+                </h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Code de l'examen <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.code_examen}
+                    onChange={(e) => setFormData({ ...formData, code_examen: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Ex: WINTR2105"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Secrétariat
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.secretariat}
+                    onChange={(e) => setFormData({ ...formData, secretariat: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Ex: MED, FARM"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nom de l'examen <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.nom_examen}
+                  onChange={(e) => setFormData({ ...formData, nom_examen: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Ex: INTERPR.DE L'ELECTROCARDIOGR."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date_examen}
+                    onChange={(e) => setFormData({ ...formData, date_examen: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Heure début
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.heure_debut}
+                    onChange={(e) => setFormData({ ...formData, heure_debut: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Heure fin
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.heure_fin}
+                    onChange={(e) => setFormData({ ...formData, heure_fin: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Auditoires
+                </label>
+                <input
+                  type="text"
+                  value={formData.auditoires}
+                  onChange={(e) => setFormData({ ...formData, auditoires: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Ex: AGOR 11, AGOR 12"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Surveillants requis
+                </label>
+                <input
+                  type="number"
+                  value={formData.nb_surveillants_requis || ''}
+                  onChange={(e) => setFormData({ ...formData, nb_surveillants_requis: e.target.value ? parseInt(e.target.value) : null })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateModal(false)}
+                disabled={saving}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleCreateExam}
+                disabled={saving || !formData.code_examen || !formData.nom_examen}
+              >
+                {saving ? 'Création...' : 'Créer l\'examen'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && selectedExam && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Edit2 className="h-5 w-5 text-indigo-600" />
+                  Modifier l'examen
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedExam(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Code de l'examen <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.code_examen}
+                    onChange={(e) => setFormData({ ...formData, code_examen: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Secrétariat
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.secretariat}
+                    onChange={(e) => setFormData({ ...formData, secretariat: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nom de l'examen <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.nom_examen}
+                  onChange={(e) => setFormData({ ...formData, nom_examen: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date_examen}
+                    onChange={(e) => setFormData({ ...formData, date_examen: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Heure début
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.heure_debut}
+                    onChange={(e) => setFormData({ ...formData, heure_debut: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Heure fin
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.heure_fin}
+                    onChange={(e) => setFormData({ ...formData, heure_fin: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Auditoires
+                </label>
+                <input
+                  type="text"
+                  value={formData.auditoires}
+                  onChange={(e) => setFormData({ ...formData, auditoires: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Surveillants requis
+                </label>
+                <input
+                  type="number"
+                  value={formData.nb_surveillants_requis || ''}
+                  onChange={(e) => setFormData({ ...formData, nb_surveillants_requis: e.target.value ? parseInt(e.target.value) : null })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedExam(null);
+                }}
+                disabled={saving}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleUpdateExam}
+                disabled={saving || !formData.code_examen || !formData.nom_examen}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
