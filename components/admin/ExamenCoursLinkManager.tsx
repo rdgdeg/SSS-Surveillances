@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { Examen, Cours } from '../../types';
 import { linkExamenToCours } from '../../lib/examenManagementApi';
 import { extractCourseCode } from '../../lib/examenCsvParser';
-import { Link2, AlertCircle, CheckCircle, Search, Loader2 } from 'lucide-react';
+import { Link2, AlertCircle, CheckCircle, Search, Loader2, Plus, X } from 'lucide-react';
 import { Button } from '../shared/Button';
 
 interface ExamenWithoutCours extends Examen {
@@ -16,6 +16,13 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedExamen, setSelectedExamen] = useState<ExamenWithoutCours | null>(null);
   const [selectedCoursId, setSelectedCoursId] = useState<string>('');
+  const [coursSearchTerm, setCoursSearchTerm] = useState('');
+  const [showCreateCours, setShowCreateCours] = useState(false);
+  const [newCoursData, setNewCoursData] = useState({
+    code: '',
+    intitule_complet: '',
+    consignes: ''
+  });
   const queryClient = useQueryClient();
 
   // Fetch examens without cours_id
@@ -86,6 +93,35 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
     }
   });
 
+  // Create cours mutation
+  const createCoursMutation = useMutation({
+    mutationFn: async (coursData: { code: string; intitule_complet: string; consignes?: string }) => {
+      const { data, error } = await supabase
+        .from('cours')
+        .insert({
+          code: coursData.code.trim(),
+          intitule_complet: coursData.intitule_complet.trim(),
+          consignes: coursData.consignes?.trim() || null
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (newCours) => {
+      queryClient.invalidateQueries({ queryKey: ['all-cours'] });
+      queryClient.invalidateQueries({ queryKey: ['examens-without-cours'] });
+      setShowCreateCours(false);
+      setNewCoursData({ code: '', intitule_complet: '', consignes: '' });
+      
+      // Auto-select the newly created course if we're in manual selection mode
+      if (selectedExamen) {
+        setSelectedCoursId(newCours.id);
+      }
+    }
+  });
+
   // Link mutation
   const linkMutation = useMutation({
     mutationFn: ({ examenId, coursId }: { examenId: string; coursId: string }) =>
@@ -95,6 +131,7 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
       queryClient.invalidateQueries({ queryKey: ['cours-presences'] });
       setSelectedExamen(null);
       setSelectedCoursId('');
+      setCoursSearchTerm('');
     }
   });
 
@@ -115,6 +152,34 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
       });
     }
   };
+
+  const handleCreateCours = () => {
+    if (newCoursData.code && newCoursData.intitule_complet) {
+      createCoursMutation.mutate(newCoursData);
+    }
+  };
+
+  const handleOpenCreateCours = (examen?: ExamenWithoutCours) => {
+    const cleanCode = examen ? extractCourseCode(examen.code_examen) : '';
+    setNewCoursData({
+      code: cleanCode,
+      intitule_complet: examen?.nom_examen || '',
+      consignes: ''
+    });
+    setShowCreateCours(true);
+  };
+
+  // Filter cours based on search term
+  const filteredCours = useMemo(() => {
+    if (!allCours) return [];
+    if (!coursSearchTerm) return allCours;
+    
+    const search = coursSearchTerm.toLowerCase();
+    return allCours.filter(c => 
+      c.code.toLowerCase().includes(search) ||
+      c.intitule_complet.toLowerCase().includes(search)
+    );
+  }, [allCours, coursSearchTerm]);
 
   const filteredExamens = examensWithoutCours?.filter(e =>
     e.code_examen.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -214,16 +279,27 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                 )}
               </div>
 
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setSelectedExamen(examen);
-                  setSelectedCoursId(examen.suggested_cours?.id || '');
-                }}
-              >
-                Choisir manuellement
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleOpenCreateCours(examen)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Créer cours
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedExamen(examen);
+                    setSelectedCoursId(examen.suggested_cours?.id || '');
+                    setCoursSearchTerm('');
+                  }}
+                >
+                  Choisir manuellement
+                </Button>
+              </div>
             </div>
           </div>
         ))}
@@ -251,22 +327,58 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
               </p>
             </div>
 
-            <div className="p-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Sélectionner un cours
-              </label>
-              <select
-                value={selectedCoursId}
-                onChange={(e) => setSelectedCoursId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            <div className="p-6 space-y-4">
+              {/* Search cours */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Rechercher un cours
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Code ou nom du cours..."
+                    value={coursSearchTerm}
+                    onChange={(e) => setCoursSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Select cours */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Sélectionner un cours
+                </label>
+                <select
+                  value={selectedCoursId}
+                  onChange={(e) => setSelectedCoursId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  size={10}
+                >
+                  <option value="">-- Choisir un cours --</option>
+                  {filteredCours?.map((cours) => (
+                    <option key={cours.id} value={cours.id}>
+                      {cours.code} - {cours.intitule_complet}
+                    </option>
+                  ))}
+                </select>
+                {filteredCours?.length === 0 && coursSearchTerm && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                    Aucun cours trouvé. Vous pouvez créer un nouveau cours.
+                  </p>
+                )}
+              </div>
+
+              {/* Create new cours button */}
+              <Button
+                variant="outline"
+                onClick={() => handleOpenCreateCours(selectedExamen || undefined)}
+                className="w-full"
               >
-                <option value="">-- Choisir un cours --</option>
-                {allCours?.map((cours) => (
-                  <option key={cours.id} value={cours.id}>
-                    {cours.code} - {cours.intitule_complet}
-                  </option>
-                ))}
-              </select>
+                <Plus className="h-4 w-4 mr-2" />
+                Créer un nouveau cours
+              </Button>
             </div>
 
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
@@ -275,6 +387,7 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                 onClick={() => {
                   setSelectedExamen(null);
                   setSelectedCoursId('');
+                  setCoursSearchTerm('');
                 }}
               >
                 Annuler
@@ -284,6 +397,93 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                 disabled={!selectedCoursId || linkMutation.isPending}
               >
                 {linkMutation.isPending ? 'Liaison...' : 'Lier'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Cours Modal */}
+      {showCreateCours && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-indigo-600" />
+                  Créer un nouveau cours
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowCreateCours(false);
+                    setNewCoursData({ code: '', intitule_complet: '', consignes: '' });
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Code */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Code du cours <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newCoursData.code}
+                  onChange={(e) => setNewCoursData({ ...newCoursData, code: e.target.value })}
+                  placeholder="Ex: WINTR2105"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              {/* Intitulé */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Intitulé complet <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newCoursData.intitule_complet}
+                  onChange={(e) => setNewCoursData({ ...newCoursData, intitule_complet: e.target.value })}
+                  placeholder="Ex: INTERPR.DE L'ELECTROCARDIOGR."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              {/* Consignes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Consignes (optionnel)
+                </label>
+                <textarea
+                  value={newCoursData.consignes}
+                  onChange={(e) => setNewCoursData({ ...newCoursData, consignes: e.target.value })}
+                  placeholder="Consignes pour les surveillants..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCreateCours(false);
+                  setNewCoursData({ code: '', intitule_complet: '', consignes: '' });
+                }}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handleCreateCours}
+                disabled={!newCoursData.code || !newCoursData.intitule_complet || createCoursMutation.isPending}
+              >
+                {createCoursMutation.isPending ? 'Création...' : 'Créer le cours'}
               </Button>
             </div>
           </div>
