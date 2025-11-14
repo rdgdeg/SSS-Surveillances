@@ -4,9 +4,10 @@ import { ExamPresencesDashboard } from '../../components/admin/ExamPresencesDash
 import { ManualExamNotifications } from '../../components/admin/ManualExamNotifications';
 import { ExamList } from '../../components/admin/ExamList';
 import { ExamDashboard } from '../../components/admin/ExamDashboard';
+import { ExamenCoursLinkManager } from '../../components/admin/ExamenCoursLinkManager';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
 
-type TabType = 'list' | 'dashboard' | 'presences' | 'import' | 'notifications';
+type TabType = 'list' | 'dashboard' | 'presences' | 'import' | 'notifications' | 'link-cours';
 
 function ExamensPage() {
   const [activeTab, setActiveTab] = useState<TabType>('list');
@@ -18,6 +19,7 @@ function ExamensPage() {
     { id: 'dashboard' as TabType, name: 'Tableau de bord', icon: '📊' },
     { id: 'presences' as TabType, name: 'Présences', icon: '✅' },
     { id: 'import' as TabType, name: 'Import', icon: '📥' },
+    { id: 'link-cours' as TabType, name: 'Lier aux cours', icon: '🔗' },
     { id: 'notifications' as TabType, name: 'Notifications', icon: '🔔' },
   ];
 
@@ -101,6 +103,10 @@ function ExamensPage() {
 
           {activeTab === 'import' && (
             <ExamImport sessionId={activeSession.id} />
+          )}
+
+          {activeTab === 'link-cours' && (
+            <ExamenCoursLinkManager sessionId={activeSession.id} />
           )}
 
           {activeTab === 'notifications' && (
