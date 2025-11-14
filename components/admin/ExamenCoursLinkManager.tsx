@@ -104,10 +104,27 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
   // Create cours mutation
   const createCoursMutation = useMutation({
     mutationFn: async (coursData: { code: string; intitule_complet: string; consignes?: string }) => {
+      const codeToCreate = coursData.code.trim().toUpperCase();
+      
+      // Vérifier si le cours existe déjà
+      const { data: existingCours, error: checkError } = await supabase
+        .from('cours')
+        .select('*')
+        .eq('code', codeToCreate)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      // Si le cours existe déjà, le retourner au lieu de créer
+      if (existingCours) {
+        return { ...existingCours, alreadyExists: true };
+      }
+      
+      // Créer le nouveau cours
       const { data, error } = await supabase
         .from('cours')
         .insert({
-          code: coursData.code.trim(),
+          code: codeToCreate,
           intitule_complet: coursData.intitule_complet.trim(),
           consignes: coursData.consignes?.trim() || null
         })
@@ -115,9 +132,9 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
         .single();
       
       if (error) throw error;
-      return data;
+      return { ...data, alreadyExists: false };
     },
-    onSuccess: (newCours) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['all-cours'] });
       queryClient.invalidateQueries({ queryKey: ['examens-without-cours'] });
       setShowCreateCours(false);
@@ -125,17 +142,29 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
       
       // Auto-link if we're in manual selection mode
       if (selectedExamen) {
-        toast.success(`Cours "${newCours.code}" créé et lié avec succès !`);
+        if (result.alreadyExists) {
+          toast.success(`Cours "${result.code}" existe déjà, liaison effectuée !`);
+        } else {
+          toast.success(`Cours "${result.code}" créé et lié avec succès !`);
+        }
         linkMutation.mutate({
           examenId: selectedExamen.id,
-          coursId: newCours.id
+          coursId: result.id
         });
       } else {
-        toast.success(`Cours "${newCours.code}" créé avec succès !`);
+        if (result.alreadyExists) {
+          toast(`Le cours "${result.code}" existe déjà.`, { icon: 'ℹ️' });
+        } else {
+          toast.success(`Cours "${result.code}" créé avec succès !`);
+        }
       }
     },
-    onError: (error) => {
-      toast.error(`Erreur lors de la création du cours : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    onError: (error: any) => {
+      if (error?.code === '23505') {
+        toast.error('Ce code de cours existe déjà. Veuillez utiliser la liaison manuelle.');
+      } else {
+        toast.error(`Erreur lors de la création du cours : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      }
     }
   });
 

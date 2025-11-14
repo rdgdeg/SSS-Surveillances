@@ -4,7 +4,6 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../shared/Button';
 
 const AdminLayout: React.FC = () => {
     const { isDarkMode, toggleTheme } = useTheme();
@@ -41,8 +40,10 @@ const AdminLayout: React.FC = () => {
         { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare, category: 'surveillants' },
         { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants' },
         { to: 'examens', label: 'Examens', icon: FileText, category: 'enseignants' },
+        { to: 'analyse-examens', label: 'Analyse Examens', icon: BarChart3, category: 'enseignants' },
         { to: 'presences-enseignants', label: 'Présences', icon: CheckSquare, category: 'enseignants' },
-        { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: null },
+        { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: 'rapports' },
+        { to: 'rapports', label: 'Rapports', icon: FileText, category: 'rapports' },
         { to: 'messages', label: 'Messages', icon: MessageSquare, category: null },
     ];
 
@@ -109,6 +110,23 @@ const AdminLayout: React.FC = () => {
                                 </h3>
                             </div>
                             {navLinks.filter(link => link.category === 'enseignants').map(({ to, label, icon: Icon }) => (
+                                <NavLink key={to} to={to} className={navLinkClasses}>
+                                    <Icon className="h-5 w-5"/>
+                                    <span>{label}</span>
+                                </NavLink>
+                            ))}
+                        </>
+                    )}
+                    
+                    {/* Rapports Section */}
+                    {navLinks.some(link => link.category === 'rapports') && (
+                        <>
+                            <div className="pt-4 pb-2">
+                                <h3 className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Rapports
+                                </h3>
+                            </div>
+                            {navLinks.filter(link => link.category === 'rapports').map(({ to, label, icon: Icon }) => (
                                 <NavLink key={to} to={to} className={navLinkClasses}>
                                     <Icon className="h-5 w-5"/>
                                     <span>{label}</span>
@@ -210,6 +228,28 @@ const AdminLayout: React.FC = () => {
                                     </h3>
                                 </div>
                                 {navLinks.filter(link => link.category === 'enseignants').map(({ to, label, icon: Icon }) => (
+                                    <NavLink 
+                                        key={to} 
+                                        to={to} 
+                                        onClick={closeMobileMenu}
+                                        className={mobileNavLinkClasses}
+                                    >
+                                        <Icon className="h-5 w-5" />
+                                        <span>{label}</span>
+                                    </NavLink>
+                                ))}
+                            </>
+                        )}
+                        
+                        {/* Rapports Section */}
+                        {navLinks.some(link => link.category === 'rapports') && (
+                            <>
+                                <div className="pt-4 pb-2">
+                                    <h3 className="px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Rapports
+                                    </h3>
+                                </div>
+                                {navLinks.filter(link => link.category === 'rapports').map(({ to, label, icon: Icon }) => (
                                     <NavLink 
                                         key={to} 
                                         to={to} 

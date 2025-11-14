@@ -32,6 +32,8 @@ const StatistiquesPage = lazy(() => import('./pages/admin/StatistiquesPage'));
 const CoursPage = lazy(() => import('./pages/admin/CoursPage'));
 const PresencesEnseignantsPage = lazy(() => import('./pages/admin/PresencesEnseignantsPage'));
 const ExamensPage = lazy(() => import('./pages/admin/ExamensPage'));
+const RapportsPage = lazy(() => import('./pages/admin/RapportsPage'));
+const AnalyseExamensPage = lazy(() => import('./pages/admin/AnalyseExamensPage'));
 
 // Lazy load public pages
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
@@ -104,6 +106,8 @@ const AppContent: React.FC = () => {
                             <Route path="cours" element={<CoursPage />} />
                             <Route path="presences-enseignants" element={<PresencesEnseignantsPage />} />
                             <Route path="examens" element={<ExamensPage />} />
+                            <Route path="rapports" element={<RapportsPage />} />
+                            <Route path="analyse-examens" element={<AnalyseExamensPage />} />
                         </Route>
                     </Routes>
                 </Suspense>
