@@ -13,7 +13,8 @@ import {
   Calendar,
   BookOpen,
   AlertCircle,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
 
@@ -23,11 +24,16 @@ export default function PresencesEnseignantsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [selectedCours, setSelectedCours] = useState<CoursWithPresence | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: activeSession, isLoading: isLoadingSession } = useActiveSession();
 
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
   const { data: coursWithPresences, isLoading, error } = useQuery({
-    queryKey: ['cours-presences', activeSession?.id],
+    queryKey: ['cours-presences', activeSession?.id, refreshKey],
     queryFn: () => {
       if (!activeSession?.id) {
         throw new Error('No active session');
@@ -126,10 +132,16 @@ export default function PresencesEnseignantsPage() {
             Suivi des déclarations de présence aux examens
           </p>
         </div>
-        <Button onClick={handleExport} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Exporter CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Rafraîchir
+          </Button>
+          <Button onClick={handleExport} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exporter CSV
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

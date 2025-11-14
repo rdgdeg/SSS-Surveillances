@@ -6,13 +6,19 @@ import { ExamList } from '../../components/admin/ExamList';
 import { ExamDashboard } from '../../components/admin/ExamDashboard';
 import { ExamenCoursLinkManager } from '../../components/admin/ExamenCoursLinkManager';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
+import { RefreshCw } from 'lucide-react';
 
 type TabType = 'list' | 'dashboard' | 'presences' | 'import' | 'notifications' | 'link-cours';
 
 function ExamensPage() {
   const [activeTab, setActiveTab] = useState<TabType>('list');
   const [filters, setFilters] = useState<any>({});
+  const [refreshKey, setRefreshKey] = useState(0);
   const { data: activeSession, isLoading } = useActiveSession();
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   const tabs = [
     { id: 'list' as TabType, name: 'Liste', icon: '📋' },
@@ -59,6 +65,13 @@ function ExamensPage() {
               Session: {activeSession.name} ({activeSession.year})
             </p>
           </div>
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Rafraîchir
+          </button>
         </div>
 
         {/* Tabs */}
@@ -90,27 +103,28 @@ function ExamensPage() {
         {/* Tab content */}
         <div className="space-y-6">
           {activeTab === 'list' && (
-            <ExamList sessionId={activeSession.id} initialFilters={filters} />
+            <ExamList key={refreshKey} sessionId={activeSession.id} initialFilters={filters} />
           )}
 
           {activeTab === 'dashboard' && (
-            <ExamDashboard sessionId={activeSession.id} onMetricClick={handleMetricClick} />
+            <ExamDashboard key={refreshKey} sessionId={activeSession.id} onMetricClick={handleMetricClick} />
           )}
 
           {activeTab === 'presences' && (
-            <ExamPresencesDashboard sessionId={activeSession.id} />
+            <ExamPresencesDashboard key={refreshKey} sessionId={activeSession.id} />
           )}
 
           {activeTab === 'import' && (
-            <ExamImport sessionId={activeSession.id} />
+            <ExamImport key={refreshKey} sessionId={activeSession.id} />
           )}
 
           {activeTab === 'link-cours' && (
-            <ExamenCoursLinkManager sessionId={activeSession.id} />
+            <ExamenCoursLinkManager key={refreshKey} sessionId={activeSession.id} />
           )}
 
           {activeTab === 'notifications' && (
             <ManualExamNotifications
+              key={refreshKey}
               onExamenValidated={() => {
                 // Optionally refresh the dashboard
                 console.log('Examen validated');

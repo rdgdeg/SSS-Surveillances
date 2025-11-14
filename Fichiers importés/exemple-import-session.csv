@@ -1,0 +1,14 @@
+Date;Jour;Durée;Début;Fin;Activité;Code;Auditoires;Enseignants;Secrétariat
+09-01-26;Vendredi;02h00;09h00;11h00;WMDS2221=E;SECTEUR HÉMATOLOGIE;51 A, 51 B, 51 C;prof.hemato@uclouvain.be;MED
+09-01-26;Vendredi;02h00;09h00;11h00;WFARM1324=E;Pharmacognosie;10 A, 10 B;prof.pharma@uclouvain.be,assist.pharma@uclouvain.be;FARM
+09-01-26;Vendredi;02h00;09h00;11h00;WMEDE1150=E;CHIMIE;51 A, 51 B, 51 C, 51 E, 71;prof.chimie@uclouvain.be;MED
+08-01-26;Jeudi;02h00;09h00;11h00;WMDS2100=E;Démarche clinique pédiatrique;51 A, 51 B, 71;prof.pediatrie@uclouvain.be;MED
+08-01-26;Jeudi;02h00;09h00;11h00;WDENT2155=E;MÉDECINE DENTAIRE PÉDIATRIQUE;Neervel A, Neervel B;prof.dent@uclouvain.be;DENT
+07-01-26;Mercredi;02h00;09h00;11h00;WFARM1232=E;PHARMACOLOGIE;51 F, 51 G;prof.pharmaco@uclouvain.be;FARM
+07-01-26;Mercredi;03h00;12h00;15h00;WSBIM1334=E;IMMUNOLOGIE GÉNÉRALE;51 B, 51 C, 51 G, 71;prof.immuno@uclouvain.be;MED
+07-01-26;Mercredi;02h00;13h00;15h00;WNUTV2010=E;RECOMMANDATIONS NUTRITIONNELLES;51 E;prof.nutrition@uclouvain.be;MED
+06-01-26;Mardi;03h00;10h00;13h00;WMEDE1105=E;Chimie générale et minérale;51 A, 51 B, 51 C, 51 E, 51 F, 51 G, 10 A, 10 B;prof.chimie@uclouvain.be;MED
+06-01-26;Mardi;02h00;09h00;11h00;WDENT2156=E;ORTHODONTIE ET ORTHOP.DENTO-FACIALE;Neervel A, Neervel B;prof.ortho@uclouvain.be;DENT
+05-01-26;Lundi;02h00;13h00;15h00;WSBIM2140=E;PHYSIO ET PATHOLOGIE DE LA NUTRITION;10 A;prof.physio@uclouvain.be;MED
+05-01-26;Lundi;02h00;13h00;15h00;WSBIM2151=E;APPROCHES EXPÉRIM EN NEUROSCIENCES;74 ICP 3;prof.neuro@uclouvain.be;MED
+05-01-26;Lundi;02h00;13h00;15h00;WSBIM2246=E;TOXICOLOGIE HUMAINE;74 ICP 2;prof.toxico@uclouvain.be;MED

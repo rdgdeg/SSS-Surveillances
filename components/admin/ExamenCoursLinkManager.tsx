@@ -23,11 +23,18 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
     intitule_complet: '',
     consignes: ''
   });
+  const [refreshKey, setRefreshKey] = useState(0);
   const queryClient = useQueryClient();
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    queryClient.invalidateQueries({ queryKey: ['examens-without-cours'] });
+    queryClient.invalidateQueries({ queryKey: ['all-cours'] });
+  };
 
   // Fetch examens without cours_id
   const { data: examensWithoutCours, isLoading: loadingExamens } = useQuery({
-    queryKey: ['examens-without-cours', sessionId],
+    queryKey: ['examens-without-cours', sessionId, refreshKey],
     queryFn: async () => {
       const { data: examens, error } = await supabase
         .from('examens')
@@ -207,6 +214,14 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
             {examensWithoutCours?.length || 0} examen(s) sans cours lié
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={loadingExamens}
+        >
+          <Loader2 className={`h-4 w-4 mr-2 ${loadingExamens ? 'animate-spin' : ''}`} />
+          Rafraîchir
+        </Button>
       </div>
 
       {/* Search */}

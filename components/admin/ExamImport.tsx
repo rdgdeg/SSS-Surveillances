@@ -1,11 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { useExamenImport } from '../../src/hooks/useExamens';
+import { SessionExamImport } from './SessionExamImport';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../shared/Tabs';
 
 interface ExamImportProps {
   sessionId: string;
 }
 
 export function ExamImport({ sessionId }: ExamImportProps) {
+  const [activeImportTab, setActiveImportTab] = useState<'session' | 'legacy'>('session');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [showErrors, setShowErrors] = useState(false);
@@ -83,8 +86,39 @@ export function ExamImport({ sessionId }: ExamImportProps) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Importer des examens</h3>
+    <div className="space-y-6">
+      {/* Tab Selection */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveImportTab('session')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeImportTab === 'session'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            📥 Import par session (Recommandé)
+          </button>
+          <button
+            onClick={() => setActiveImportTab('legacy')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeImportTab === 'legacy'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            📄 Import simple (Ancien format)
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeImportTab === 'session' ? (
+        <SessionExamImport sessionId={sessionId} />
+      ) : (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Import simple (Format ancien)</h3>
       
       <div className="space-y-4">
         <div>
@@ -316,6 +350,8 @@ export function ExamImport({ sessionId }: ExamImportProps) {
           </ul>
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 }

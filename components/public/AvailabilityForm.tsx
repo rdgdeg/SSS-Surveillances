@@ -331,6 +331,19 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                             <p className="text-sm">Conformément aux directives des Décanats, il est attendu que vous maximisiez vos disponibilités pour assurer le bon déroulement de la session. Il n'est plus possible de renseigner d'examen à assurer d'office via ce formulaire.</p>
                         </div>
                     </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 p-3 rounded-lg">
+                        <div className="flex items-start gap-3">
+                            <Users className="h-5 w-5 mt-0.5 flex-shrink-0 text-gray-600 dark:text-gray-400" />
+                            <div>
+                                <h4 className="font-semibold text-gray-900 dark:text-white">Information sur les créneaux</h4>
+                                <p className="text-sm mt-1">
+                                    Le chiffre <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"><Users className="h-3 w-3" />5</span> indique le nombre de surveillants théoriquement nécessaires pour ce créneau. 
+                                    Cette information est donnée à titre indicatif pour vous aider à identifier les créneaux fortement sollicités. 
+                                    Votre sélection n'affecte pas ce nombre.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {Object.keys(groupedCreneaux).sort().map(date => {
                     const creneauxOnDate = groupedCreneaux[date];
@@ -340,12 +353,29 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                             <div className="space-y-2">
                                 {creneauxOnDate.map(creneau => {
                                     const isChecked = availabilities[creneau.id]?.available;
+                                    const nbSurveillants = creneau.nb_surveillants_requis;
+                                    const hasHighDemand = nbSurveillants && nbSurveillants >= 5;
+                                    
                                     return (
                                         <label htmlFor={`creneau-${creneau.id}`} key={creneau.id} className={`flex items-center p-3 rounded-lg border dark:border-gray-700 cursor-pointer transition-all duration-200 ${isChecked ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                                             <Checkbox id={`creneau-${creneau.id}`} checked={!!isChecked} onCheckedChange={(checked) => onAvailabilityChange(creneau.id, !!checked)} />
-                                            <div className="ml-4 flex-1 flex justify-between items-center">
-                                                <span className="font-medium">{creneau.heure_debut_surveillance} - {creneau.heure_fin_surveillance}</span>
-                                                {creneau.type_creneau === 'RESERVE' && <span className="text-xs font-semibold bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">Réserve</span>}
+                                            <div className="ml-4 flex-1 flex justify-between items-center gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{creneau.heure_debut_surveillance} - {creneau.heure_fin_surveillance}</span>
+                                                    {nbSurveillants && (
+                                                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                            hasHighDemand 
+                                                                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' 
+                                                                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                                        }`} title="Nombre de surveillants nécessaires">
+                                                            <Users className="h-3 w-3" />
+                                                            {nbSurveillants}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {creneau.type_creneau === 'RESERVE' && <span className="text-xs font-semibold bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-2 py-0.5 rounded-full">Réserve</span>}
+                                                </div>
                                             </div>
                                         </label>
                                     )
