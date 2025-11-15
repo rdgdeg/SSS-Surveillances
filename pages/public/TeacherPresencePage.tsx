@@ -444,7 +444,7 @@ export default function TeacherPresencePage() {
                   }`} />
                   <span className="font-medium">Absent</span>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Mais je peux indiquer un remplaçant
+                    Mais je peux indiquer des surveillants
                   </p>
                 </button>
               </div>
@@ -454,12 +454,12 @@ export default function TeacherPresencePage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre de surveillants accompagnants
+                  Nombre de surveillants {formData.est_present ? 'en plus de vous' : ''}
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                   {formData.est_present 
-                    ? "Personnes qui vous accompagneront à l'examen"
-                    : "Personnes qui vous remplaceront à l'examen"}
+                    ? "Surveillants qui vous accompagneront à l'examen (en plus de vous)"
+                    : "Surveillants qui assureront la surveillance de l'examen"}
                 </p>
                 <input
                   type="number"
@@ -474,7 +474,7 @@ export default function TeacherPresencePage() {
               {formData.nb_surveillants_accompagnants > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Noms des {formData.est_present ? 'accompagnants' : 'remplaçants'}
+                    Noms des surveillants
                   </label>
                   <textarea
                     rows={3}
