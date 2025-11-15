@@ -5,6 +5,7 @@ import { ManualExamNotifications } from '../../components/admin/ManualExamNotifi
 import { ExamList } from '../../components/admin/ExamList';
 import { ExamDashboard } from '../../components/admin/ExamDashboard';
 import { ExamenCoursLinkManager } from '../../components/admin/ExamenCoursLinkManager';
+import { ExamOrphanAlert } from '../../components/admin/ExamOrphanAlert';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
 import { RefreshCw } from 'lucide-react';
 
@@ -73,6 +74,12 @@ function ExamensPage() {
             Rafraîchir
           </button>
         </div>
+
+        {/* Orphan Alert */}
+        <ExamOrphanAlert 
+          sessionId={activeSession.id} 
+          onLinkClick={() => setActiveTab('link-cours')}
+        />
 
         {/* Tabs */}
         <div className="mb-6">

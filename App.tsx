@@ -37,7 +37,7 @@ const AnalyseExamensPage = lazy(() => import('./pages/admin/AnalyseExamensPage')
 
 // Lazy load public pages
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
-const TeacherPresencePage = lazy(() => import('./pages/TeacherPresencePage'));
+const TeacherPresencePage = lazy(() => import('./pages/public/TeacherPresencePage'));
 
 
 const AppToaster = () => {
