@@ -25,6 +25,10 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
     consignes: ''
   });
   const [refreshKey, setRefreshKey] = useState(0);
+  const [codeCheckResult, setCodeCheckResult] = useState<{
+    exists: boolean;
+    cours?: Cours;
+  } | null>(null);
   const queryClient = useQueryClient();
 
   const handleRefresh = () => {
@@ -216,8 +220,45 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
       intitule_complet: examen?.nom_examen || '',
       consignes: ''
     });
+    setCodeCheckResult(null);
     setShowCreateCours(true);
   };
+
+  // Check if code exists when typing
+  const checkCodeExists = async (code: string) => {
+    if (!code.trim()) {
+      setCodeCheckResult(null);
+      return;
+    }
+
+    const codeToCheck = code.trim().toUpperCase();
+    const { data, error } = await supabase
+      .from('cours')
+      .select('*')
+      .eq('code', codeToCheck)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking code:', error);
+      return;
+    }
+
+    setCodeCheckResult({
+      exists: !!data,
+      cours: data || undefined
+    });
+  };
+
+  // Debounced code check
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (newCoursData.code) {
+        checkCodeExists(newCoursData.code);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [newCoursData.code]);
 
   // Filter cours based on search term
   const filteredCours = useMemo(() => {
@@ -492,10 +533,50 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                 <input
                   type="text"
                   value={newCoursData.code}
-                  onChange={(e) => setNewCoursData({ ...newCoursData, code: e.target.value })}
+                  onChange={(e) => {
+                    setNewCoursData({ ...newCoursData, code: e.target.value });
+                    setCodeCheckResult(null);
+                  }}
                   placeholder="Ex: WINTR2105"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white ${
+                    codeCheckResult?.exists 
+                      ? 'border-amber-500 dark:border-amber-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 />
+                
+                {/* Code check result */}
+                {codeCheckResult && (
+                  <div className={`mt-2 p-3 rounded-lg ${
+                    codeCheckResult.exists
+                      ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                      : 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                  }`}>
+                    {codeCheckResult.exists ? (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle className="h-4 w-4 text-amber-600" />
+                          <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                            Ce code existe déjà !
+                          </span>
+                        </div>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          <strong>{codeCheckResult.cours?.code}</strong> - {codeCheckResult.cours?.intitule_complet}
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                          Si vous continuez, l'examen sera lié à ce cours existant au lieu d'en créer un nouveau.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                          Code disponible - Un nouveau cours sera créé
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Intitulé */}
@@ -541,7 +622,11 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                 onClick={handleCreateCours}
                 disabled={!newCoursData.code || !newCoursData.intitule_complet || createCoursMutation.isPending}
               >
-                {createCoursMutation.isPending ? 'Création...' : 'Créer le cours'}
+                {createCoursMutation.isPending 
+                  ? 'Traitement...' 
+                  : codeCheckResult?.exists 
+                    ? 'Lier au cours existant' 
+                    : 'Créer le cours'}
               </Button>
             </div>
           </div>
