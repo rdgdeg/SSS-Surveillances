@@ -204,66 +204,78 @@ export async function getExistingPresence(
 export async function getCoursWithPresences(
   sessionId: string
 ): Promise<CoursWithPresence[]> {
-  // Récupérer tous les cours
-  const { data: cours, error: coursError } = await supabase
-    .from('cours')
-    .select('*')
-    .order('code');
-  
-  if (coursError) {
-    console.error('Error fetching cours:', coursError);
-    throw coursError;
-  }
-  
-  if (!cours || cours.length === 0) {
-    return [];
-  }
-  
-  // Récupérer toutes les présences pour cette session
-  const coursIds = cours.map(c => c.id);
-  
-  // Si aucun cours, retourner un tableau vide
-  if (coursIds.length === 0) {
-    return [];
-  }
-  
-  const { data: presences, error: presencesError } = await supabase
-    .from('presences_enseignants')
-    .select('*')
-    .eq('session_id', sessionId)
-    .in('cours_id', coursIds);
-  
-  if (presencesError) {
-    console.error('Error fetching presences:', presencesError);
-    throw presencesError;
-  }
-  
-  // Grouper les présences par cours
-  const presencesByCours = new Map<string, PresenceEnseignant[]>();
-  (presences || []).forEach(p => {
-    if (!presencesByCours.has(p.cours_id)) {
-      presencesByCours.set(p.cours_id, []);
-    }
-    presencesByCours.get(p.cours_id)!.push(p);
-  });
-  
-  // Construire les cours avec présences
-  return cours.map(c => {
-    const coursPresences = presencesByCours.get(c.id) || [];
-    const nb_enseignants_presents = coursPresences.filter(p => p.est_present).length;
-    const nb_surveillants_accompagnants_total = coursPresences
-      .filter(p => p.est_present)
-      .reduce((sum, p) => sum + p.nb_surveillants_accompagnants, 0);
+  try {
+    // Fetch courses with pagination
+    let allCours: Cours[] = [];
+    let page = 0;
+    const pageSize = 25;
     
-    return {
-      ...c,
-      session_id: sessionId,
-      presences: coursPresences,
-      nb_presences_declarees: coursPresences.length,
-      nb_enseignants_presents,
-      nb_surveillants_accompagnants_total
-    };
-  });
+    while (true) {
+      const { data: coursPage, error: coursError } = await supabase
+        .from('cours')
+        .select('*')
+        .order('code')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (coursError) throw coursError;
+      if (!coursPage || coursPage.length === 0) break;
+      
+      allCours.push(...coursPage);
+      if (coursPage.length < pageSize) break;
+      page++;
+    }
+    
+    if (allCours.length === 0) return [];
+    
+    // Fetch presences with pagination (by session only, not by cours_id)
+    let allPresences: PresenceEnseignant[] = [];
+    page = 0;
+    
+    while (true) {
+      const { data: presencesPage, error: presencesError } = await supabase
+        .from('presences_enseignants')
+        .select('*')
+        .eq('session_id', sessionId)
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (presencesError) throw presencesError;
+      if (!presencesPage || presencesPage.length === 0) break;
+      
+      allPresences.push(...presencesPage);
+      if (presencesPage.length < pageSize) break;
+      page++;
+    }
+    
+    // Group presences by cours
+    const presencesByCours = new Map<string, PresenceEnseignant[]>();
+    allPresences.forEach(p => {
+      if (!presencesByCours.has(p.cours_id)) {
+        presencesByCours.set(p.cours_id, []);
+      }
+      presencesByCours.get(p.cours_id)!.push(p);
+    });
+    
+    // Build result
+    return allCours.map(c => {
+      const coursPresences = presencesByCours.get(c.id) || [];
+      const nb_enseignants_presents = coursPresences.filter(p => p.est_present).length;
+      const nb_surveillants_accompagnants_total = coursPresences
+        .filter(p => p.est_present)
+        .reduce((sum, p) => sum + p.nb_surveillants_accompagnants, 0);
+      
+      return {
+        ...c,
+        session_id: sessionId,
+        presences: coursPresences,
+        nb_presences_declarees: coursPresences.length,
+        nb_enseignants_presents,
+        nb_surveillants_accompagnants_total
+      };
+    });
+  } catch (error) {
+    console.error('Error in getCoursWithPresences:', error);
+    throw error;
+  }
 }
 
 // ============================================
