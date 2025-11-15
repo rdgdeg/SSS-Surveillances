@@ -18,6 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
+import { ExportButton } from '../../components/shared/ExportButton';
 
 type FilterStatus = 'all' | 'declared' | 'pending';
 type FilterScope = 'all' | 'with-exams';
@@ -96,26 +97,13 @@ export default function PresencesEnseignantsPage() {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, filterScope]);
 
-  const handleExport = () => {
-    if (!filteredCours) return;
-
-    const csvContent = [
-      ['Code Cours', 'Intitulé', 'Déclarations', 'Enseignants Présents', 'Surveillants Accompagnants'].join(','),
-      ...filteredCours.map(cours => [
-        cours.code,
-        `"${cours.intitule_complet}"`,
-        cours.nb_presences_declarees,
-        cours.nb_enseignants_presents,
-        cours.nb_surveillants_accompagnants_total
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `presences-enseignants-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
+  const exportData = filteredCours?.map(cours => ({
+    'Code Cours': cours.code,
+    'Intitulé': cours.intitule_complet,
+    'Déclarations': cours.nb_presences_declarees,
+    'Enseignants Présents': cours.nb_enseignants_presents,
+    'Surveillants Accompagnants': cours.nb_surveillants_accompagnants_total,
+  })) || [];
 
   if (isLoadingSession || isLoading) {
     return (
@@ -177,10 +165,12 @@ export default function PresencesEnseignantsPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Rafraîchir
           </Button>
-          <Button onClick={handleExport} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exporter CSV
-          </Button>
+          <ExportButton
+            data={exportData}
+            filename="presences-enseignants"
+            sheetName="Présences"
+            size="default"
+          />
         </div>
       </div>
 

@@ -44,6 +44,7 @@ export default function TeacherPresencePage() {
     noms_accompagnants: '',
     remarque: '',
   });
+  const [autoEmail, setAutoEmail] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: activeSession } = useActiveSession();
@@ -333,42 +334,79 @@ export default function TeacherPresencePage() {
             )}
 
             {/* Personal Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Prénom *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.enseignant_prenom}
+                    onChange={(e) => {
+                      const prenom = e.target.value;
+                      setFormData({ ...formData, enseignant_prenom: prenom });
+                      if (autoEmail && prenom && formData.enseignant_nom) {
+                        const email = `${prenom.toLowerCase().trim()}.${formData.enseignant_nom.toLowerCase().trim()}@uclouvain.be`;
+                        setFormData(prev => ({ ...prev, enseignant_email: email }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nom *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.enseignant_nom}
+                    onChange={(e) => {
+                      const nom = e.target.value;
+                      setFormData({ ...formData, enseignant_nom: nom });
+                      if (autoEmail && formData.enseignant_prenom && nom) {
+                        const email = `${formData.enseignant_prenom.toLowerCase().trim()}.${nom.toLowerCase().trim()}@uclouvain.be`;
+                        setFormData(prev => ({ ...prev, enseignant_email: email }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email *
                 </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.enseignant_email}
-                  onChange={(e) => setFormData({ ...formData, enseignant_email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nom *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.enseignant_nom}
-                  onChange={(e) => setFormData({ ...formData, enseignant_nom: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Prénom *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.enseignant_prenom}
-                  onChange={(e) => setFormData({ ...formData, enseignant_prenom: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                />
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    required
+                    value={formData.enseignant_email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, enseignant_email: e.target.value });
+                      setAutoEmail(false);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <input
+                      type="checkbox"
+                      checked={autoEmail}
+                      onChange={(e) => {
+                        setAutoEmail(e.target.checked);
+                        if (e.target.checked && formData.enseignant_prenom && formData.enseignant_nom) {
+                          const email = `${formData.enseignant_prenom.toLowerCase().trim()}.${formData.enseignant_nom.toLowerCase().trim()}@uclouvain.be`;
+                          setFormData(prev => ({ ...prev, enseignant_email: email }));
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    Générer automatiquement l'email UCLouvain
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -394,7 +432,7 @@ export default function TeacherPresencePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, est_present: false, nb_surveillants_accompagnants: 0, noms_accompagnants: '' })}
+                  onClick={() => setFormData({ ...formData, est_present: false })}
                   className={`flex-1 p-4 border-2 rounded-lg transition-all ${
                     !formData.est_present
                       ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
@@ -405,43 +443,52 @@ export default function TeacherPresencePage() {
                     !formData.est_present ? 'text-red-600' : 'text-gray-400'
                   }`} />
                   <span className="font-medium">Absent</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Mais je peux indiquer un remplaçant
+                  </p>
                 </button>
               </div>
             </div>
 
             {/* Accompanying Supervisors */}
-            {formData.est_present && (
-              <div className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nombre de surveillants accompagnants
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {formData.est_present 
+                    ? "Personnes qui vous accompagneront à l'examen"
+                    : "Personnes qui vous remplaceront à l'examen"}
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={formData.nb_surveillants_accompagnants}
+                  onChange={(e) => setFormData({ ...formData, nb_surveillants_accompagnants: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              {formData.nb_surveillants_accompagnants > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Nombre de surveillants accompagnants
+                    Noms des {formData.est_present ? 'accompagnants' : 'remplaçants'}
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={formData.nb_surveillants_accompagnants}
-                    onChange={(e) => setFormData({ ...formData, nb_surveillants_accompagnants: parseInt(e.target.value) || 0 })}
+                  <textarea
+                    rows={3}
+                    placeholder="Ex: Jean Dupont, Marie Martin"
+                    value={formData.noms_accompagnants}
+                    onChange={(e) => setFormData({ ...formData, noms_accompagnants: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                   />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Séparez les noms par des virgules ou des retours à la ligne
+                  </p>
                 </div>
-
-                {formData.nb_surveillants_accompagnants > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Noms des accompagnants
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Jean Dupont, Marie Martin"
-                      value={formData.noms_accompagnants}
-                      onChange={(e) => setFormData({ ...formData, noms_accompagnants: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Remarks/Instructions */}
             <div>
