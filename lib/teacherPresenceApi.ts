@@ -289,9 +289,9 @@ export async function getCoursWithPresences(
     return allCours.map(c => {
       const coursPresences = presencesByCours.get(c.id) || [];
       const nb_enseignants_presents = coursPresences.filter(p => p.est_present).length;
+      // Total surveillants = tous les surveillants déclarés (présents ou absents)
       const nb_surveillants_accompagnants_total = coursPresences
-        .filter(p => p.est_present)
-        .reduce((sum, p) => sum + p.nb_surveillants_accompagnants, 0);
+        .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
       
       return {
         ...c,

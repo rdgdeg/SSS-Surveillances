@@ -554,7 +554,7 @@ export default function PresencesEnseignantsPage() {
                               </span>
                             </div>
                             {presence.noms_accompagnants && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ml-6">
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ml-6 whitespace-pre-line">
                                 {presence.noms_accompagnants}
                               </p>
                             )}
