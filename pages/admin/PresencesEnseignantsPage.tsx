@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getCoursWithPresences } from '../../lib/teacherPresenceApi';
+import { supabase } from '../../lib/supabaseClient';
 import { CoursWithPresence } from '../../types';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
 import { 
@@ -19,10 +20,12 @@ import {
 import { Button } from '../../components/shared/Button';
 
 type FilterStatus = 'all' | 'declared' | 'pending';
+type FilterScope = 'all' | 'with-exams';
 
 export default function PresencesEnseignantsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterScope, setFilterScope] = useState<FilterScope>('with-exams');
   const [selectedCours, setSelectedCours] = useState<CoursWithPresence | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,18 +49,40 @@ export default function PresencesEnseignantsPage() {
     retry: false,
   });
 
+  // Fetch cours IDs that have exams in the active session
+  const { data: coursIdsWithExams } = useQuery({
+    queryKey: ['cours-with-exams', activeSession?.id],
+    queryFn: async () => {
+      if (!activeSession?.id) return new Set<string>();
+      
+      const { data, error } = await supabase
+        .from('examens')
+        .select('cours_id')
+        .eq('session_id', activeSession.id);
+      
+      if (error) throw error;
+      
+      return new Set(data?.map(e => e.cours_id).filter(Boolean) || []);
+    },
+    enabled: !!activeSession?.id,
+  });
+
   // Filter and search logic
   const filteredCours = coursWithPresences?.filter(cours => {
     const matchesSearch = 
       cours.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cours.intitule_complet.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = 
+    const matchesStatus = 
       filterStatus === 'all' ||
       (filterStatus === 'declared' && cours.nb_presences_declarees > 0) ||
       (filterStatus === 'pending' && cours.nb_presences_declarees === 0);
 
-    return matchesSearch && matchesFilter;
+    const matchesScope = 
+      filterScope === 'all' ||
+      (filterScope === 'with-exams' && coursIdsWithExams?.has(cours.id));
+
+    return matchesSearch && matchesStatus && matchesScope;
   });
 
   // Pagination logic
@@ -69,7 +94,7 @@ export default function PresencesEnseignantsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus]);
+  }, [searchTerm, filterStatus, filterScope]);
 
   const handleExport = () => {
     if (!filteredCours) return;
@@ -123,11 +148,13 @@ export default function PresencesEnseignantsPage() {
   }
 
   const stats = {
-    total: coursWithPresences?.length || 0,
-    declared: coursWithPresences?.filter(c => c.nb_presences_declarees > 0).length || 0,
-    pending: coursWithPresences?.filter(c => c.nb_presences_declarees === 0).length || 0,
-    totalTeachers: coursWithPresences?.reduce((sum, c) => sum + c.nb_enseignants_presents, 0) || 0,
-    totalSupervisors: coursWithPresences?.reduce((sum, c) => sum + c.nb_surveillants_accompagnants_total, 0) || 0,
+    total: filteredCours?.length || 0,
+    totalAll: coursWithPresences?.length || 0,
+    withExams: coursIdsWithExams?.size || 0,
+    declared: filteredCours?.filter(c => c.nb_presences_declarees > 0).length || 0,
+    pending: filteredCours?.filter(c => c.nb_presences_declarees === 0).length || 0,
+    totalTeachers: filteredCours?.reduce((sum, c) => sum + c.nb_enseignants_presents, 0) || 0,
+    totalSupervisors: filteredCours?.reduce((sum, c) => sum + c.nb_surveillants_accompagnants_total, 0) || 0,
   };
 
   return (
@@ -162,8 +189,15 @@ export default function PresencesEnseignantsPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Cours</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {filterScope === 'with-exams' ? 'Cours avec examens' : 'Total Cours'}
+              </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+              {filterScope === 'with-exams' && (
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  sur {stats.totalAll} total
+                </p>
+              )}
             </div>
             <BookOpen className="h-8 w-8 text-gray-400" />
           </div>
@@ -212,7 +246,7 @@ export default function PresencesEnseignantsPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4">
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -225,38 +259,65 @@ export default function PresencesEnseignantsPage() {
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'all'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Tous
-            </button>
-            <button
-              onClick={() => setFilterStatus('declared')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'declared'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Déclarés
-            </button>
-            <button
-              onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filterStatus === 'pending'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              En attente
-            </button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Scope Filter */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterScope('with-exams')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  filterScope === 'with-exams'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                Avec examens
+              </button>
+              <button
+                onClick={() => setFilterScope('all')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filterScope === 'all'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Tous les cours
+              </button>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterStatus('all')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filterStatus === 'all'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Tous
+              </button>
+              <button
+                onClick={() => setFilterStatus('declared')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filterStatus === 'declared'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Déclarés
+              </button>
+              <button
+                onClick={() => setFilterStatus('pending')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filterStatus === 'pending'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                En attente
+              </button>
+            </div>
           </div>
         </div>
       </div>
