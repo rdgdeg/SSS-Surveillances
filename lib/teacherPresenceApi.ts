@@ -43,9 +43,9 @@ export async function getCoursById(id: string): Promise<Cours | null> {
     .from('cours')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
   
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('Error fetching cours:', error);
     throw error;
   }
@@ -78,17 +78,21 @@ export async function submitPresence(
   };
   
   // Upsert (insert or update)
-  const { data: presence, error } = await supabase
+  const { data: presences, error } = await supabase
     .from('presences_enseignants')
     .upsert(presenceData, {
       onConflict: 'cours_id,session_id,enseignant_email'
     })
-    .select()
-    .single();
+    .select();
   
   if (error) {
     console.error('Error submitting presence:', error);
     throw error;
+  }
+
+  const presence = presences?.[0];
+  if (!presence) {
+    throw new Error('Failed to create or update presence');
   }
 
   // Si une remarque est fournie, l'ajouter aux consignes du cours
@@ -186,9 +190,9 @@ export async function getExistingPresence(
     .eq('cours_id', coursId)
     .eq('session_id', sessionId)
     .eq('enseignant_email', enseignantEmail.toLowerCase())
-    .single();
+    .maybeSingle();
   
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('Error fetching presence:', error);
     throw error;
   }
