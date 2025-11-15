@@ -13,6 +13,8 @@ import { Switch } from '../../components/shared/Switch';
 import { Badge } from '../../components/shared/Badge';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import SurveillantImport from '../../components/admin/SurveillantImport';
+import { ExportButton } from '../../components/shared/ExportButton';
+import { exportSurveillants } from '../../lib/exportData';
 
 const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () => void; onCancel: () => void; }> = ({ surveillant, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Partial<Surveillant>>(() => {
@@ -474,6 +476,27 @@ const SurveillantsPage: React.FC = () => {
                              <Button variant="outline" onClick={() => setIsImportOpen(true)} size="sm" className="h-9">
                                  <Upload className="mr-1.5 h-3.5 w-3.5" /> Importer
                              </Button>
+                             <ExportButton
+                                 data={(surveillants || []).map(s => ({
+                                     'Email': s.email,
+                                     'Nom': s.nom,
+                                     'Prénom': s.prenom,
+                                     'Type': s.type,
+                                     'Faculté': s.affectation_faculte || '',
+                                     'Institut': s.affectation_institut || '',
+                                     'Statut salarial': s.statut_salarial || '',
+                                     'ETP Total': s.etp_total || '',
+                                     'ETP Recherche': s.etp_recherche || '',
+                                     'Téléphone': s.telephone || '',
+                                     'Quota': s.quota_surveillances || '',
+                                     'Actif': s.is_active ? 'Oui' : 'Non',
+                                     'Dispensé': s.dispense_surveillance ? 'Oui' : 'Non',
+                                 }))}
+                                 filename="surveillants"
+                                 sheetName="Surveillants"
+                                 size="sm"
+                                 label="Exporter"
+                             />
                              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                                  <DialogTrigger asChild>
                                      <Button onClick={() => setSelectedSurveillant(null)} size="sm" className="h-9">
