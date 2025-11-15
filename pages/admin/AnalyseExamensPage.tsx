@@ -18,11 +18,13 @@ interface Examen {
 }
 
 const AnalyseExamensPage: React.FC = () => {
-    const { activeSession } = useActiveSession();
-    const { data: examens, isLoading } = useDataFetching<Examen[]>(
-        () => activeSession ? getExamens(activeSession.id) : Promise.resolve([]),
-        []
+    const { data: activeSession, isLoading: isLoadingSession } = useActiveSession();
+    const { data: examensData, isLoading } = useDataFetching<{ data: Examen[]; total: number }>(
+        () => activeSession ? getExamens(activeSession.id) : Promise.resolve({ data: [], total: 0 }),
+        { data: [], total: 0 }
     );
+    
+    const examens = examensData?.data || [];
 
     const stats = useMemo(() => {
         if (!examens.length) return null;
@@ -66,7 +68,7 @@ const AnalyseExamensPage: React.FC = () => {
         };
     }, [examens]);
 
-    if (isLoading) {
+    if (isLoadingSession || isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -102,7 +104,7 @@ const AnalyseExamensPage: React.FC = () => {
             <div>
                 <h1 className="text-3xl font-bold">Analyse des Examens</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">
-                    Session: {activeSession.nom}
+                    Session: {activeSession.name}
                 </p>
             </div>
 
