@@ -78,10 +78,11 @@ export async function submitPresence(
   };
   
   // Upsert (insert or update)
+  // Note: onConflict doit utiliser le nom de la contrainte unique
   const { data: presences, error } = await supabase
     .from('presences_enseignants')
     .upsert(presenceData, {
-      onConflict: 'cours_id,session_id,enseignant_email'
+      onConflict: 'unique_cours_session_enseignant'
     })
     .select();
   
