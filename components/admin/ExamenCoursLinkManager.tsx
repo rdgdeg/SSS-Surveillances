@@ -265,11 +265,21 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
     if (!allCours) return [];
     if (!coursSearchTerm) return allCours;
     
-    const search = coursSearchTerm.toLowerCase();
-    return allCours.filter(c => 
-      c.code.toLowerCase().includes(search) ||
-      c.intitule_complet.toLowerCase().includes(search)
-    );
+    // Normalize search term (remove extra spaces, convert to lowercase)
+    const search = coursSearchTerm.trim().toLowerCase().replace(/\s+/g, ' ');
+    
+    return allCours.filter(c => {
+      // Normalize cours data
+      const code = c.code.trim().toLowerCase();
+      const intitule = c.intitule_complet.trim().toLowerCase();
+      
+      // Check if search matches code or intitule
+      return code.includes(search) || 
+             intitule.includes(search) ||
+             // Also try without spaces
+             code.replace(/\s+/g, '').includes(search.replace(/\s+/g, '')) ||
+             intitule.replace(/\s+/g, '').includes(search.replace(/\s+/g, ''));
+    });
   }, [allCours, coursSearchTerm]);
 
   const filteredExamens = examensWithoutCours?.filter(e =>
@@ -441,13 +451,27 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                     onChange={(e) => setCoursSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                   />
+                  {coursSearchTerm && (
+                    <button
+                      onClick={() => setCoursSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  La recherche ignore les espaces et la casse
+                </p>
               </div>
 
               {/* Select cours */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Sélectionner un cours
+                  <span className="ml-2 text-xs text-gray-500">
+                    ({filteredCours?.length || 0} cours {coursSearchTerm ? 'trouvé(s)' : 'disponible(s)'})
+                  </span>
                 </label>
                 <select
                   value={selectedCoursId}
@@ -463,8 +487,18 @@ export function ExamenCoursLinkManager({ sessionId }: { sessionId: string }) {
                   ))}
                 </select>
                 {filteredCours?.length === 0 && coursSearchTerm && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                    Aucun cours trouvé. Vous pouvez créer un nouveau cours.
+                  <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Aucun cours trouvé pour "{coursSearchTerm}"</strong>
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                      Vérifiez l'orthographe ou créez un nouveau cours ci-dessous.
+                    </p>
+                  </div>
+                )}
+                {!coursSearchTerm && allCours && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    💡 Utilisez la recherche ci-dessus pour filtrer la liste ({allCours.length} cours au total)
                   </p>
                 )}
               </div>
