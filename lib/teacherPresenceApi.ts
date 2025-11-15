@@ -77,21 +77,46 @@ export async function submitPresence(
     remarque: data.remarque || null
   };
   
-  // Upsert (insert or update)
-  // Note: onConflict doit utiliser le nom de la contrainte unique
-  const { data: presences, error } = await supabase
+  // Check if presence already exists
+  const { data: existing } = await supabase
     .from('presences_enseignants')
-    .upsert(presenceData, {
-      onConflict: 'unique_cours_session_enseignant'
-    })
-    .select();
+    .select('id')
+    .eq('cours_id', coursId)
+    .eq('session_id', sessionId)
+    .eq('enseignant_email', data.enseignant_email.toLowerCase())
+    .maybeSingle();
+
+  let presence;
   
-  if (error) {
-    console.error('Error submitting presence:', error);
-    throw error;
+  if (existing) {
+    // Update existing presence
+    const { data: updated, error } = await supabase
+      .from('presences_enseignants')
+      .update(presenceData)
+      .eq('id', existing.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating presence:', error);
+      throw error;
+    }
+    presence = updated;
+  } else {
+    // Insert new presence
+    const { data: inserted, error } = await supabase
+      .from('presences_enseignants')
+      .insert(presenceData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error inserting presence:', error);
+      throw error;
+    }
+    presence = inserted;
   }
 
-  const presence = presences?.[0];
   if (!presence) {
     throw new Error('Failed to create or update presence');
   }
