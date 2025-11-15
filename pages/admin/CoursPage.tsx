@@ -3,6 +3,7 @@ import { CourseSearch } from '../../components/public/CourseSearch';
 import { CourseListAdmin } from '../../components/admin/CourseListAdmin';
 import { CourseInstructionsForm } from '../../components/admin/CourseInstructionsForm';
 import { CourseImport } from '../../components/admin/CourseImport';
+import { CoursDuplicateDetector } from '../../components/admin/CoursDuplicateDetector';
 import { Pagination } from '../../components/shared/Pagination';
 import { useCoursQuery, useCoursDetailQuery, useCoursStatsQuery } from '../../src/hooks/useCours';
 import { CoursSearchParams, CoursListItem } from '../../types';
@@ -11,6 +12,7 @@ function CoursPage() {
   const [searchParams, setSearchParams] = useState<CoursSearchParams>({ page: 1, pageSize: 25 });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
 
   const { data: coursData, isLoading, refetch } = useCoursQuery(searchParams);
   const { data: selectedCours } = useCoursDetailQuery(selectedCourseId);
@@ -51,15 +53,26 @@ function CoursPage() {
                 Gérez les consignes d'examen pour chaque cours
               </p>
             </div>
-            <button
-              onClick={() => setShowImport(!showImport)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-              {showImport ? 'Masquer l\'import' : 'Importer des cours'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDuplicates(!showDuplicates)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+              >
+                <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {showDuplicates ? 'Masquer les doublons' : 'Détecter les doublons'}
+              </button>
+              <button
+                onClick={() => setShowImport(!showImport)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+                {showImport ? 'Masquer l\'import' : 'Importer des cours'}
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -122,6 +135,13 @@ function CoursPage() {
           )}
         </div>
 
+        {/* Duplicate detector section */}
+        {showDuplicates && (
+          <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <CoursDuplicateDetector />
+          </div>
+        )}
+
         {/* Import section */}
         {showImport && (
           <div className="mb-6">
@@ -130,27 +150,33 @@ function CoursPage() {
         )}
 
         {/* Search and filters */}
-        <CourseSearch
-          onSearchChange={handleSearchChange}
-          resultCount={coursData?.total}
-        />
+        {!showDuplicates && (
+          <CourseSearch
+            onSearchChange={handleSearchChange}
+            resultCount={coursData?.total}
+          />
+        )}
 
         {/* Course list */}
-        <CourseListAdmin
-          courses={coursData?.data || []}
-          onEditClick={handleEditClick}
-          isLoading={isLoading}
-        />
+        {!showDuplicates && (
+          <>
+            <CourseListAdmin
+              courses={coursData?.data || []}
+              onEditClick={handleEditClick}
+              isLoading={isLoading}
+            />
 
-        {/* Pagination */}
-        {!isLoading && coursData && coursData.total > 0 && (
-          <Pagination
-            currentPage={searchParams.page || 1}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            totalItems={coursData.total}
-            pageSize={searchParams.pageSize || 25}
-          />
+            {/* Pagination */}
+            {!isLoading && coursData && coursData.total > 0 && (
+              <Pagination
+                currentPage={searchParams.page || 1}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={coursData.total}
+                pageSize={searchParams.pageSize || 25}
+              />
+            )}
+          </>
         )}
 
         {/* Edit form modal */}
