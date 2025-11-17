@@ -641,3 +641,68 @@ export async function copyCapacitiesFromSession(
 
   return { copied, skipped, errors };
 }
+
+/**
+ * Générer un token de partage pour les disponibilités d'une session
+ * @param sessionId ID de la session
+ * @param expiresInDays Nombre de jours avant expiration (défaut: 30)
+ */
+export async function generateShareToken(
+  sessionId: string,
+  expiresInDays: number = 30
+): Promise<{ token: string; url: string }> {
+  // Générer un token unique
+  const token = crypto.randomUUID();
+  
+  // Calculer la date d'expiration
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+  // Insérer le token dans la base de données
+  const { error } = await supabase
+    .from('share_tokens')
+    .insert({
+      token,
+      session_id: sessionId,
+      resource_type: 'disponibilites',
+      expires_at: expiresAt.toISOString()
+    });
+
+  if (error) throw error;
+
+  // Construire l'URL de partage
+  const baseUrl = window.location.origin;
+  const url = `${baseUrl}/shared/disponibilites/${token}`;
+
+  return { token, url };
+}
+
+/**
+ * Récupérer les tokens de partage actifs pour une session
+ * @param sessionId ID de la session
+ */
+export async function getShareTokens(sessionId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('share_tokens')
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('resource_type', 'disponibilites')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Révoquer un token de partage
+ * @param token Token à révoquer
+ */
+export async function revokeShareToken(token: string): Promise<void> {
+  const { error } = await supabase
+    .from('share_tokens')
+    .delete()
+    .eq('token', token);
+
+  if (error) throw error;
+}

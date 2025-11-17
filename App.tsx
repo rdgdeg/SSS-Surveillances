@@ -38,6 +38,7 @@ const AnalyseExamensPage = lazy(() => import('./pages/admin/AnalyseExamensPage')
 // Lazy load public pages
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
 const TeacherPresencePage = lazy(() => import('./pages/public/TeacherPresencePage'));
+const SharedDisponibilitesPage = lazy(() => import('./pages/public/SharedDisponibilitesPage'));
 
 
 const AppToaster = () => {
@@ -87,6 +88,7 @@ const AppContent: React.FC = () => {
                             <Route path="consignes" element={<ConsignesPage />} />
                             <Route path="enseignant/presence" element={<TeacherPresencePage />} />
                         </Route>
+                        <Route path="/shared/disponibilites/:shareToken" element={<SharedDisponibilitesPage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/admin" element={
                             <ProtectedRoute>

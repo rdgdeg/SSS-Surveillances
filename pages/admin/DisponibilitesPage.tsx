@@ -17,6 +17,8 @@ import { FillRateIndicator } from '../../components/shared/FillRateIndicator';
 import { useExport } from '../../hooks/useExport';
 import { exportDisponibilitesMatriciel } from '../../lib/exportData';
 import { exportToXLSX } from '../../lib/exportUtils';
+import { ShareLinkModal } from '../../components/admin/ShareLinkModal';
+import { Share2 } from 'lucide-react';
 
 interface DisponibilitesData {
     creneaux: Creneau[];
@@ -372,6 +374,7 @@ const DisponibilitesPage: React.FC = () => {
     const [editMode, setEditMode] = useState<boolean>(false);
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
     
     // Export hook
     const { exportData, isExporting } = useExport();
@@ -530,6 +533,14 @@ const DisponibilitesPage: React.FC = () => {
                 onClose={() => setSelectedSubmission(null)} 
             />
             
+            {showShareModal && creneaux.length > 0 && (
+                <ShareLinkModal
+                    sessionId={creneaux[0].session_id}
+                    sessionName={activeSessionName || 'Session'}
+                    onClose={() => setShowShareModal(false)}
+                />
+            )}
+            
             {/* Tableau de bord de capacité */}
             <CapacityDashboard stats={capacityStats} isLoading={isLoading} />
             
@@ -565,6 +576,14 @@ const DisponibilitesPage: React.FC = () => {
                                     Exporter (Excel)
                                 </>
                             )}
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setShowShareModal(true)}
+                            disabled={!creneaux.length || !soumissions.length}
+                        >
+                            <Share2 className="h-4 w-4 mr-2"/>
+                            Partager
                         </Button>
                     </div>
                     <div className="flex items-center gap-2">
