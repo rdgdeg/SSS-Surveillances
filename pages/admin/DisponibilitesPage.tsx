@@ -14,6 +14,9 @@ import { Button } from '../../components/shared/Button';
 import toast from 'react-hot-toast';
 import { CapacityDashboard } from '../../components/admin/CapacityDashboard';
 import { FillRateIndicator } from '../../components/shared/FillRateIndicator';
+import { useExport } from '../../hooks/useExport';
+import { exportDisponibilitesMatriciel } from '../../lib/exportData';
+import { exportToXLSX } from '../../lib/exportUtils';
 
 interface DisponibilitesData {
     creneaux: Creneau[];
@@ -369,6 +372,9 @@ const DisponibilitesPage: React.FC = () => {
     const [editMode, setEditMode] = useState<boolean>(false);
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
+    
+    // Export hook
+    const { exportData, isExporting } = useExport();
 
     // Calculer les statistiques de capacité
     const creneauxWithStats = useMemo<CreneauWithStats[]>(() => {
@@ -483,6 +489,26 @@ const DisponibilitesPage: React.FC = () => {
             .sort((a, b) => (a.nom || '').localeCompare(b.nom || '') || (a.prenom || '').localeCompare(b.prenom || ''));
     }, [soumissions, filterType, searchQuery]);
     
+    // Export function
+    const handleExportDisponibilites = async () => {
+        if (!data.creneaux.length || !data.soumissions.length) {
+            toast.error('Aucune donnée à exporter');
+            return;
+        }
+
+        await exportData(
+            async () => {
+                // Get session ID from first créneau
+                const sessionId = data.creneaux[0]?.session_id;
+                if (!sessionId) throw new Error('Session ID non trouvé');
+                
+                return await exportDisponibilitesMatriciel(sessionId);
+            },
+            `disponibilites-${activeSessionName || 'session'}`,
+            'Disponibilités'
+        );
+    };
+    
     if (isLoading) {
          return (
              <Card>
@@ -522,6 +548,23 @@ const DisponibilitesPage: React.FC = () => {
                         >
                             <Edit className="h-4 w-4 mr-2"/>
                             {editMode ? 'Mode Édition Actif' : 'Activer Édition'}
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleExportDisponibilites}
+                            disabled={isExporting || !creneaux.length || !soumissions.length}
+                        >
+                            {isExporting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Export...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="h-4 w-4 mr-2"/>
+                                    Exporter (Excel)
+                                </>
+                            )}
                         </Button>
                     </div>
                     <div className="flex items-center gap-2">

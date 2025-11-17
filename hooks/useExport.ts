@@ -69,6 +69,8 @@ export function useExport() {
 
   return {
     isExporting,
+    exportData: (exportFn: () => Promise<any[]>, filename: string, sheetName?: string) =>
+      handleExport(exportFn, filename, 'xlsx', sheetName),
     exportSurveillants: (format: 'csv' | 'xlsx') =>
       handleExport(exportSurveillants, 'surveillants', format, 'Surveillants'),
     exportExamens: (sessionId: string, format: 'csv' | 'xlsx') =>

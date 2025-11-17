@@ -67,7 +67,7 @@ export async function exportExamens(sessionId: string) {
 }
 
 /**
- * Export disponibilités for a session
+ * Export disponibilités for a session (format liste)
  */
 export async function exportDisponibilites(sessionId: string) {
   const { data: soumissions, error } = await supabase
@@ -117,6 +117,63 @@ export async function exportDisponibilites(sessionId: string) {
       }
     });
   });
+
+  return rows;
+}
+
+/**
+ * Export disponibilités en format matriciel (surveillants x créneaux)
+ */
+export async function exportDisponibilitesMatriciel(sessionId: string) {
+  const { data: soumissions, error } = await supabase
+    .from('soumissions_disponibilites')
+    .select(`
+      *,
+      historique_disponibilites
+    `)
+    .eq('session_id', sessionId)
+    .order('nom, prenom');
+
+  if (error) throw error;
+
+  // Get all creneaux for the session
+  const { data: creneaux } = await supabase
+    .from('creneaux')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('date_surveillance, heure_debut_surveillance');
+
+  if (!creneaux || creneaux.length === 0) return [];
+
+  // Create availability map
+  const availabilityMap = new Map<string, boolean>();
+  soumissions?.forEach(soumission => {
+    const id = soumission.surveillant_id || soumission.email;
+    soumission.historique_disponibilites?.forEach((dispo: any) => {
+      availabilityMap.set(`${id}-${dispo.creneau_id}`, dispo.est_disponible);
+    });
+  });
+
+  // Build rows with surveillant info + one column per créneau
+  const rows = soumissions?.map(soumission => {
+    const id = soumission.surveillant_id || soumission.email;
+    const row: any = {
+      'Nom': soumission.nom,
+      'Prénom': soumission.prenom,
+      'Email': soumission.email,
+      'Type': soumission.type_surveillant,
+      'Nb créneaux': soumission.historique_disponibilites?.filter((d: any) => d.est_disponible).length || 0,
+    };
+
+    // Add one column per créneau
+    creneaux.forEach(creneau => {
+      const creneauLabel = `${formatDateForExport(creneau.date_surveillance)} ${creneau.heure_debut_surveillance?.substring(0, 5) || ''}`;
+      const isAvailable = availabilityMap.get(`${id}-${creneau.id}`);
+      row[creneauLabel] = isAvailable ? '✓' : '';
+    });
+
+    return row;
+  }) || [];
 
   return rows;
 }
