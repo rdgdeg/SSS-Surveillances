@@ -348,6 +348,9 @@ export interface Examen {
   updated_at: string;
 }
 
+export type PresenceType = 'present_full' | 'present_partial' | 'absent';
+export type ExamType = 'ecrit' | 'qcm' | 'autre';
+
 export interface PresenceEnseignant {
   id: string;
   cours_id: string;
@@ -356,10 +359,19 @@ export interface PresenceEnseignant {
   enseignant_email: string;
   enseignant_nom: string;
   enseignant_prenom: string;
-  est_present: boolean;
+  est_present: boolean; // Deprecated, use type_presence instead
+  type_presence: PresenceType;
+  type_examen: ExamType | null;
+  type_examen_autre: string | null;
   nb_surveillants_accompagnants: number;
   noms_accompagnants: string | null;
   remarque: string | null;
+  historique_remarques: Array<{
+    date: string;
+    enseignant_email: string;
+    enseignant_nom: string;
+    remarque: string;
+  }> | null;
   submitted_at: string;
   updated_at: string;
 }

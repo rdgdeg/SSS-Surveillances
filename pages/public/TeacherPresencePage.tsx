@@ -40,6 +40,9 @@ export default function TeacherPresencePage() {
     enseignant_nom: '',
     enseignant_prenom: '',
     est_present: true,
+    type_presence: 'present_full' as 'present_full' | 'present_partial' | 'absent',
+    type_examen: null as 'ecrit' | 'qcm' | 'autre' | null,
+    type_examen_autre: '',
     nb_surveillants_accompagnants: 0,
     noms_accompagnants: '',
     remarque: '',
@@ -116,6 +119,9 @@ export default function TeacherPresencePage() {
         enseignant_nom: existingPresence.enseignant_nom,
         enseignant_prenom: existingPresence.enseignant_prenom,
         est_present: existingPresence.est_present,
+        type_presence: (existingPresence as any).type_presence || (existingPresence.est_present ? 'present_full' : 'absent'),
+        type_examen: (existingPresence as any).type_examen || null,
+        type_examen_autre: (existingPresence as any).type_examen_autre || '',
         nb_surveillants_accompagnants: existingPresence.nb_surveillants_accompagnants,
         noms_accompagnants: existingPresence.noms_accompagnants || '',
         remarque: existingPresence.remarque || '',
@@ -151,6 +157,16 @@ export default function TeacherPresencePage() {
       return;
     }
 
+    if (!formData.type_examen) {
+      toast.error('Veuillez sélectionner le type d\'examen');
+      return;
+    }
+
+    if (formData.type_examen === 'autre' && !formData.type_examen_autre.trim()) {
+      toast.error('Veuillez préciser le type d\'examen');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await submitPresence(selectedCours.id, activeSession.id, formData);
@@ -163,6 +179,9 @@ export default function TeacherPresencePage() {
         enseignant_nom: formData.enseignant_nom, // Keep name
         enseignant_prenom: formData.enseignant_prenom, // Keep first name
         est_present: true,
+        type_presence: 'present_full',
+        type_examen: null,
+        type_examen_autre: '',
         nb_surveillants_accompagnants: 0,
         noms_accompagnants: '',
         remarque: '',
@@ -410,43 +429,131 @@ export default function TeacherPresencePage() {
               </div>
             </div>
 
-            {/* Presence */}
+            {/* Presence Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Serez-vous présent à l'examen ? *
+                Votre présence à l'examen *
               </label>
-              <div className="flex gap-4">
+              <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, est_present: true })}
-                  className={`flex-1 p-4 border-2 rounded-lg transition-all ${
-                    formData.est_present
+                  onClick={() => setFormData({ ...formData, type_presence: 'present_full', est_present: true })}
+                  className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
+                    formData.type_presence === 'present_full'
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                   }`}
                 >
-                  <CheckCircle className={`h-6 w-6 mx-auto mb-2 ${
-                    formData.est_present ? 'text-green-600' : 'text-gray-400'
-                  }`} />
-                  <span className="font-medium">Présent</span>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className={`h-6 w-6 flex-shrink-0 mt-0.5 ${
+                      formData.type_presence === 'present_full' ? 'text-green-600' : 'text-gray-400'
+                    }`} />
+                    <div>
+                      <span className="font-medium block">Oui, je serai présent pour la surveillance complète</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Je serai présent pour la surveillance et la mise en place de l'examen (un surveillant peut être retiré)
+                      </p>
+                    </div>
+                  </div>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, est_present: false })}
-                  className={`flex-1 p-4 border-2 rounded-lg transition-all ${
-                    !formData.est_present
+                  onClick={() => setFormData({ ...formData, type_presence: 'present_partial', est_present: true })}
+                  className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
+                    formData.type_presence === 'present_partial'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Users className={`h-6 w-6 flex-shrink-0 mt-0.5 ${
+                      formData.type_presence === 'present_partial' ? 'text-blue-600' : 'text-gray-400'
+                    }`} />
+                    <div>
+                      <span className="font-medium block">Oui, je suis présent mais pas pour toute la surveillance</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Je serai présent mais n'assurerai pas toute la surveillance (il faut compter un surveillant)
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type_presence: 'absent', est_present: false })}
+                  className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
+                    formData.type_presence === 'absent'
                       ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                   }`}
                 >
-                  <XCircle className={`h-6 w-6 mx-auto mb-2 ${
-                    !formData.est_present ? 'text-red-600' : 'text-gray-400'
-                  }`} />
-                  <span className="font-medium">Absent</span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Mais je peux indiquer des surveillants
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <XCircle className={`h-6 w-6 flex-shrink-0 mt-0.5 ${
+                      formData.type_presence === 'absent' ? 'text-red-600' : 'text-gray-400'
+                    }`} />
+                    <div>
+                      <span className="font-medium block">Non, je ne serai pas présent</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Je ne serai pas présent mais je peux indiquer des surveillants
+                      </p>
+                    </div>
+                  </div>
                 </button>
+              </div>
+            </div>
+
+            {/* Exam Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Type d'examen *
+              </label>
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type_examen: 'ecrit', type_examen_autre: '' })}
+                    className={`p-3 border-2 rounded-lg transition-all ${
+                      formData.type_examen === 'ecrit'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="font-medium">Examen écrit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type_examen: 'qcm', type_examen_autre: '' })}
+                    className={`p-3 border-2 rounded-lg transition-all ${
+                      formData.type_examen === 'qcm'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="font-medium">QCM</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type_examen: 'autre' })}
+                    className={`p-3 border-2 rounded-lg transition-all ${
+                      formData.type_examen === 'autre'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="font-medium">Autre</span>
+                  </button>
+                </div>
+                {formData.type_examen === 'autre' && (
+                  <input
+                    type="text"
+                    placeholder="Précisez le type d'examen..."
+                    value={formData.type_examen_autre}
+                    onChange={(e) => setFormData({ ...formData, type_examen_autre: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  />
+                )}
               </div>
             </div>
 
@@ -454,11 +561,13 @@ export default function TeacherPresencePage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre de surveillants {formData.est_present ? 'en plus de vous' : ''}
+                  Nombre de surveillants {formData.type_presence !== 'absent' ? 'accompagnants' : ''}
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  {formData.est_present 
+                  {formData.type_presence === 'present_full' 
                     ? "Surveillants qui vous accompagneront à l'examen (en plus de vous)"
+                    : formData.type_presence === 'present_partial'
+                    ? "Surveillants qui assureront la surveillance avec vous"
                     : "Surveillants qui assureront la surveillance de l'examen"}
                 </p>
                 <input
@@ -501,6 +610,33 @@ export default function TeacherPresencePage() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 Ces consignes seront conservées et affichées pour les prochaines sessions d'examens
               </p>
+              
+              {/* Historique des remarques */}
+              {existingPresence && (existingPresence as any).historique_remarques && (existingPresence as any).historique_remarques.length > 0 && (
+                <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Historique des remarques :</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {((existingPresence as any).historique_remarques as Array<any>).map((item, index) => (
+                      <div key={index} className="text-xs bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-gray-900 dark:text-white">{item.enseignant_nom}</span>
+                          <span className="text-gray-500 dark:text-gray-400">
+                            {new Date(item.date).toLocaleDateString('fr-FR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400">{item.remarque}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <textarea
                 rows={4}
                 value={formData.remarque}
