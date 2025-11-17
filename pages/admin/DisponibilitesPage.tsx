@@ -315,7 +315,7 @@ const SurveillantView: React.FC<{
                         <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">Surveillant</th>
                         {creneaux.map(c => <th key={c.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">
                             <div>{new Date(c.date_surveillance + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}</div>
-                            <div className="font-normal">{c.heure_debut_surveillance?.substring(0, 5)}</div>
+                            <div className="font-normal">{c.heure_debut_surveillance?.substring(0, 5)}-{c.heure_fin_surveillance?.substring(0, 5)}</div>
                         </th>)}
                     </tr>
                 </thead>

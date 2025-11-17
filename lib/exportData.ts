@@ -167,7 +167,7 @@ export async function exportDisponibilitesMatriciel(sessionId: string) {
 
     // Add one column per créneau
     creneaux.forEach(creneau => {
-      const creneauLabel = `${formatDateForExport(creneau.date_surveillance)} ${creneau.heure_debut_surveillance?.substring(0, 5) || ''}`;
+      const creneauLabel = `${formatDateForExport(creneau.date_surveillance)} ${creneau.heure_debut_surveillance?.substring(0, 5) || ''}-${creneau.heure_fin_surveillance?.substring(0, 5) || ''}`;
       const isAvailable = availabilityMap.get(`${id}-${creneau.id}`);
       row[creneauLabel] = isAvailable ? '✓' : '';
     });
