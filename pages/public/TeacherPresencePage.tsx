@@ -49,6 +49,7 @@ export default function TeacherPresencePage() {
   });
   const [autoEmail, setAutoEmail] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const { data: activeSession } = useActiveSession();
 
@@ -101,7 +102,7 @@ export default function TeacherPresencePage() {
     return 0;
   });
 
-  // Check existing presence
+  // Check existing presence for current teacher
   const { data: existingPresence } = useQuery({
     queryKey: ['existing-presence', selectedCours?.id, activeSession?.id, formData.enseignant_email],
     queryFn: () => {
@@ -109,6 +110,24 @@ export default function TeacherPresencePage() {
       return getExistingPresence(selectedCours.id, activeSession.id, formData.enseignant_email);
     },
     enabled: !!selectedCours && !!activeSession && !!formData.enseignant_email,
+  });
+
+  // Check all presences for this course
+  const { data: allPresencesForCours } = useQuery({
+    queryKey: ['all-presences-cours', selectedCours?.id, activeSession?.id],
+    queryFn: async () => {
+      if (!selectedCours || !activeSession) return [];
+      
+      const { data, error } = await supabase
+        .from('presences_enseignants')
+        .select('*')
+        .eq('cours_id', selectedCours.id)
+        .eq('session_id', activeSession.id);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedCours && !!activeSession,
   });
 
   // Pre-fill form with existing data
@@ -139,10 +158,46 @@ export default function TeacherPresencePage() {
     }
   }, [selectedCours, existingPresence]);
 
+  // Calculate existing submissions stats
+  const existingSubmissionsStats = React.useMemo(() => {
+    if (!allPresencesForCours || allPresencesForCours.length === 0) {
+      return { count: 0, totalSurveillants: 0, teachers: [] };
+    }
+
+    // Exclure la soumission actuelle de l'enseignant si elle existe
+    const otherSubmissions = allPresencesForCours.filter(
+      p => p.enseignant_email.toLowerCase() !== formData.enseignant_email.toLowerCase()
+    );
+
+    const totalSurveillants = otherSubmissions.reduce(
+      (sum, p) => sum + (p.nb_surveillants_accompagnants || 0),
+      0
+    );
+
+    const teachers = otherSubmissions.map(p => ({
+      nom: `${p.enseignant_prenom} ${p.enseignant_nom}`,
+      nb_surveillants: p.nb_surveillants_accompagnants || 0,
+    }));
+
+    return {
+      count: otherSubmissions.length,
+      totalSurveillants,
+      teachers,
+    };
+  }, [allPresencesForCours, formData.enseignant_email]);
+
   const handleSelectCours = (cours: CoursWithExam) => {
     setSelectedCours(cours);
     setSearchTerm('');
+    setShowConfirmation(false);
   };
+
+  const handleConfirmAndSubmit = async () => {
+    setShowConfirmation(false);
+    await performSubmit();
+  };
+
+  const performSubmit = async () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,6 +222,14 @@ export default function TeacherPresencePage() {
       return;
     }
 
+    // Si d'autres enseignants ont déjà soumis et qu'on n'a pas encore confirmé, afficher la confirmation
+    if (existingSubmissionsStats.count > 0 && !showConfirmation) {
+      setShowConfirmation(true);
+      return;
+    }
+
+    if (!selectedCours || !activeSession) return;
+
     setIsSubmitting(true);
     try {
       await submitPresence(selectedCours.id, activeSession.id, formData);
@@ -174,6 +237,7 @@ export default function TeacherPresencePage() {
       
       // Reset form
       setSelectedCours(null);
+      setShowConfirmation(false);
       setFormData({
         enseignant_email: formData.enseignant_email, // Keep email
         enseignant_nom: formData.enseignant_nom, // Keep name
@@ -646,34 +710,121 @@ export default function TeacherPresencePage() {
               />
             </div>
 
+            {/* Warning if other teachers already submitted */}
+            {existingSubmissionsStats.count > 0 && !showConfirmation && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-2">
+                      Attention : D'autres enseignants ont déjà soumis pour ce cours
+                    </h4>
+                    <div className="text-sm text-amber-800 dark:text-amber-300 space-y-2">
+                      <p>
+                        {existingSubmissionsStats.count} enseignant{existingSubmissionsStats.count > 1 ? 's ont' : ' a'} déjà déclaré{existingSubmissionsStats.count > 1 ? 's' : ''} un total de{' '}
+                        <strong>{existingSubmissionsStats.totalSurveillants} surveillant{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''}</strong> pour ce cours.
+                      </p>
+                      <div className="bg-amber-100 dark:bg-amber-900/30 rounded p-2 space-y-1">
+                        {existingSubmissionsStats.teachers.map((teacher, idx) => (
+                          <div key={idx} className="text-xs">
+                            • {teacher.nom} : {teacher.nb_surveillants} surveillant{teacher.nb_surveillants > 1 ? 's' : ''}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="font-medium">
+                        Vous ajoutez {formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}.
+                        Le total sera de <strong>{existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants} surveillant{(existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants) > 1 ? 's' : ''}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {showConfirmation && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-400 dark:border-orange-600 rounded-lg p-4">
+                <div className="flex items-start gap-3 mb-4">
+                  <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-bold text-orange-900 dark:text-orange-300 text-lg mb-2">
+                      Confirmation requise
+                    </h4>
+                    <div className="text-sm text-orange-800 dark:text-orange-300 space-y-2">
+                      <p>
+                        Vous êtes sur le point d'ajouter <strong>{formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}</strong> à ce cours.
+                      </p>
+                      <p>
+                        Avec les {existingSubmissionsStats.totalSurveillants} surveillant{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''} déjà déclaré{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''} par d'autres enseignants,
+                        le <strong>total sera de {existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants} surveillant{(existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants) > 1 ? 's' : ''}</strong>.
+                      </p>
+                      <p className="font-semibold text-orange-900 dark:text-orange-200">
+                        Confirmez-vous ce nombre de surveillants ?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowConfirmation(false)}
+                    className="flex-1"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleConfirmAndSubmit}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Confirmer et enregistrer
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Submit */}
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedCours(null)}
-                className="flex-1"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    {existingPresence ? 'Modifier' : 'Enregistrer'} ma présence
-                  </>
-                )}
-              </Button>
-            </div>
+            {!showConfirmation && (
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedCours(null)}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {existingPresence ? 'Modifier' : 'Enregistrer'} ma présence
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </form>
         )}
       </div>
