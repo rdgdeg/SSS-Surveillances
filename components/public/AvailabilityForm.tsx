@@ -304,7 +304,7 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 relative">
-                <div ref={setScrollContainerRef} className="max-h-[60vh] overflow-y-auto pr-3 scroll-smooth">
+                <div ref={setScrollContainerRef} className="max-h-[75vh] overflow-y-auto pr-3 scroll-smooth">
                  <div className="space-y-4">
                     {isInsufficientSlots && (
                         <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 p-3 rounded-lg flex items-start gap-3">

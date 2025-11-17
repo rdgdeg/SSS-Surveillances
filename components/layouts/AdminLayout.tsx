@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { preloadRoute } from '../../lib/routePreloader';
 
 const AdminLayout: React.FC = () => {
     const { isDarkMode, toggleTheme } = useTheme();
@@ -78,7 +79,12 @@ const AdminLayout: React.FC = () => {
                 <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
                     {/* General Links */}
                     {navLinks.filter(link => !link.category).map(({ to, label, icon: Icon }) => (
-                        <NavLink key={to} to={to} className={navLinkClasses}>
+                        <NavLink 
+                            key={to} 
+                            to={to} 
+                            className={navLinkClasses}
+                            onMouseEnter={() => preloadRoute(`/admin/${to}`)}
+                        >
                             <Icon className="h-5 w-5"/>
                             <span>{label}</span>
                         </NavLink>
@@ -93,7 +99,12 @@ const AdminLayout: React.FC = () => {
                                 </h3>
                             </div>
                             {navLinks.filter(link => link.category === 'surveillants').map(({ to, label, icon: Icon }) => (
-                                <NavLink key={to} to={to} className={navLinkClasses}>
+                                <NavLink 
+                                    key={to} 
+                                    to={to} 
+                                    className={navLinkClasses}
+                                    onMouseEnter={() => preloadRoute(`/admin/${to}`)}
+                                >
                                     <Icon className="h-5 w-5"/>
                                     <span>{label}</span>
                                 </NavLink>
@@ -110,7 +121,12 @@ const AdminLayout: React.FC = () => {
                                 </h3>
                             </div>
                             {navLinks.filter(link => link.category === 'enseignants').map(({ to, label, icon: Icon }) => (
-                                <NavLink key={to} to={to} className={navLinkClasses}>
+                                <NavLink 
+                                    key={to} 
+                                    to={to} 
+                                    className={navLinkClasses}
+                                    onMouseEnter={() => preloadRoute(`/admin/${to}`)}
+                                >
                                     <Icon className="h-5 w-5"/>
                                     <span>{label}</span>
                                 </NavLink>
@@ -127,7 +143,12 @@ const AdminLayout: React.FC = () => {
                                 </h3>
                             </div>
                             {navLinks.filter(link => link.category === 'rapports').map(({ to, label, icon: Icon }) => (
-                                <NavLink key={to} to={to} className={navLinkClasses}>
+                                <NavLink 
+                                    key={to} 
+                                    to={to} 
+                                    className={navLinkClasses}
+                                    onMouseEnter={() => preloadRoute(`/admin/${to}`)}
+                                >
                                     <Icon className="h-5 w-5"/>
                                     <span>{label}</span>
                                 </NavLink>

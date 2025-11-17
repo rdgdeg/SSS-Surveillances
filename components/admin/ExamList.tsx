@@ -7,6 +7,7 @@ import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManage
 import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
+import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
 
 interface ExamListProps {
   sessionId: string;
@@ -30,6 +31,7 @@ interface ExamFormData {
 }
 
 export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateExam }: ExamListProps) {
+  const { searchTerm, debouncedTerm, setSearchTerm, isDebouncing } = useDebouncedSearch(300);
   const [filters, setFilters] = useState<ExamenFilters>(initialFilters);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -53,7 +55,9 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     nb_surveillants_requis: null,
   });
 
-  const { examens, loading, error, total, refetch } = useExamens(sessionId, filters, page, pageSize);
+  // Utiliser le terme debounced pour les requêtes API
+  const debouncedFilters = { ...filters, search: debouncedTerm };
+  const { examens, loading, error, total, refetch } = useExamens(sessionId, debouncedFilters, page, pageSize);
 
   // Handle inline edit start
   const handleStartEdit = (examenId: string, field: string, currentValue: string) => {
@@ -223,12 +227,14 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Rechercher
+              {isDebouncing && <span className="ml-2 text-xs text-gray-500">(recherche...)</span>}
             </label>
             <input
               type="text"
               placeholder="Code ou nom..."
-              value={filters.search || ''}
+              value={searchTerm}
               onChange={(e) => {
+                setSearchTerm(e.target.value);
                 setFilters({ ...filters, search: e.target.value });
                 setPage(1);
               }}
