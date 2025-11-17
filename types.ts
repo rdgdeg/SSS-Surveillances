@@ -66,6 +66,7 @@ export interface SoumissionDisponibilite {
   nom: string;
   prenom: string;
   type_surveillant: string;
+  telephone?: string;
   remarque_generale?: string;
   historique_disponibilites: HistoriqueDisponibilite[];
   submitted_at: string;
@@ -185,6 +186,7 @@ export interface FormProgressData {
   nom: string;
   prenom: string;
   type_surveillant: SurveillantType;
+  telephone: string;
   remarque_generale: string;
   availabilities: AvailabilityData;
   foundSurveillantId: string | null;

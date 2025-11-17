@@ -227,6 +227,7 @@ type AvailabilityFormData = {
     nom: string;
     prenom: string;
     type_surveillant: SurveillantType;
+    telephone: string;
     remarque_generale: string;
 };
 
@@ -242,6 +243,19 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
                 <Input name="prenom" placeholder="Prénom" value={formData.prenom} onChange={onInputChange} required />
                 <Input name="nom" placeholder="Nom" value={formData.nom} onChange={onInputChange} required />
                 <Input name="email" type="email" placeholder="Email UCLouvain" value={formData.email} onChange={onInputChange} required />
+                <div>
+                    <Input 
+                        name="telephone" 
+                        type="tel" 
+                        placeholder="Numéro de GSM (ex: 0470123456)" 
+                        value={formData.telephone} 
+                        onChange={onInputChange} 
+                        required 
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Ce numéro ne sera visible que par le secrétariat et utilisé uniquement en cas de changement de dernière minute ou pour vous contacter en cas d'absence.
+                    </p>
+                </div>
                 <Select onValueChange={onSelectChange} defaultValue={formData.type_surveillant}>
                     <SelectTrigger><SelectValue placeholder="Type de surveillant" /></SelectTrigger>
                     <SelectContent>
@@ -494,6 +508,7 @@ const AvailabilityForm: React.FC = () => {
         nom: '',
         prenom: '',
         type_surveillant: SurveillantType.ASSISTANT,
+        telephone: '',
         remarque_generale: ''
     };
 
@@ -576,6 +591,7 @@ const AvailabilityForm: React.FC = () => {
                                 nom: savedData.nom,
                                 prenom: savedData.prenom,
                                 type_surveillant: savedData.type_surveillant,
+                                telephone: savedData.telephone || '',
                                 remarque_generale: savedData.remarque_generale
                             });
                             setAvailabilities(savedData.availabilities);
@@ -609,6 +625,7 @@ const AvailabilityForm: React.FC = () => {
                 nom: formData.nom,
                 prenom: formData.prenom,
                 type_surveillant: formData.type_surveillant,
+                telephone: formData.telephone,
                 remarque_generale: formData.remarque_generale,
                 availabilities,
                 foundSurveillantId,
@@ -694,6 +711,7 @@ const AvailabilityForm: React.FC = () => {
                     nom: existingSubmission.nom,
                     prenom: existingSubmission.prenom,
                     type_surveillant: existingSubmission.type_surveillant as SurveillantType,
+                    telephone: existingSubmission.telephone || '',
                     remarque_generale: existingSubmission.remarque_generale || ''
                 }));
                 
@@ -728,7 +746,7 @@ const AvailabilityForm: React.FC = () => {
                 const found = await findSurveillantByEmail(formData.email.toLowerCase().trim());
                 if (found) {
                     setFoundSurveillant(found);
-                    setFormData(prev => ({ ...prev, nom: found.nom, prenom: found.prenom, type_surveillant: found.type as SurveillantType }));
+                    setFormData(prev => ({ ...prev, nom: found.nom, prenom: found.prenom, type_surveillant: found.type as SurveillantType, telephone: found.telephone || '' }));
                     setFoundSurveillantId(found.id);
                     toast.success('Email reconnu ! Vos informations ont été pré-remplies.');
                     setStep(2);
