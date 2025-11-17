@@ -5,7 +5,7 @@
  * Usage: node scripts/generate-password-hash.js <password>
  */
 
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
 
 const password = process.argv[2];
 

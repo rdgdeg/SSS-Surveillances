@@ -29,13 +29,13 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC
 
 -- Insérer les utilisateurs prédéfinis
 -- Mot de passe par défaut: "admin123" (à changer en production)
--- Hash bcrypt de "admin123": $2a$10$rKZvVQKvV8xqvQvQvQvQvOeH8vQvQvQvQvQvQvQvQvQvQvQvQvQvQ
+-- Hash bcrypt de "admin123": $2b$10$vFBLAdauAkRrsZ4h1yt1GeZHD1LzTTH5UCUFfdFea27jAm2CN21.u
 INSERT INTO admin_users (username, display_name, password_hash) VALUES
-  ('CelineG', 'Céline G.', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-  ('CarmenP', 'Carmen P.', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-  ('RomaneV', 'Romane V.', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-  ('GuillaumeA', 'Guillaume A.', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-  ('MaximeD', 'Maxime D.', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy')
+  ('CelineG', 'Céline G.', '$2b$10$vFBLAdauAkRrsZ4h1yt1GeZHD1LzTTH5UCUFfdFea27jAm2CN21.u'),
+  ('CarmenP', 'Carmen P.', '$2b$10$vFBLAdauAkRrsZ4h1yt1GeZHD1LzTTH5UCUFfdFea27jAm2CN21.u'),
+  ('RomaneV', 'Romane V.', '$2b$10$vFBLAdauAkRrsZ4h1yt1GeZHD1LzTTH5UCUFfdFea27jAm2CN21.u'),
+  ('GuillaumeA', 'Guillaume A.', '$2b$10$vFBLAdauAkRrsZ4h1yt1GeZHD1LzTTH5UCUFfdFea27jAm2CN21.u'),
+  ('MaximeD', 'Maxime D.', '$2b$10$vFBLAdauAkRrsZ4h1yt1GeZHD1LzTTH5UCUFfdFea27jAm2CN21.u')
 ON CONFLICT (username) DO NOTHING;
 
 -- Fonction pour logger automatiquement les modifications
