@@ -192,13 +192,6 @@ export default function TeacherPresencePage() {
     setShowConfirmation(false);
   };
 
-  const handleConfirmAndSubmit = async () => {
-    setShowConfirmation(false);
-    await performSubmit();
-  };
-
-  const performSubmit = async () => {
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -223,17 +216,26 @@ export default function TeacherPresencePage() {
     }
 
     // Si d'autres enseignants ont déjà soumis et qu'on n'a pas encore confirmé, afficher la confirmation
-    if (existingSubmissionsStats.count > 0 && !showConfirmation) {
+    if (existingSubmissionsStats.count > 0 && !showConfirmation && !existingPresence) {
       setShowConfirmation(true);
       return;
     }
 
+    await performSubmit();
+  };
+
+  const handleConfirmAndSubmit = async () => {
+    setShowConfirmation(false);
+    await performSubmit();
+  };
+
+  const performSubmit = async () => {
     if (!selectedCours || !activeSession) return;
 
     setIsSubmitting(true);
     try {
       await submitPresence(selectedCours.id, activeSession.id, formData);
-      toast.success('Présence enregistrée avec succès');
+      toast.success(existingPresence ? 'Présence modifiée avec succès' : 'Présence enregistrée avec succès');
       
       // Reset form
       setSelectedCours(null);
