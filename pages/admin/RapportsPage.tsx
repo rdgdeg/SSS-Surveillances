@@ -1,23 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/shared/Card';
 import { FileText, Download, Calendar, Users, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
-import { useActiveSession } from '../../src/hooks/useActiveSession';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
+import { getSessions } from '../../lib/api';
+import { Session } from '../../types';
+import toast from 'react-hot-toast';
 
 type ReportType = 'disponibilites' | 'examens' | 'surveillants' | 'presences';
 
 const RapportsPage: React.FC = () => {
-    const { activeSession } = useActiveSession();
+    const [sessions, setSessions] = useState<Session[]>([]);
+    const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+    const [isLoadingSessions, setIsLoadingSessions] = useState(true);
     const [generatingReport, setGeneratingReport] = useState<ReportType | null>(null);
 
+    useEffect(() => {
+        const loadSessions = async () => {
+            try {
+                const data = await getSessions();
+                setSessions(data);
+                
+                // Sélectionner automatiquement la session active
+                const activeSession = data.find(s => s.is_active);
+                if (activeSession) {
+                    setSelectedSessionId(activeSession.id);
+                } else if (data.length > 0) {
+                    // Sinon, sélectionner la première session
+                    setSelectedSessionId(data[0].id);
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                toast.error('Erreur lors du chargement des sessions');
+            } finally {
+                setIsLoadingSessions(false);
+            }
+        };
+
+        loadSessions();
+    }, []);
+
+    const selectedSession = sessions.find(s => s.id === selectedSessionId);
+
     const generateReport = async (type: ReportType) => {
+        if (!selectedSessionId) {
+            toast.error('Veuillez sélectionner une session');
+            return;
+        }
+
         setGeneratingReport(type);
         // Simuler la génération du rapport
         await new Promise(resolve => setTimeout(resolve, 1500));
         setGeneratingReport(null);
         
         // TODO: Implémenter la génération réelle des rapports
-        alert(`Rapport ${type} généré avec succès!`);
+        toast.success(`Rapport ${type} généré avec succès pour la session ${selectedSession?.name}!`);
     };
 
     const reports = [
@@ -64,25 +101,42 @@ const RapportsPage: React.FC = () => {
                 </p>
             </div>
 
-            {activeSession ? (
-                <Card className="bg-indigo-50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
-                            <Calendar className="h-5 w-5" />
-                            <span className="font-medium">Session active: {activeSession.nom}</span>
+            <Card className="bg-indigo-50 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800">
+                <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                        <Calendar className="h-5 w-5 text-indigo-700 dark:text-indigo-400" />
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-indigo-900 dark:text-indigo-300 mb-2">
+                                Sélectionner une session
+                            </label>
+                            {isLoadingSessions ? (
+                                <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm">Chargement des sessions...</span>
+                                </div>
+                            ) : sessions.length === 0 ? (
+                                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span className="text-sm">Aucune session disponible</span>
+                                </div>
+                            ) : (
+                                <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
+                                    <SelectTrigger className="w-full max-w-md bg-white dark:bg-gray-800">
+                                        <SelectValue placeholder="Choisir une session" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {sessions.map((session) => (
+                                            <SelectItem key={session.id} value={session.id}>
+                                                {session.name} {session.is_active && '(Active)'}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                         </div>
-                    </CardContent>
-                </Card>
-            ) : (
-                <Card className="bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
-                            <AlertCircle className="h-5 w-5" />
-                            <span>Aucune session active. Activez une session pour générer des rapports.</span>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-6 md:grid-cols-2">
                 {reports.map((report) => {
@@ -106,7 +160,7 @@ const RapportsPage: React.FC = () => {
                                 <div className="flex gap-2">
                                     <Button
                                         onClick={() => generateReport(report.id)}
-                                        disabled={!activeSession || isGenerating}
+                                        disabled={!selectedSessionId || isGenerating}
                                         className="flex-1"
                                     >
                                         {isGenerating ? (
@@ -124,7 +178,7 @@ const RapportsPage: React.FC = () => {
                                     <Button
                                         variant="outline"
                                         onClick={() => generateReport(report.id)}
-                                        disabled={!activeSession || isGenerating}
+                                        disabled={!selectedSessionId || isGenerating}
                                     >
                                         <FileText className="h-4 w-4" />
                                     </Button>
