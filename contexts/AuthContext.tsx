@@ -1,57 +1,52 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
-import toast from 'react-hot-toast';
-
-const ADMIN_PASSWORD = 'uclouvain1200';
-const AUTH_KEY = 'isAdminAuthenticated';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AdminUser } from '../lib/auth';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  login: (password: string) => boolean;
+  user: AdminUser | null;
+  login: (user: AdminUser) => void;
   logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const isBrowser = typeof window !== 'undefined';
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AdminUser | null>(null);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (!isBrowser) {
-      return false; // Fallback for non-browser environments
-    }
-    return sessionStorage.getItem(AUTH_KEY) === 'true';
-  });
-
-  const login = useCallback((password: string): boolean => {
-    if (password === ADMIN_PASSWORD) {
-      if (isBrowser) {
-        sessionStorage.setItem(AUTH_KEY, 'true');
+  // Charger l'utilisateur depuis le localStorage au démarrage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('admin_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('admin_user');
       }
-      setIsAuthenticated(true);
-      return true;
     }
-    return false;
   }, []);
 
-  const logout = useCallback(() => {
-    if (isBrowser) {
-      sessionStorage.removeItem(AUTH_KEY);
-    }
-    setIsAuthenticated(false);
-    toast.success('Vous avez été déconnecté.');
-  }, []);
+  const login = (user: AdminUser) => {
+    setUser(user);
+    localStorage.setItem('admin_user', JSON.stringify(user));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('admin_user');
+  };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

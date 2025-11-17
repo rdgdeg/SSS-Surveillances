@@ -72,6 +72,9 @@ export async function submitPresence(
     enseignant_nom: data.enseignant_nom,
     enseignant_prenom: data.enseignant_prenom,
     est_present: data.est_present,
+    type_presence: data.type_presence,
+    type_examen: data.type_examen,
+    type_examen_autre: data.type_examen_autre || null,
     nb_surveillants_accompagnants: data.nb_surveillants_accompagnants,
     noms_accompagnants: data.noms_accompagnants || null,
     remarque: data.remarque || null

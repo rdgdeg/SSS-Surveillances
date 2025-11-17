@@ -1,84 +1,130 @@
-
 import React, { useState } from 'react';
-import { useNavigate, useLocation, NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/shared/Card';
-import { Input } from '../components/shared/Input';
+import { authenticateUser } from '../lib/auth';
+import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../components/shared/Button';
-import { Lock, LogIn, University, Home, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const LoginPage: React.FC = () => {
+export default function LoginPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const auth = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/admin';
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoggingIn(true);
-    
-    setTimeout(() => {
-        if (auth.login(password)) {
-            toast.success('Connexion réussie !');
-            navigate(from, { replace: true });
-        } else {
-            setError('Mot de passe incorrect.');
-            toast.error('Mot de passe incorrect.');
-            setIsLoggingIn(false);
-        }
-    }, 300);
+    setLoading(true);
+
+    try {
+      const user = await authenticateUser(username, password);
+      
+      if (user) {
+        login(user);
+        toast.success(`Bienvenue ${user.display_name}!`);
+        navigate('/admin');
+      } else {
+        setError('Nom d\'utilisateur ou mot de passe incorrect');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Une erreur est survenue lors de la connexion');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-            <University className="mx-auto h-12 w-12 text-indigo-600" />
-            <CardTitle className="mt-4 text-2xl">Accès Administration</CardTitle>
-            <CardDescription>Veuillez entrer le mot de passe pour continuer.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Logo/Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full mb-4">
+            <Lock className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Administration
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Gestion des examens et surveillances
+          </p>
+        </div>
+
+        {/* Login Form */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              </div>
+            )}
+
             <div>
-              <label htmlFor="password" className="sr-only">Mot de passe</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Nom d'utilisateur
+              </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  id="password"
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="CelineG, CarmenP..."
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mot de passe"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="••••••••"
                   required
-                  className="pl-10"
-                  aria-describedby="password-error"
                 />
               </div>
-              {error && <p id="password-error" className="text-sm text-red-500 mt-2 text-center">{error}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
-                {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                Se connecter
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || !username || !password}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Connexion...
+                </>
+              ) : (
+                'Se connecter'
+              )}
             </Button>
           </form>
-        </CardContent>
-        <CardFooter>
-            <NavLink to="/" className="w-full">
-                <Button variant="outline" className="w-full">
-                    <Home className="mr-2 h-4 w-4" />
-                    Retour à l'accueil
-                </Button>
-            </NavLink>
-        </CardFooter>
-      </Card>
+
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              Utilisateurs autorisés: CelineG, CarmenP, RomaneV, GuillaumeA, MaximeD
+              <br />
+              <span className="text-amber-600 dark:text-amber-400">
+                Mot de passe par défaut: admin123
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default LoginPage;
+}

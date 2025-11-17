@@ -60,6 +60,7 @@ export async function getExistingSubmission(sessionId: string, email: string): P
         .select('*')
         .eq('session_id', sessionId)
         .eq('email', email.toLowerCase())
+        .is('deleted_at', null)  // Exclure les soumissions supprimées
         .limit(1)
         .single();
 
@@ -152,12 +153,14 @@ export async function getDashboardStats() {
     const { count: totalSubmissions, error: submissionsError } = await supabase
         .from('soumissions_disponibilites')
         .select('*', { count: 'exact', head: true })
-        .eq('session_id', activeSession.id);
+        .eq('session_id', activeSession.id)
+        .is('deleted_at', null);
         
     const { data: submissionsForSession, error: submissionsDataError } = await supabase
         .from('soumissions_disponibilites')
         .select('historique_disponibilites')
-        .eq('session_id', activeSession.id);
+        .eq('session_id', activeSession.id)
+        .is('deleted_at', null);
 
     const { count: totalCreneaux, error: creneauxError } = await supabase
         .from('creneaux')
@@ -285,7 +288,7 @@ export async function getDisponibilitesData() {
         return { creneaux: [], soumissions: [], activeSessionName: null };
     }
     const { data: creneaux, error: cError } = await supabase.from('creneaux').select('*').eq('session_id', activeSession.id).order('date_surveillance').order('heure_debut_surveillance');
-    const { data: soumissions, error: sError } = await supabase.from('soumissions_disponibilites').select('*').eq('session_id', activeSession.id);
+    const { data: soumissions, error: sError } = await supabase.from('soumissions_disponibilites').select('*').eq('session_id', activeSession.id).is('deleted_at', null);
 
     if (cError || sError) throw cError || sError;
     return { creneaux: creneaux || [], soumissions: soumissions || [], activeSessionName: activeSession.name };
@@ -299,7 +302,7 @@ export async function getSubmissionStatusData(): Promise<{ soumissions: Soumissi
     if (sessionError || !activeSession) {
         return { soumissions: [], allActiveSurveillants: allActiveSurveillants || [], activeSessionName: null };
     }
-    const { data: soumissions, error: subError } = await supabase.from('soumissions_disponibilites').select('*').eq('session_id', activeSession.id);
+    const { data: soumissions, error: subError } = await supabase.from('soumissions_disponibilites').select('*').eq('session_id', activeSession.id).is('deleted_at', null);
     if (subError) throw subError;
     return { soumissions: soumissions || [], allActiveSurveillants: allActiveSurveillants || [], activeSessionName: activeSession.name };
 }

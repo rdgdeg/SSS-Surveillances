@@ -128,6 +128,7 @@ async function submitToAPI(payload: SubmissionPayload): Promise<SoumissionDispon
     .select('id')
     .eq('session_id', payload.session_id)
     .eq('email', payload.email.toLowerCase().trim())
+    .is('deleted_at', null)
     .single();
 
   const isUpdate = !!existing;

@@ -210,11 +210,15 @@ export async function getExamenById(id: string): Promise<ExamenWithStatus | null
  * Create new examen
  * @param sessionId Session ID
  * @param data Exam form data
+ * @param userId Optional user ID for audit trail
+ * @param username Optional username for audit trail
  * @returns Created exam
  */
 export async function createExamen(
   sessionId: string,
-  data: ExamenFormData
+  data: ExamenFormData,
+  userId?: string,
+  username?: string
 ): Promise<Examen> {
   try {
     const examenData = {
@@ -245,6 +249,19 @@ export async function createExamen(
       throw error;
     }
 
+    // Log audit trail if user info provided
+    if (userId && username && examen) {
+      await supabase.from('audit_log').insert({
+        user_id: userId,
+        username,
+        action: 'create',
+        table_name: 'examens',
+        record_id: examen.id,
+        old_values: null,
+        new_values: examenData,
+      });
+    }
+
     return examen;
   } catch (error) {
     console.error('Error in createExamen:', error);
@@ -256,13 +273,24 @@ export async function createExamen(
  * Update examen
  * @param id Exam ID
  * @param updates Partial exam data to update
+ * @param userId Optional user ID for audit trail
+ * @param username Optional username for audit trail
  * @returns Updated exam
  */
 export async function updateExamen(
   id: string,
-  updates: Partial<ExamenFormData>
+  updates: Partial<ExamenFormData>,
+  userId?: string,
+  username?: string
 ): Promise<Examen> {
   try {
+    // Fetch old values for audit trail
+    const { data: oldExamen } = await supabase
+      .from('examens')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     const updateData: any = {};
 
     if (updates.cours_id !== undefined) updateData.cours_id = updates.cours_id;
@@ -291,6 +319,19 @@ export async function updateExamen(
       throw error;
     }
 
+    // Log audit trail if user info provided
+    if (userId && username && oldExamen) {
+      await supabase.from('audit_log').insert({
+        user_id: userId,
+        username,
+        action: 'update',
+        table_name: 'examens',
+        record_id: id,
+        old_values: oldExamen,
+        new_values: updateData,
+      });
+    }
+
     return examen;
   } catch (error) {
     console.error('Error in updateExamen:', error);
@@ -301,9 +342,18 @@ export async function updateExamen(
 /**
  * Delete examen (cascades to presence declarations)
  * @param id Exam ID
+ * @param userId Optional user ID for audit trail
+ * @param username Optional username for audit trail
  */
-export async function deleteExamen(id: string): Promise<void> {
+export async function deleteExamen(id: string, userId?: string, username?: string): Promise<void> {
   try {
+    // Fetch old values for audit trail
+    const { data: oldExamen } = await supabase
+      .from('examens')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     const { error } = await supabase
       .from('examens')
       .delete()
@@ -312,6 +362,19 @@ export async function deleteExamen(id: string): Promise<void> {
     if (error) {
       console.error('Error deleting examen:', error);
       throw error;
+    }
+
+    // Log audit trail if user info provided
+    if (userId && username && oldExamen) {
+      await supabase.from('audit_log').insert({
+        user_id: userId,
+        username,
+        action: 'delete',
+        table_name: 'examens',
+        record_id: id,
+        old_values: oldExamen,
+        new_values: null,
+      });
     }
   } catch (error) {
     console.error('Error in deleteExamen:', error);

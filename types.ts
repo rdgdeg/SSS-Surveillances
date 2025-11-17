@@ -418,6 +418,9 @@ export interface PresenceFormData {
   enseignant_nom: string;
   enseignant_prenom: string;
   est_present: boolean;
+  type_presence: 'present_full' | 'present_partial' | 'absent';
+  type_examen: 'ecrit' | 'qcm' | 'autre' | null;
+  type_examen_autre?: string;
   nb_surveillants_accompagnants: number;
   noms_accompagnants?: string;
   remarque?: string;

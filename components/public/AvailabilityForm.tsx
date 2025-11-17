@@ -157,7 +157,9 @@ const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: stri
                 </div>
 
                 <div>
-                    <label htmlFor="telephone-check" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Numéro de GSM</label>
+                    <label htmlFor="telephone-check" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Numéro de GSM <span className="text-red-500">*</span>
+                    </label>
                     <Input 
                         id="telephone-check" 
                         name="telephone" 
@@ -260,7 +262,7 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
                 <Input name="prenom" placeholder="Prénom" value={formData.prenom} onChange={onInputChange} required />
                 <Input name="nom" placeholder="Nom" value={formData.nom} onChange={onInputChange} required />
                 <Input name="email" type="email" placeholder="Email UCLouvain" value={formData.email} onChange={onInputChange} required disabled />
-                <Input name="telephone" type="tel" placeholder="Numéro de GSM" value={formData.telephone} onChange={onInputChange} required disabled />
+                <Input name="telephone" type="tel" placeholder="Numéro de GSM *" value={formData.telephone} onChange={onInputChange} required />
                 <Select onValueChange={onSelectChange} defaultValue={formData.type_surveillant}>
                     <SelectTrigger><SelectValue placeholder="Type de surveillant" /></SelectTrigger>
                     <SelectContent>
@@ -697,6 +699,13 @@ const AvailabilityForm: React.FC = () => {
 
     const handleEmailCheck = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validation du téléphone
+        if (!formData.telephone || formData.telephone.trim() === '') {
+            toast.error('Veuillez renseigner votre numéro de GSM');
+            return;
+        }
+        
         setIsCheckingEmail(true);
         try {
             if (!session) {
@@ -708,6 +717,13 @@ const AvailabilityForm: React.FC = () => {
             const existingSubmission = await getExistingSubmission(session.id, formData.email.toLowerCase().trim());
             
             if (existingSubmission) {
+                console.log('📋 Soumission existante trouvée:', {
+                    id: existingSubmission.id,
+                    email: existingSubmission.email,
+                    deleted_at: existingSubmission.deleted_at,
+                    nb_disponibilites: existingSubmission.historique_disponibilites?.length || 0
+                });
+                
                 // Charger les données de la soumission existante
                 setExistingSubmissionId(existingSubmission.id);
                 setHasExistingSubmission(true);
@@ -731,10 +747,12 @@ const AvailabilityForm: React.FC = () => {
                 // Charger les disponibilités existantes
                 const existingAvailabilities: AvailabilityData = {};
                 if (existingSubmission.historique_disponibilites && Array.isArray(existingSubmission.historique_disponibilites)) {
+                    console.log('📅 Chargement de', existingSubmission.historique_disponibilites.length, 'disponibilités');
                     existingSubmission.historique_disponibilites.forEach((disp: any) => {
                         existingAvailabilities[disp.creneau_id] = { available: disp.est_disponible };
                     });
                 }
+                console.log('✅ Disponibilités chargées:', Object.keys(existingAvailabilities).filter(id => existingAvailabilities[id].available).length, 'créneaux sélectionnés');
                 setAvailabilities(prev => ({ ...prev, ...existingAvailabilities }));
                 
                 // Vérifier si c'est aussi un surveillant enregistré
@@ -747,6 +765,7 @@ const AvailabilityForm: React.FC = () => {
                 toast.success('Vos disponibilités ont été chargées ! Vous pouvez les modifier.', { duration: 4000 });
                 setStep(2);
             } else {
+                console.log('❌ Aucune soumission existante trouvée pour', formData.email);
                 // Pas de soumission existante, vérifier si c'est un surveillant enregistré
                 const found = await findSurveillantByEmail(formData.email.toLowerCase().trim());
                 if (found) {

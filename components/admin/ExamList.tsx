@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ExamListProps {
   sessionId: string;
@@ -31,10 +32,11 @@ interface ExamFormData {
 }
 
 export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateExam }: ExamListProps) {
+  const { user } = useAuth();
   const { searchTerm, debouncedTerm, setSearchTerm, isDebouncing } = useDebouncedSearch(300);
   const [filters, setFilters] = useState<ExamenFilters>(initialFilters);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
   const [editingField, setEditingField] = useState<{ examenId: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -71,12 +73,18 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
     try {
       setSaving(true);
-      await updateExamen(examenId, { [field]: editValue || null } as any);
+      await updateExamen(
+        examenId, 
+        { [field]: editValue || null } as any,
+        user?.id,
+        user?.username
+      );
       setEditingField(null);
       refetch();
+      toast.success('Modification enregistrée');
     } catch (err) {
       console.error('Error saving edit:', err);
-      alert('Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -95,11 +103,12 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     }
 
     try {
-      await deleteExamen(examenId);
+      await deleteExamen(examenId, user?.id, user?.username);
+      toast.success('Examen supprimé');
       refetch();
     } catch (err) {
       console.error('Error deleting exam:', err);
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
     }
   };
 
@@ -138,7 +147,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
     try {
       setSaving(true);
-      await createExamen(sessionId, formData);
+      await createExamen(sessionId, formData, user?.id, user?.username);
       toast.success('Examen créé avec succès');
       setShowCreateModal(false);
       refetch();
@@ -174,7 +183,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
     try {
       setSaving(true);
-      await updateExamen(selectedExam.id, formData);
+      await updateExamen(selectedExam.id, formData, user?.id, user?.username);
       toast.success('Examen modifié avec succès');
       setShowEditModal(false);
       setSelectedExam(null);
@@ -185,7 +194,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     } finally {
       setSaving(false);
     }
-  };;
+  };
 
   if (loading && examens.length === 0) {
     return (

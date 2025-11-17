@@ -77,6 +77,7 @@ export async function exportDisponibilites(sessionId: string) {
       historique_disponibilites
     `)
     .eq('session_id', sessionId)
+    .is('deleted_at', null)
     .order('nom, prenom');
 
   if (error) throw error;
@@ -132,6 +133,7 @@ export async function exportDisponibilitesMatriciel(sessionId: string) {
       historique_disponibilites
     `)
     .eq('session_id', sessionId)
+    .is('deleted_at', null)
     .order('nom, prenom');
 
   if (error) throw error;
