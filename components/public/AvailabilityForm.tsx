@@ -124,7 +124,7 @@ const SubmissionInfoBanner: React.FC<{
     );
 });
 
-const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; hasExistingSubmission: boolean; }>(({ onEmailCheck, email, onEmailChange, isChecking, hasExistingSubmission }) => (
+const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; telephone: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onTelephoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; hasExistingSubmission: boolean; }>(({ onEmailCheck, email, telephone, onEmailChange, onTelephoneChange, isChecking, hasExistingSubmission }) => (
     <div className="w-full max-w-md mx-auto py-4">
         <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">Déclaration de Disponibilités</h1>
@@ -154,6 +154,23 @@ const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: stri
                             className="pl-10 h-12 text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
                         />
                     </div>
+                </div>
+
+                <div>
+                    <label htmlFor="telephone-check" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Numéro de GSM</label>
+                    <Input 
+                        id="telephone-check" 
+                        name="telephone" 
+                        type="tel" 
+                        placeholder="0470123456" 
+                        value={telephone} 
+                        onChange={onTelephoneChange} 
+                        required 
+                        className="h-12 text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Ce numéro ne sera visible que par le secrétariat et utilisé uniquement en cas de changement de dernière minute ou pour vous contacter en cas d'absence.
+                    </p>
                 </div>
                 
                 <Button 
@@ -242,20 +259,8 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
             <CardContent className="space-y-4">
                 <Input name="prenom" placeholder="Prénom" value={formData.prenom} onChange={onInputChange} required />
                 <Input name="nom" placeholder="Nom" value={formData.nom} onChange={onInputChange} required />
-                <Input name="email" type="email" placeholder="Email UCLouvain" value={formData.email} onChange={onInputChange} required />
-                <div>
-                    <Input 
-                        name="telephone" 
-                        type="tel" 
-                        placeholder="Numéro de GSM (ex: 0470123456)" 
-                        value={formData.telephone} 
-                        onChange={onInputChange} 
-                        required 
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Ce numéro ne sera visible que par le secrétariat et utilisé uniquement en cas de changement de dernière minute ou pour vous contacter en cas d'absence.
-                    </p>
-                </div>
+                <Input name="email" type="email" placeholder="Email UCLouvain" value={formData.email} onChange={onInputChange} required disabled />
+                <Input name="telephone" type="tel" placeholder="Numéro de GSM" value={formData.telephone} onChange={onInputChange} required disabled />
                 <Select onValueChange={onSelectChange} defaultValue={formData.type_surveillant}>
                     <SelectTrigger><SelectValue placeholder="Type de surveillant" /></SelectTrigger>
                     <SelectContent>
@@ -791,27 +796,12 @@ const AvailabilityForm: React.FC = () => {
             } else if (result.queued) {
                 // Soumission mise en file d'attente (offline ou échec après retries)
                 toast.success(result.message, { duration: 6000 });
-                // Proposer de télécharger une copie locale
-                const shouldDownload = window.confirm(
-                    'Voulez-vous télécharger une copie locale de votre soumission pour vos archives ?'
-                );
-                if (shouldDownload) {
-                    submissionService.downloadLocalCopy(payload);
-                }
             } else {
                 // Échec de la soumission
                 const errorMessage = result.errors && result.errors.length > 0
                     ? result.errors.join(', ')
                     : result.message;
                 toast.error(errorMessage);
-                
-                // Proposer de télécharger une copie locale en cas d'échec
-                const shouldDownload = window.confirm(
-                    'La soumission a échoué. Voulez-vous télécharger une copie locale pour réessayer plus tard ?'
-                );
-                if (shouldDownload) {
-                    submissionService.downloadLocalCopy(payload);
-                }
             }
         } catch(error) {
             console.error('Erreur lors de la soumission:', error);
@@ -845,7 +835,7 @@ const AvailabilityForm: React.FC = () => {
         const selectedCount = Object.keys(availabilities).filter(id => availabilities[id].available).length;
 
         switch (step) {
-            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} onEmailChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
+            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} telephone={formData.telephone} onEmailChange={handleInputChange} onTelephoneChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
             case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} />;
