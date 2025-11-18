@@ -161,8 +161,14 @@ export default function TeacherPresencePage() {
   // Calculate existing submissions stats
   const existingSubmissionsStats = React.useMemo(() => {
     if (!allPresencesForCours || allPresencesForCours.length === 0) {
-      return { count: 0, totalSurveillants: 0, teachers: [] };
+      return { count: 0, totalSurveillants: 0, teachers: [], allSurveillants: 0 };
     }
+
+    // Calculer le total de TOUS les surveillants (y compris l'enseignant actuel)
+    const allSurveillants = allPresencesForCours.reduce(
+      (sum, p) => sum + (p.nb_surveillants_accompagnants || 0),
+      0
+    );
 
     // Exclure la soumission actuelle de l'enseignant si elle existe
     const otherSubmissions = allPresencesForCours.filter(
@@ -183,8 +189,20 @@ export default function TeacherPresencePage() {
       count: otherSubmissions.length,
       totalSurveillants,
       teachers,
+      allSurveillants, // Total incluant tout le monde
     };
   }, [allPresencesForCours, formData.enseignant_email]);
+
+  // Pré-remplir le champ avec le total actuel quand un cours est sélectionné
+  React.useEffect(() => {
+    if (selectedCours && !existingPresence && existingSubmissionsStats.allSurveillants > 0) {
+      // Si d'autres ont déjà encodé, pré-remplir avec le total actuel
+      setFormData(prev => ({
+        ...prev,
+        nb_surveillants_accompagnants: existingSubmissionsStats.allSurveillants,
+      }));
+    }
+  }, [selectedCours, existingPresence, existingSubmissionsStats.allSurveillants]);
 
   const handleSelectCours = (cours: CoursWithExam) => {
     setSelectedCours(cours);
@@ -724,7 +742,7 @@ export default function TeacherPresencePage() {
                     <div className="text-sm text-amber-800 dark:text-amber-300 space-y-2">
                       <p>
                         {existingSubmissionsStats.count} enseignant{existingSubmissionsStats.count > 1 ? 's ont' : ' a'} déjà déclaré{existingSubmissionsStats.count > 1 ? 's' : ''} un total de{' '}
-                        <strong>{existingSubmissionsStats.totalSurveillants} surveillant{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''}</strong> pour ce cours.
+                        <strong>{existingSubmissionsStats.allSurveillants} surveillant{existingSubmissionsStats.allSurveillants > 1 ? 's' : ''}</strong> pour ce cours.
                       </p>
                       <div className="bg-amber-100 dark:bg-amber-900/30 rounded p-2 space-y-1">
                         {existingSubmissionsStats.teachers.map((teacher, idx) => (
@@ -733,8 +751,8 @@ export default function TeacherPresencePage() {
                           </div>
                         ))}
                       </div>
-                      <p className="font-medium">
-                        Vous mettez à jour le nombre total à {formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}.
+                      <p className="font-medium text-blue-900 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
+                        💡 Le champ ci-dessus a été pré-rempli avec le total actuel ({existingSubmissionsStats.allSurveillants}). Vous pouvez le modifier si nécessaire.
                       </p>
                     </div>
                   </div>
