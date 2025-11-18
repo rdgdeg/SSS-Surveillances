@@ -627,19 +627,19 @@ export default function TeacherPresencePage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre de surveillants {formData.type_presence !== 'absent' ? 'accompagnants' : ''}
+                  Nombre total de surveillants pour ce cours
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                   {formData.type_presence === 'present_full' 
-                    ? "Surveillants qui vous accompagneront à l'examen (en plus de vous)"
+                    ? "Nombre total de surveillants nécessaires (en plus de vous)"
                     : formData.type_presence === 'present_partial'
-                    ? "Surveillants qui assureront la surveillance avec vous"
-                    : "Surveillants qui assureront la surveillance de l'examen"}
+                    ? "Nombre total de surveillants nécessaires (vous compris si vous surveillez)"
+                    : "Nombre total de surveillants nécessaires pour assurer la surveillance"}
                 </p>
                 <input
                   type="number"
                   min="0"
-                  max="10"
+                  max="20"
                   value={formData.nb_surveillants_accompagnants}
                   onChange={(e) => setFormData({ ...formData, nb_surveillants_accompagnants: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
@@ -734,8 +734,7 @@ export default function TeacherPresencePage() {
                         ))}
                       </div>
                       <p className="font-medium">
-                        Vous ajoutez {formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}.
-                        Le total sera de <strong>{existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants} surveillant{(existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants) > 1 ? 's' : ''}</strong>.
+                        Vous mettez à jour le nombre total à {formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}.
                       </p>
                     </div>
                   </div>
@@ -754,12 +753,13 @@ export default function TeacherPresencePage() {
                     </h4>
                     <div className="text-sm text-orange-800 dark:text-orange-300 space-y-2">
                       <p>
-                        Vous êtes sur le point d'ajouter <strong>{formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}</strong> à ce cours.
+                        Vous êtes sur le point de définir le nombre total de surveillants à <strong>{formData.nb_surveillants_accompagnants} surveillant{formData.nb_surveillants_accompagnants > 1 ? 's' : ''}</strong> pour ce cours.
                       </p>
-                      <p>
-                        Avec les {existingSubmissionsStats.totalSurveillants} surveillant{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''} déjà déclaré{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''} par d'autres enseignants,
-                        le <strong>total sera de {existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants} surveillant{(existingSubmissionsStats.totalSurveillants + formData.nb_surveillants_accompagnants) > 1 ? 's' : ''}</strong>.
-                      </p>
+                      {existingSubmissionsStats.totalSurveillants > 0 && (
+                        <p>
+                          Note : {existingSubmissionsStats.count} autre{existingSubmissionsStats.count > 1 ? 's' : ''} enseignant{existingSubmissionsStats.count > 1 ? 's ont' : ' a'} déjà déclaré un total de {existingSubmissionsStats.totalSurveillants} surveillant{existingSubmissionsStats.totalSurveillants > 1 ? 's' : ''}.
+                        </p>
+                      )}
                       <p className="font-semibold text-orange-900 dark:text-orange-200">
                         Confirmez-vous ce nombre de surveillants ?
                       </p>
