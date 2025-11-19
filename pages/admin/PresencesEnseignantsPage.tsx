@@ -605,6 +605,83 @@ export default function PresencesEnseignantsPage() {
                             </div>
                           </div>
 
+                          {/* Type d'examen */}
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Type d'examen</p>
+                                <p className="text-sm text-gray-900 dark:text-white">
+                                  {(presence as any).type_examen === 'qcm' && '🔘 QCM'}
+                                  {(presence as any).type_examen === 'qroc_manuel' && '📝 QROC (correction manuelle)'}
+                                  {(presence as any).type_examen === 'qcm_qroc' && '🔘📝 QCM & QROC'}
+                                  {(presence as any).type_examen === 'gradescope' && '💻 Gradescope'}
+                                  {(presence as any).type_examen === 'oral' && '🗣️ Oral'}
+                                  {(presence as any).type_examen === 'travail' && '📄 Travail'}
+                                  {(presence as any).type_examen === 'autre' && `🔧 Autre: ${(presence as any).type_examen_autre || 'Non précisé'}`}
+                                  {!(presence as any).type_examen && '❓ Non renseigné'}
+                                </p>
+                              </div>
+                              
+                              {(presence as any).type_presence && (
+                                <div>
+                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Type de présence</p>
+                                  <p className="text-sm text-gray-900 dark:text-white">
+                                    {(presence as any).type_presence === 'present_full' && '✅ Surveillance complète'}
+                                    {(presence as any).type_presence === 'present_partial' && '⚠️ Présence partielle'}
+                                    {(presence as any).type_presence === 'absent' && '❌ Absent'}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Durée de l'examen */}
+                          {(presence as any).duree_examen_moins_2h && (
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Durée de l'examen</p>
+                              <p className="text-sm text-gray-900 dark:text-white">
+                                ⏱️ {(presence as any).duree_examen_minutes} minutes 
+                                ({Math.floor((presence as any).duree_examen_minutes / 60)}h{(presence as any).duree_examen_minutes % 60 > 0 ? (presence as any).duree_examen_minutes % 60 : ''})
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Informations spécifiques au travail */}
+                          {(presence as any).type_examen === 'travail' && (
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                              <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">📄 Informations sur le travail</p>
+                              <div className="space-y-2">
+                                {(presence as any).travail_date_depot && (
+                                  <div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Date limite de dépôt</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      📅 {new Date((presence as any).travail_date_depot).toLocaleDateString('fr-FR', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                      })}
+                                    </p>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">Mode de dépôt</p>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {(presence as any).travail_en_presentiel ? '🏢 En présentiel' : '💻 En ligne'}
+                                  </p>
+                                </div>
+                                {(presence as any).travail_en_presentiel && (presence as any).travail_bureau && (
+                                  <div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Bureau</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      📍 {(presence as any).travail_bureau}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Surveillants */}
                           <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                             <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 mb-2">
                               <Users className="h-4 w-4 text-purple-600" />

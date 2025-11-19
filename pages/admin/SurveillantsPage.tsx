@@ -5,7 +5,7 @@ import { Input } from '../../components/shared/Input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/shared/Dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
 import { Users, PlusCircle, Edit, Trash2, Search, Loader2, Upload, AlertTriangle } from 'lucide-react';
-import { getSurveillants, createSurveillant, updateSurveillant, deleteSurveillant } from '../../lib/api';
+import { getSurveillants, createSurveillant, updateSurveillant, deleteSurveillant, getSurveillantAttributions } from '../../lib/api';
 import { Surveillant, SurveillantType, SurveillantTypeLabels } from '../../types';
 import toast from 'react-hot-toast';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -202,7 +202,13 @@ const SurveillantRow = memo<{
     onEdit: (s: Surveillant) => void; 
     onDelete: (s: Surveillant) => void;
     onToggleDispense: (s: Surveillant) => void;
-}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete, onToggleDispense }) => (
+    nbAttributions: number;
+}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete, onToggleDispense, nbAttributions }) => {
+    const quotaRemaining = (surveillant.quota_surveillances || 0) - nbAttributions;
+    const isOverQuota = quotaRemaining < 0;
+    const isNearQuota = quotaRemaining >= 0 && quotaRemaining <= 1;
+    
+    return (
     <tr className={`transition-all duration-150 hover:bg-indigo-50/50 dark:hover:bg-gray-800/50 ${!surveillant.is_active ? 'opacity-50' : ''} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-200 dark:ring-indigo-800' : ''}`}>
         <td className="px-3 py-2 whitespace-nowrap">
             <input 
@@ -243,6 +249,16 @@ const SurveillantRow = memo<{
         <td className="px-3 py-2 whitespace-nowrap text-xs text-center font-semibold text-indigo-600 dark:text-indigo-400">
             {surveillant.quota_surveillances ?? 0}
         </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-center">
+            <div className="flex flex-col items-center gap-0.5">
+                <span className={`font-semibold ${isOverQuota ? 'text-red-600 dark:text-red-400' : isNearQuota ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {nbAttributions}
+                </span>
+                <span className={`text-[10px] ${isOverQuota ? 'text-red-500' : isNearQuota ? 'text-amber-500' : 'text-gray-500'}`}>
+                    {isOverQuota ? `+${Math.abs(quotaRemaining)}` : `reste ${quotaRemaining}`}
+                </span>
+            </div>
+        </td>
         <td className="px-3 py-2 whitespace-nowrap text-center">
             <div className="flex justify-center">
                 <Switch 
@@ -264,11 +280,12 @@ const SurveillantRow = memo<{
             </div>
         </td>
     </tr>
-));
+)});
 
 
 const SurveillantsPage: React.FC = () => {
     const { data: surveillants, isLoading, refetch } = useDataFetching(getSurveillants, []);
+    const [attributions, setAttributions] = useState<Map<string, number>>(new Map());
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -282,6 +299,19 @@ const SurveillantsPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [updatingDispenseIds, setUpdatingDispenseIds] = useState<Set<string>>(new Set());
     const ITEMS_PER_PAGE = 25;
+
+    // Charger les attributions de surveillances
+    useEffect(() => {
+        const loadAttributions = async () => {
+            try {
+                const data = await getSurveillantAttributions();
+                setAttributions(data);
+            } catch (error) {
+                console.error('Erreur lors du chargement des attributions:', error);
+            }
+        };
+        loadAttributions();
+    }, []);
 
     
     const handleSave = useCallback(() => {
@@ -581,16 +611,18 @@ const SurveillantsPage: React.FC = () => {
                             <table className="w-full table-auto">
                             <colgroup>
                                 <col style={{ width: '3%' }} />
-                                <col style={{ width: '16%' }} />
-                                <col style={{ width: '18%' }} />
-                                <col style={{ width: '9%' }} />
+                                <col style={{ width: '15%' }} />
+                                <col style={{ width: '17%' }} />
+                                <col style={{ width: '8%' }} />
                                 <col style={{ width: '7%' }} />
-                                <col style={{ width: '7%' }} />
                                 <col style={{ width: '6%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '5%' }} />
                                 <col style={{ width: '6%' }} />
-                                <col style={{ width: '6%' }} />
-                                <col style={{ width: '6%' }} />
-                                <col style={{ width: '16%' }} />
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '13%' }} />
                             </colgroup>
                             <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0 z-10">
                                 <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -611,6 +643,7 @@ const SurveillantsPage: React.FC = () => {
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">EFT T.</th>
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">EFT R.</th>
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Quota</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Attrib.</th>
                                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Dispense</th>
                                     <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -625,6 +658,7 @@ const SurveillantsPage: React.FC = () => {
                                         onEdit={handleEdit} 
                                         onDelete={openDeleteConfirmation}
                                         onToggleDispense={handleToggleDispense}
+                                        nbAttributions={attributions.get(s.id) || 0}
                                     />
                                 ))}
                             </tbody>

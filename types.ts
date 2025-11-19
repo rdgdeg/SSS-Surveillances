@@ -351,7 +351,7 @@ export interface Examen {
 }
 
 export type PresenceType = 'present_full' | 'present_partial' | 'absent';
-export type ExamType = 'ecrit' | 'qcm' | 'autre';
+export type ExamType = 'qcm' | 'qroc_manuel' | 'qcm_qroc' | 'gradescope' | 'oral' | 'travail' | 'autre';
 
 export interface PresenceEnseignant {
   id: string;
@@ -365,6 +365,10 @@ export interface PresenceEnseignant {
   type_presence: PresenceType;
   type_examen: ExamType | null;
   type_examen_autre: string | null;
+  // Champs spécifiques pour le type "travail"
+  travail_date_depot?: string | null; // Date limite de dépôt
+  travail_en_presentiel?: boolean | null; // Si le travail est en présentiel
+  travail_bureau?: string | null; // Bureau si en présentiel
   nb_surveillants_accompagnants: number;
   noms_accompagnants: string | null;
   remarque: string | null;
@@ -419,8 +423,12 @@ export interface PresenceFormData {
   enseignant_prenom: string;
   est_present: boolean;
   type_presence: 'present_full' | 'present_partial' | 'absent';
-  type_examen: 'ecrit' | 'qcm' | 'autre' | null;
+  type_examen: 'qcm' | 'qroc_manuel' | 'qcm_qroc' | 'gradescope' | 'oral' | 'travail' | 'autre' | null;
   type_examen_autre?: string;
+  // Champs spécifiques pour le type "travail"
+  travail_date_depot?: string;
+  travail_en_presentiel?: boolean;
+  travail_bureau?: string;
   nb_surveillants_accompagnants: number;
   noms_accompagnants?: string;
   remarque?: string;

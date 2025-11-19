@@ -43,8 +43,11 @@ export default function TeacherPresencePage() {
     enseignant_prenom: '',
     est_present: true,
     type_presence: 'present_full' as 'present_full' | 'present_partial' | 'absent',
-    type_examen: null as 'ecrit' | 'qcm' | 'autre' | null,
+    type_examen: null as 'qcm' | 'qroc_manuel' | 'qcm_qroc' | 'gradescope' | 'oral' | 'travail' | 'autre' | null,
     type_examen_autre: '',
+    travail_date_depot: '',
+    travail_en_presentiel: false,
+    travail_bureau: '',
     duree_examen_moins_2h: false,
     duree_examen_minutes: 120,
     nb_surveillants_accompagnants: 0,
@@ -146,6 +149,9 @@ export default function TeacherPresencePage() {
         type_presence: (existingPresence as any).type_presence || (existingPresence.est_present ? 'present_full' : 'absent'),
         type_examen: (existingPresence as any).type_examen || null,
         type_examen_autre: (existingPresence as any).type_examen_autre || '',
+        travail_date_depot: (existingPresence as any).travail_date_depot || '',
+        travail_en_presentiel: (existingPresence as any).travail_en_presentiel || false,
+        travail_bureau: (existingPresence as any).travail_bureau || '',
         duree_examen_moins_2h: (existingPresence as any).duree_examen_moins_2h || false,
         duree_examen_minutes: (existingPresence as any).duree_examen_minutes || 120,
         nb_surveillants_accompagnants: existingPresence.nb_surveillants_accompagnants,
@@ -240,6 +246,17 @@ export default function TeacherPresencePage() {
       return;
     }
 
+    if (formData.type_examen === 'travail') {
+      if (!formData.travail_date_depot) {
+        toast.error('Veuillez indiquer la date limite de dépôt du travail');
+        return;
+      }
+      if (formData.travail_en_presentiel && !formData.travail_bureau?.trim()) {
+        toast.error('Veuillez indiquer le bureau pour le dépôt en présentiel');
+        return;
+      }
+    }
+
     // Si d'autres enseignants ont déjà soumis et qu'on n'a pas encore confirmé, afficher la confirmation
     if (existingSubmissionsStats.count > 0 && !showConfirmation && !existingPresence) {
       setShowConfirmation(true);
@@ -273,6 +290,9 @@ export default function TeacherPresencePage() {
         type_presence: 'present_full',
         type_examen: null,
         type_examen_autre: '',
+        travail_date_depot: '',
+        travail_en_presentiel: false,
+        travail_bureau: '',
         duree_examen_moins_2h: false,
         duree_examen_minutes: 120,
         nb_surveillants_accompagnants: 0,
@@ -653,56 +673,95 @@ export default function TeacherPresencePage() {
 
             {/* Exam Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Type d'examen *
               </label>
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type_examen: 'ecrit', type_examen_autre: '' })}
-                    className={`p-3 border-2 rounded-lg transition-all ${
-                      formData.type_examen === 'ecrit'
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <span className="font-medium">Examen écrit</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type_examen: 'qcm', type_examen_autre: '' })}
-                    className={`p-3 border-2 rounded-lg transition-all ${
-                      formData.type_examen === 'qcm'
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <span className="font-medium">QCM</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type_examen: 'autre' })}
-                    className={`p-3 border-2 rounded-lg transition-all ${
-                      formData.type_examen === 'autre'
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <span className="font-medium">Autre</span>
-                  </button>
-                </div>
-                {formData.type_examen === 'autre' && (
+              <select
+                value={formData.type_examen || ''}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  type_examen: e.target.value as any,
+                  type_examen_autre: e.target.value !== 'autre' ? '' : formData.type_examen_autre,
+                  travail_date_depot: e.target.value !== 'travail' ? '' : formData.travail_date_depot,
+                  travail_en_presentiel: e.target.value !== 'travail' ? false : formData.travail_en_presentiel,
+                  travail_bureau: e.target.value !== 'travail' ? '' : formData.travail_bureau,
+                })}
+                required
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">-- Sélectionnez le type d'examen --</option>
+                <option value="qcm">QCM</option>
+                <option value="qroc_manuel">QROC (correction manuelle)</option>
+                <option value="qcm_qroc">QCM & QROC</option>
+                <option value="gradescope">Gradescope</option>
+                <option value="oral">Oral</option>
+                <option value="travail">Travail</option>
+                <option value="autre">Autre (à préciser)</option>
+              </select>
+
+              {/* Champ de précision pour "Autre" */}
+              {formData.type_examen === 'autre' && (
+                <div className="mt-3">
                   <input
                     type="text"
-                    placeholder="Précisez le type d'examen (ex: Oral, QROC avec Gradescope, etc.)..."
+                    placeholder="Précisez le type d'examen..."
                     value={formData.type_examen_autre}
                     onChange={(e) => setFormData({ ...formData, type_examen_autre: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                     required
                   />
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Champs spécifiques pour "Travail" */}
+              {formData.type_examen === 'travail' && (
+                <div className="mt-4 space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Date limite de dépôt *
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.travail_date_depot}
+                      onChange={(e) => setFormData({ ...formData, travail_date_depot: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-blue-100 dark:hover:bg-blue-900/30">
+                      <input
+                        type="checkbox"
+                        checked={formData.travail_en_presentiel}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          travail_en_presentiel: e.target.checked,
+                          travail_bureau: e.target.checked ? formData.travail_bureau : ''
+                        })}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium">Dépôt en présentiel</span>
+                    </label>
+                  </div>
+
+                  {formData.travail_en_presentiel && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Bureau pour le dépôt *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Bureau 123, Bâtiment A"
+                        value={formData.travail_bureau}
+                        onChange={(e) => setFormData({ ...formData, travail_bureau: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Exam Duration */}

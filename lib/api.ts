@@ -709,3 +709,29 @@ export async function revokeShareToken(token: string): Promise<void> {
 
   if (error) throw error;
 }
+
+/**
+ * Récupérer le nombre d'attributions de surveillances pour chaque surveillant
+ * @returns Map avec l'ID du surveillant comme clé et le nombre d'attributions comme valeur
+ */
+export async function getSurveillantAttributions(): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from('examen_auditoires')
+    .select('surveillants');
+
+  if (error) throw error;
+
+  // Compter les occurrences de chaque surveillant
+  const attributions = new Map<string, number>();
+  
+  (data || []).forEach(auditoire => {
+    if (auditoire.surveillants && Array.isArray(auditoire.surveillants)) {
+      auditoire.surveillants.forEach((surveillantId: string) => {
+        const count = attributions.get(surveillantId) || 0;
+        attributions.set(surveillantId, count + 1);
+      });
+    }
+  });
+
+  return attributions;
+}
