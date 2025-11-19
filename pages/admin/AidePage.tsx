@@ -462,14 +462,6 @@ export default function AidePage() {
         })}
       </div>
 
-      <div className="mt-8 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-6">
-        <h3 className="font-semibold text-indigo-900 dark:text-indigo-200 mb-2">
-          Besoin d'aide supplémentaire ?
-        </h3>
-        <p className="text-sm text-indigo-800 dark:text-indigo-300">
-          Pour toute question ou assistance, contactez le secrétariat au <strong>02/436.16.89</strong>
-        </p>
-      </div>
     </div>
   );
 }

@@ -30,6 +30,9 @@ export default function PresencesEnseignantsPage() {
   const [selectedCours, setSelectedCours] = useState<CoursWithPresence | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingPresenceId, setEditingPresenceId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [isSaving, setIsSaving] = useState(false);
   const itemsPerPage = 25;
 
   const { data: activeSession, isLoading: isLoadingSession } = useActiveSession();
@@ -518,68 +521,172 @@ export default function PresencesEnseignantsPage() {
                 </h3>
                 {selectedCours.presences.length > 0 ? (
                   <div className="space-y-3">
-                    {selectedCours.presences.map((presence) => (
-                      <div
-                        key={presence.id}
-                        className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">
-                              {presence.enseignant_prenom} {presence.enseignant_nom}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {presence.enseignant_email}
-                            </p>
-                          </div>
-                          {presence.est_present ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
-                              <CheckCircle className="h-3 w-3" />
-                              Présent
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
-                              <XCircle className="h-3 w-3" />
-                              Absent
-                            </span>
-                          )}
-                        </div>
-
-                        {presence.nb_surveillants_accompagnants > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                              <Users className="h-4 w-4 text-purple-600" />
-                              <span className="font-medium">
-                                {presence.nb_surveillants_accompagnants} surveillant(s)
-                              </span>
+                    {selectedCours.presences.map((presence) => {
+                      const isEditing = editingPresenceId === presence.id;
+                      
+                      const handleEdit = () => {
+                        setEditingPresenceId(presence.id);
+                        setEditFormData({
+                          est_present: presence.est_present,
+                          nb_surveillants_accompagnants: presence.nb_surveillants_accompagnants || 0,
+                          noms_accompagnants: presence.noms_accompagnants || '',
+                          remarque: presence.remarque || '',
+                        });
+                      };
+                      
+                      const handleSave = async () => {
+                        setIsSaving(true);
+                        try {
+                          const { error } = await supabase
+                            .from('presences_enseignants')
+                            .update(editFormData)
+                            .eq('id', presence.id);
+                          
+                          if (error) throw error;
+                          
+                          setEditingPresenceId(null);
+                          handleRefresh();
+                        } catch (err) {
+                          console.error('Error updating presence:', err);
+                          alert('Erreur lors de la mise à jour');
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      };
+                      
+                      const handleCancel = () => {
+                        setEditingPresenceId(null);
+                        setEditFormData({});
+                      };
+                      
+                      return (
+                        <div
+                          key={presence.id}
+                          className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {presence.enseignant_prenom} {presence.enseignant_nom}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {presence.enseignant_email}
+                              </p>
                             </div>
-                            {presence.noms_accompagnants && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ml-6 whitespace-pre-line">
+                            <div className="flex items-center gap-2">
+                              {isEditing ? (
+                                <select
+                                  value={editFormData.est_present ? 'true' : 'false'}
+                                  onChange={(e) => setEditFormData({ ...editFormData, est_present: e.target.value === 'true' })}
+                                  className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                >
+                                  <option value="true">Présent</option>
+                                  <option value="false">Absent</option>
+                                </select>
+                              ) : presence.est_present ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Présent
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
+                                  <XCircle className="h-3 w-3" />
+                                  Absent
+                                </span>
+                              )}
+                              {!isEditing && (
+                                <button
+                                  onClick={handleEdit}
+                                  className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs"
+                                >
+                                  Modifier
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 mb-2">
+                              <Users className="h-4 w-4 text-purple-600" />
+                              <span className="font-medium">Surveillants accompagnants:</span>
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={editFormData.nb_surveillants_accompagnants}
+                                  onChange={(e) => setEditFormData({ ...editFormData, nb_surveillants_accompagnants: parseInt(e.target.value) || 0 })}
+                                  className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                />
+                              ) : (
+                                <span>{presence.nb_surveillants_accompagnants || 0}</span>
+                              )}
+                            </div>
+                            {isEditing ? (
+                              <textarea
+                                value={editFormData.noms_accompagnants}
+                                onChange={(e) => setEditFormData({ ...editFormData, noms_accompagnants: e.target.value })}
+                                placeholder="Noms des surveillants"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                rows={2}
+                              />
+                            ) : presence.noms_accompagnants && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 ml-6 whitespace-pre-line">
                                 {presence.noms_accompagnants}
                               </p>
                             )}
                           </div>
-                        )}
 
-                        {presence.remarque && (
-                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              <span className="font-medium">Remarque:</span> {presence.remarque}
-                            </p>
+                          {(isEditing || presence.remarque) && (
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Remarque:</p>
+                              {isEditing ? (
+                                <textarea
+                                  value={editFormData.remarque}
+                                  onChange={(e) => setEditFormData({ ...editFormData, remarque: e.target.value })}
+                                  placeholder="Remarques"
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                  rows={2}
+                                />
+                              ) : (
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {presence.remarque}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {isEditing && (
+                            <div className="mt-4 flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={handleSave}
+                                disabled={isSaving}
+                              >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enregistrer'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancel}
+                                disabled={isSaving}
+                              >
+                                Annuler
+                              </Button>
+                            </div>
+                          )}
+
+                          <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
+                            Soumis le {new Date(presence.submitted_at).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </div>
-                        )}
-
-                        <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
-                          Soumis le {new Date(presence.submitted_at).toLocaleDateString('fr-FR', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg">

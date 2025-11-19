@@ -224,7 +224,7 @@ const CreneauView: React.FC<{
     }, [creneaux, soumissions, availabilityMap]);
 
     return (
-        <div className="overflow-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
+        <div className="overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
@@ -308,7 +308,7 @@ const SurveillantView: React.FC<{
     onShowHistory: (submission: SoumissionDisponibilite) => void;
 }> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle, onShowHistory }) => {
     return (
-        <div className="overflow-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
+        <div className="overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>

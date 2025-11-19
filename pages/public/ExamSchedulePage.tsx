@@ -16,10 +16,12 @@ import ExamenSurveillants from '../../components/public/ExamenSurveillants';
 
 interface Examen {
   id: string;
+  date_examen: string;
   heure_debut: string;
   heure_fin: string;
-  local: string;
-  nb_etudiants: number;
+  auditoires: string;
+  code_examen: string;
+  nom_examen: string;
   cours: {
     code: string;
     intitule_complet: string;
@@ -45,16 +47,19 @@ export default function ExamSchedulePage() {
         .from('examens')
         .select(`
           id,
+          date_examen,
           heure_debut,
           heure_fin,
-          local,
-          nb_etudiants,
+          auditoires,
+          code_examen,
+          nom_examen,
           cours:cours_id (
             code,
             intitule_complet
           )
         `)
         .eq('session_id', activeSession.id)
+        .order('date_examen', { ascending: true })
         .order('heure_debut', { ascending: true });
       
       if (error) {
@@ -77,12 +82,16 @@ export default function ExamSchedulePage() {
     const search = searchTerm.toLowerCase();
     const coursCode = examen.cours?.code?.toLowerCase() || '';
     const coursIntitule = examen.cours?.intitule_complet?.toLowerCase() || '';
-    const local = examen.local?.toLowerCase() || '';
+    const codeExamen = examen.code_examen?.toLowerCase() || '';
+    const nomExamen = examen.nom_examen?.toLowerCase() || '';
+    const auditoires = examen.auditoires?.toLowerCase() || '';
     
     return (
       coursCode.includes(search) ||
       coursIntitule.includes(search) ||
-      local.includes(search)
+      codeExamen.includes(search) ||
+      nomExamen.includes(search) ||
+      auditoires.includes(search)
     );
   });
 
@@ -195,20 +204,22 @@ export default function ExamSchedulePage() {
                           <div className="flex items-start gap-3 mb-3">
                             <BookOpen className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                             <div>
-                              {examen.cours ? (
-                                <>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs font-bold">
-                                      {examen.cours.code}
-                                    </span>
-                                  </div>
-                                  <p className="font-medium text-gray-900 dark:text-white">
-                                    {examen.cours.intitule_complet}
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="text-gray-500 dark:text-gray-400 italic">
-                                  Cours non spécifié
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs font-bold">
+                                  {examen.code_examen}
+                                </span>
+                                {examen.cours && (
+                                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded text-xs">
+                                    {examen.cours.code}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {examen.nom_examen}
+                              </p>
+                              {examen.cours && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                  {examen.cours.intitule_complet}
                                 </p>
                               )}
                             </div>
@@ -216,20 +227,29 @@ export default function ExamSchedulePage() {
 
                           {/* Details */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-8">
+                            {examen.date_examen && (
+                              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                  {new Date(examen.date_examen).toLocaleDateString('fr-FR', {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                               <Clock className="h-4 w-4" />
                               <span>
-                                {examen.heure_debut} - {examen.heure_fin}
+                                {examen.heure_debut || '--:--'} - {examen.heure_fin || '--:--'}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                              <MapPin className="h-4 w-4" />
-                              <span>{examen.local || 'Local non spécifié'}</span>
-                            </div>
-                            {examen.nb_etudiants > 0 && (
+                            {examen.auditoires && (
                               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <Users className="h-4 w-4" />
-                                <span>{examen.nb_etudiants} étudiant{examen.nb_etudiants > 1 ? 's' : ''}</span>
+                                <MapPin className="h-4 w-4" />
+                                <span>{examen.auditoires}</span>
                               </div>
                             )}
                           </div>
