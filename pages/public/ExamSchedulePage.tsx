@@ -27,6 +27,10 @@ interface Examen {
   code_examen: string;
   nom_examen: string;
   secretariat: string;
+  utiliser_consignes_specifiques: boolean;
+  consignes_specifiques_arrivee: string;
+  consignes_specifiques_mise_en_place: string;
+  consignes_specifiques_generales: string;
   cours: {
     code: string;
     intitule_complet: string;
@@ -69,6 +73,10 @@ export default function ExamSchedulePage() {
           code_examen,
           nom_examen,
           secretariat,
+          utiliser_consignes_specifiques,
+          consignes_specifiques_arrivee,
+          consignes_specifiques_mise_en_place,
+          consignes_specifiques_generales,
           cours:cours_id (
             code,
             intitule_complet
@@ -414,8 +422,8 @@ export default function ExamSchedulePage() {
                             )}
                           </div>
 
-                          {/* Consignes Secrétariat */}
-                          {consignes && (
+                          {/* Consignes Secrétariat ou Spécifiques */}
+                          {(examen.utiliser_consignes_specifiques || consignes) && (
                             <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -423,23 +431,48 @@ export default function ExamSchedulePage() {
                                   <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
                                     Consignes pour les surveillants
                                   </p>
-                                  <p className="text-blue-800 dark:text-blue-300 mb-1">
-                                    <strong>{consignes.nom_secretariat}</strong>
-                                  </p>
-                                  {consignes.consignes_arrivee && (
-                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                      {consignes.consignes_arrivee}
-                                    </p>
-                                  )}
-                                  {consignes.consignes_mise_en_place && (
-                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                      <strong>Mise en place :</strong> {consignes.consignes_mise_en_place}
-                                    </p>
-                                  )}
-                                  {consignes.consignes_generales && (
-                                    <p className="text-blue-700 dark:text-blue-300">
-                                      {consignes.consignes_generales}
-                                    </p>
+                                  {examen.utiliser_consignes_specifiques ? (
+                                    <>
+                                      <p className="text-blue-800 dark:text-blue-300 mb-1">
+                                        <strong>Consignes spécifiques pour cet examen</strong>
+                                      </p>
+                                      {examen.consignes_specifiques_arrivee && (
+                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                          {examen.consignes_specifiques_arrivee}
+                                        </p>
+                                      )}
+                                      {examen.consignes_specifiques_mise_en_place && (
+                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                          <strong>Mise en place :</strong> {examen.consignes_specifiques_mise_en_place}
+                                        </p>
+                                      )}
+                                      {examen.consignes_specifiques_generales && (
+                                        <p className="text-blue-700 dark:text-blue-300">
+                                          {examen.consignes_specifiques_generales}
+                                        </p>
+                                      )}
+                                    </>
+                                  ) : consignes && (
+                                    <>
+                                      <p className="text-blue-800 dark:text-blue-300 mb-1">
+                                        <strong>{consignes.nom_secretariat}</strong>
+                                      </p>
+                                      {consignes.consignes_arrivee && (
+                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                          {consignes.consignes_arrivee}
+                                        </p>
+                                      )}
+                                      {consignes.consignes_mise_en_place && (
+                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                          <strong>Mise en place :</strong> {consignes.consignes_mise_en_place}
+                                        </p>
+                                      )}
+                                      {consignes.consignes_generales && (
+                                        <p className="text-blue-700 dark:text-blue-300">
+                                          {consignes.consignes_generales}
+                                        </p>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               </div>

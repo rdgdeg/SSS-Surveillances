@@ -4,12 +4,13 @@ import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { Pagination } from '../shared/Pagination';
 import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
-import { Plus, Edit2, Trash2, X, Save, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Users, FileText } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
 import { useAuth } from '../../contexts/AuthContext';
 import ExamenAuditoiresModal from './ExamenAuditoiresModal';
+import ExamenConsignesModal from './ExamenConsignesModal';
 
 interface ExamListProps {
   sessionId: string;
@@ -45,6 +46,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState<ExamenWithStatus | null>(null);
   const [showAuditoiresModal, setShowAuditoiresModal] = useState<{ id: string; nom: string } | null>(null);
+  const [showConsignesModal, setShowConsignesModal] = useState<ExamenWithStatus | null>(null);
   const [formData, setFormData] = useState<ExamFormData>({
     cours_id: null,
     code_examen: '',
@@ -598,6 +600,13 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                         <Edit2 className="h-5 w-5" />
                       </button>
                       <button
+                        onClick={() => setShowConsignesModal(examen)}
+                        className="text-purple-600 hover:text-purple-900 mr-3"
+                        title="Consignes spécifiques"
+                      >
+                        <FileText className="h-5 w-5" />
+                      </button>
+                      <button
                         onClick={() => handleDelete(examen.id, examen.code_examen)}
                         className="text-red-600 hover:text-red-900"
                         title="Supprimer"
@@ -923,6 +932,18 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
           examenId={showAuditoiresModal.id}
           examenNom={showAuditoiresModal.nom}
           onClose={() => setShowAuditoiresModal(null)}
+        />
+      )}
+
+      {/* Modal Consignes Spécifiques */}
+      {showConsignesModal && (
+        <ExamenConsignesModal
+          examen={showConsignesModal}
+          onClose={() => setShowConsignesModal(null)}
+          onSave={() => {
+            refetch();
+            setShowConsignesModal(null);
+          }}
         />
       )}
     </div>
