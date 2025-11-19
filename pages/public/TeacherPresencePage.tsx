@@ -337,7 +337,7 @@ export default function TeacherPresencePage() {
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
               <p className="font-bold text-indigo-900 dark:text-indigo-200">
-                Informations importantes du secrétariat
+                Informations importantes du secrétariat de Médecine et Médecine Dentaire
               </p>
             </div>
             {showInstructions ? (

@@ -31,10 +31,15 @@ export default function ExamSchedulePage() {
   const { data: activeSession } = useActiveSession();
 
   // Fetch examens
-  const { data: examens, isLoading } = useQuery({
+  const { data: examens, isLoading, error: queryError } = useQuery({
     queryKey: ['public-examens', activeSession?.id],
     queryFn: async () => {
-      if (!activeSession?.id) return [];
+      if (!activeSession?.id) {
+        console.log('❌ Pas de session active');
+        return [];
+      }
+      
+      console.log('🔍 Recherche des examens pour la session:', activeSession.id, activeSession.name);
       
       const { data, error } = await supabase
         .from('examens')
@@ -54,7 +59,14 @@ export default function ExamSchedulePage() {
         .order('date', { ascending: true })
         .order('heure_debut', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors de la récupération des examens:', error);
+        throw error;
+      }
+      
+      console.log('✅ Examens récupérés:', data?.length || 0, 'examens');
+      console.log('📋 Données:', data);
+      
       return (data || []) as unknown as Examen[];
     },
     enabled: !!activeSession?.id,
@@ -142,6 +154,31 @@ export default function ExamSchedulePage() {
           </div>
         </div>
 
+        {/* Debug Info */}
+        {activeSession && (
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 text-xs">
+            <p className="text-gray-600 dark:text-gray-400">
+              <strong>Debug:</strong> Session ID: {activeSession.id} | 
+              Examens chargés: {examens?.length || 0} | 
+              Loading: {isLoading ? 'Oui' : 'Non'}
+              {queryError && ` | Erreur: ${queryError}`}
+            </p>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {queryError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3 text-red-800 dark:text-red-200">
+              <AlertCircle className="h-6 w-6" />
+              <div>
+                <p className="font-medium">Erreur lors du chargement des examens</p>
+                <p className="text-sm mt-1">{String(queryError)}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -220,12 +257,12 @@ export default function ExamSchedulePage() {
                         </div>
 
                         {/* Right: Surveillants (placeholder) */}
-                        <div className="md:w-64 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                        <div className="md:w-64 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                          <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">
                             Surveillants
                           </p>
-                          <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-                            À venir...
+                          <p className="text-xs text-amber-600 dark:text-amber-500">
+                            Session en cours d'attribution
                           </p>
                         </div>
                       </div>
