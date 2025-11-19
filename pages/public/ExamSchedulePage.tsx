@@ -27,10 +27,10 @@ interface Examen {
   code_examen: string;
   nom_examen: string;
   secretariat: string;
-  utiliser_consignes_specifiques: boolean;
-  consignes_specifiques_arrivee: string;
-  consignes_specifiques_mise_en_place: string;
-  consignes_specifiques_generales: string;
+  utiliser_consignes_specifiques?: boolean;
+  consignes_specifiques_arrivee?: string;
+  consignes_specifiques_mise_en_place?: string;
+  consignes_specifiques_generales?: string;
   cours: {
     code: string;
     intitule_complet: string;
@@ -62,7 +62,8 @@ export default function ExamSchedulePage() {
     queryFn: async () => {
       if (!activeSession?.id) return [];
       
-      const { data, error } = await supabase
+      // Try to select with new columns, fallback to basic columns if they don't exist yet
+      let query = supabase
         .from('examens')
         .select(`
           id,
@@ -73,10 +74,6 @@ export default function ExamSchedulePage() {
           code_examen,
           nom_examen,
           secretariat,
-          utiliser_consignes_specifiques,
-          consignes_specifiques_arrivee,
-          consignes_specifiques_mise_en_place,
-          consignes_specifiques_generales,
           cours:cours_id (
             code,
             intitule_complet
@@ -85,6 +82,41 @@ export default function ExamSchedulePage() {
         .eq('session_id', activeSession.id)
         .order('date_examen', { ascending: true })
         .order('heure_debut', { ascending: true });
+
+      const { data, error } = await query;
+      
+      // If successful, try to fetch consignes specifiques separately if columns exist
+      if (data && !error) {
+        try {
+          const { data: dataWithConsignes } = await supabase
+            .from('examens')
+            .select(`
+              id,
+              utiliser_consignes_specifiques,
+              consignes_specifiques_arrivee,
+              consignes_specifiques_mise_en_place,
+              consignes_specifiques_generales
+            `)
+            .eq('session_id', activeSession.id);
+          
+          // Merge consignes data if available
+          if (dataWithConsignes) {
+            const consignesMap = new Map(dataWithConsignes.map(c => [c.id, c]));
+            data.forEach((exam: any) => {
+              const consignes = consignesMap.get(exam.id);
+              if (consignes) {
+                exam.utiliser_consignes_specifiques = consignes.utiliser_consignes_specifiques;
+                exam.consignes_specifiques_arrivee = consignes.consignes_specifiques_arrivee;
+                exam.consignes_specifiques_mise_en_place = consignes.consignes_specifiques_mise_en_place;
+                exam.consignes_specifiques_generales = consignes.consignes_specifiques_generales;
+              }
+            });
+          }
+        } catch (consignesError) {
+          // Columns don't exist yet, that's ok - consignes will just not be available
+          console.log('Consignes spécifiques columns not yet available');
+        }
+      }
       
       if (error) throw error;
       return (data || []) as unknown as Examen[];
