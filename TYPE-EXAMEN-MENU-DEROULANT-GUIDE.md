@@ -18,9 +18,9 @@ Le formulaire de déclaration de présence enseignant a été mis à jour pour r
 
 Lorsque l'enseignant sélectionne "Travail", des champs supplémentaires apparaissent :
 
-- **Date limite de dépôt** (obligatoire) : Date à laquelle le travail doit être rendu
-- **Dépôt en présentiel** (case à cocher) : Indique si le travail doit être déposé physiquement
-- **Bureau pour le dépôt** (obligatoire si présentiel) : Localisation du bureau où déposer le travail
+- **Date limite de remise** (obligatoire) : Date à laquelle le travail doit être rendu
+- **Travail en présentiel** (case à cocher) : Indique si le travail se fait en présentiel
+- **Bureau** (obligatoire si présentiel) : Localisation du bureau pour le travail en présentiel
 
 ## Fichiers modifiés
 

@@ -248,11 +248,11 @@ export default function TeacherPresencePage() {
 
     if (formData.type_examen === 'travail') {
       if (!formData.travail_date_depot) {
-        toast.error('Veuillez indiquer la date limite de dépôt du travail');
+        toast.error('Veuillez indiquer la date limite de remise du travail');
         return;
       }
       if (formData.travail_en_presentiel && !formData.travail_bureau?.trim()) {
-        toast.error('Veuillez indiquer le bureau pour le dépôt en présentiel');
+        toast.error('Veuillez indiquer le bureau pour le travail en présentiel');
         return;
       }
     }
@@ -718,7 +718,7 @@ export default function TeacherPresencePage() {
                 <div className="mt-4 space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Date limite de dépôt *
+                      Date limite de remise *
                     </label>
                     <input
                       type="date"
@@ -741,14 +741,14 @@ export default function TeacherPresencePage() {
                         })}
                         className="rounded"
                       />
-                      <span className="text-sm font-medium">Dépôt en présentiel</span>
+                      <span className="text-sm font-medium">Travail en présentiel</span>
                     </label>
                   </div>
 
                   {formData.travail_en_presentiel && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Bureau pour le dépôt *
+                        Bureau *
                       </label>
                       <input
                         type="text"

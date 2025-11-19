@@ -44,6 +44,6 @@ CREATE INDEX IF NOT EXISTS idx_presences_travail_date ON presences_enseignants(t
 
 -- Commentaires pour la documentation
 COMMENT ON COLUMN presences_enseignants.type_examen IS 'Type d''examen: qcm, qroc_manuel (correction manuelle), qcm_qroc, gradescope, oral, travail, autre';
-COMMENT ON COLUMN presences_enseignants.travail_date_depot IS 'Date limite de dépôt du travail (uniquement si type_examen = travail)';
-COMMENT ON COLUMN presences_enseignants.travail_en_presentiel IS 'Indique si le travail doit être déposé en présentiel (uniquement si type_examen = travail)';
-COMMENT ON COLUMN presences_enseignants.travail_bureau IS 'Bureau où déposer le travail si en présentiel (uniquement si type_examen = travail et travail_en_presentiel = true)';
+COMMENT ON COLUMN presences_enseignants.travail_date_depot IS 'Date limite de remise du travail (uniquement si type_examen = travail)';
+COMMENT ON COLUMN presences_enseignants.travail_en_presentiel IS 'Indique si le travail se fait en présentiel (uniquement si type_examen = travail)';
+COMMENT ON COLUMN presences_enseignants.travail_bureau IS 'Bureau pour le travail en présentiel (uniquement si type_examen = travail et travail_en_presentiel = true)';

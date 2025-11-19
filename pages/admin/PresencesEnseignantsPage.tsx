@@ -653,7 +653,7 @@ export default function PresencesEnseignantsPage() {
                               <div className="space-y-2">
                                 {(presence as any).travail_date_depot && (
                                   <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400">Date limite de dépôt</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Date limite de remise</p>
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                                       📅 {new Date((presence as any).travail_date_depot).toLocaleDateString('fr-FR', {
                                         day: 'numeric',
@@ -664,9 +664,9 @@ export default function PresencesEnseignantsPage() {
                                   </div>
                                 )}
                                 <div>
-                                  <p className="text-xs text-gray-600 dark:text-gray-400">Mode de dépôt</p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">Type de travail</p>
                                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                    {(presence as any).travail_en_presentiel ? '🏢 En présentiel' : '💻 En ligne'}
+                                    {(presence as any).travail_en_presentiel ? '🏢 En présentiel' : '💻 À distance'}
                                   </p>
                                 </div>
                                 {(presence as any).travail_en_presentiel && (presence as any).travail_bureau && (
