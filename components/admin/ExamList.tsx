@@ -4,11 +4,12 @@ import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { Pagination } from '../shared/Pagination';
 import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
-import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Users } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
 import { useAuth } from '../../contexts/AuthContext';
+import ExamenAuditoiresModal from './ExamenAuditoiresModal';
 
 interface ExamListProps {
   sessionId: string;
@@ -43,6 +44,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState<ExamenWithStatus | null>(null);
+  const [showAuditoiresModal, setShowAuditoiresModal] = useState<{ id: string; nom: string } | null>(null);
   const [formData, setFormData] = useState<ExamFormData>({
     cours_id: null,
     code_examen: '',
