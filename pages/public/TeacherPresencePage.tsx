@@ -42,7 +42,7 @@ export default function TeacherPresencePage() {
     enseignant_nom: '',
     enseignant_prenom: '',
     est_present: true,
-    type_presence: 'present_full' as 'present_full' | 'present_partial' | 'absent',
+    type_presence: 'present_full' as 'present_full' | 'present_partial',
     type_examen: null as 'qcm' | 'qroc_manuel' | 'qcm_qroc' | 'gradescope' | 'oral' | 'travail' | 'autre' | null,
     type_examen_autre: '',
     travail_date_depot: '',
@@ -146,7 +146,7 @@ export default function TeacherPresencePage() {
         enseignant_nom: existingPresence.enseignant_nom,
         enseignant_prenom: existingPresence.enseignant_prenom,
         est_present: existingPresence.est_present,
-        type_presence: (existingPresence as any).type_presence || (existingPresence.est_present ? 'present_full' : 'absent'),
+        type_presence: (existingPresence as any).type_presence || 'present_full',
         type_examen: (existingPresence as any).type_examen || null,
         type_examen_autre: (existingPresence as any).type_examen_autre || '',
         travail_date_depot: (existingPresence as any).travail_date_depot || '',
@@ -617,9 +617,9 @@ export default function TeacherPresencePage() {
                       formData.type_presence === 'present_full' ? 'text-green-600' : 'text-gray-400'
                     }`} />
                     <div>
-                      <span className="font-medium block">Oui, je serai présent pour la surveillance complète</span>
+                      <span className="font-medium block">Oui, je serai présent pour la surveillance et la mise en place</span>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Je serai présent pour la surveillance et la mise en place de l'examen (un surveillant peut être retiré)
+                        Je compte donc pour un surveillant
                       </p>
                     </div>
                   </div>
@@ -639,31 +639,9 @@ export default function TeacherPresencePage() {
                       formData.type_presence === 'present_partial' ? 'text-blue-600' : 'text-gray-400'
                     }`} />
                     <div>
-                      <span className="font-medium block">Oui, je suis présent mais pas pour toute la surveillance</span>
+                      <span className="font-medium block">Oui, je suis présent mais je passerai d'auditoire en auditoire</span>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Je serai présent mais n'assurerai pas toute la surveillance (il faut compter un surveillant)
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type_presence: 'absent', est_present: false })}
-                  className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
-                    formData.type_presence === 'absent'
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <XCircle className={`h-6 w-6 flex-shrink-0 mt-0.5 ${
-                      formData.type_presence === 'absent' ? 'text-red-600' : 'text-gray-400'
-                    }`} />
-                    <div>
-                      <span className="font-medium block">Non, je ne serai pas présent</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Je ne serai pas présent mais je peux indiquer des surveillants
+                        Je ne compte donc pas pour un surveillant
                       </p>
                     </div>
                   </div>

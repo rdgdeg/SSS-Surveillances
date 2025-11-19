@@ -422,7 +422,7 @@ export interface PresenceFormData {
   enseignant_nom: string;
   enseignant_prenom: string;
   est_present: boolean;
-  type_presence: 'present_full' | 'present_partial' | 'absent';
+  type_presence: 'present_full' | 'present_partial';
   type_examen: 'qcm' | 'qroc_manuel' | 'qcm_qroc' | 'gradescope' | 'oral' | 'travail' | 'autre' | null;
   type_examen_autre?: string;
   // Champs spécifiques pour le type "travail"
