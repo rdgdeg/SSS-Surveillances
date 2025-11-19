@@ -756,14 +756,10 @@ export default function TeacherPresencePage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre total de surveillants pour ce cours
+                  Nombre de surveillants que vous apportez
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  {formData.type_presence === 'present_full' 
-                    ? "Nombre total de surveillants nécessaires (en plus de vous)"
-                    : formData.type_presence === 'present_partial'
-                    ? "Nombre total de surveillants nécessaires (vous compris si vous surveillez)"
-                    : "Nombre total de surveillants nécessaires pour assurer la surveillance"}
+                  Indiquez le nombre de surveillants que vous mettez à disposition en plus de vous-même
                 </p>
                 <input
                   type="number"
