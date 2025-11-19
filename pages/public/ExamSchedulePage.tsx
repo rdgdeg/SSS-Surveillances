@@ -491,17 +491,17 @@ export default function ExamSchedulePage() {
                                       </p>
                                       {consignes.consignes_arrivee && (
                                         <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                          {consignes.consignes_arrivee}
+                                          <strong>Consignes d'arrivée :</strong> {consignes.consignes_arrivee}
                                         </p>
                                       )}
                                       {consignes.consignes_mise_en_place && (
                                         <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                          <strong>Mise en place :</strong> {consignes.consignes_mise_en_place}
+                                          <strong>Consignes de mise en place :</strong> {consignes.consignes_mise_en_place}
                                         </p>
                                       )}
                                       {consignes.consignes_generales && (
                                         <p className="text-blue-700 dark:text-blue-300">
-                                          {consignes.consignes_generales}
+                                          <strong>Consignes générales :</strong> {consignes.consignes_generales}
                                         </p>
                                       )}
                                     </>

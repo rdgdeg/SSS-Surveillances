@@ -649,6 +649,44 @@ export default function TeacherPresencePage() {
               </div>
             </div>
 
+            {/* Accompanying Supervisors */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nombre de surveillants que vous apportez
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Indiquez le nombre de surveillants que vous mettez à disposition en plus de vous-même et leurs noms
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={formData.nb_surveillants_accompagnants}
+                  onChange={(e) => setFormData({ ...formData, nb_surveillants_accompagnants: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              {formData.nb_surveillants_accompagnants > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Noms des surveillants
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Ex: Jean Dupont, Marie Martin"
+                    value={formData.noms_accompagnants}
+                    onChange={(e) => setFormData({ ...formData, noms_accompagnants: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Séparez les noms par des virgules ou des retours à la ligne
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Exam Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -787,44 +825,6 @@ export default function TeacherPresencePage() {
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Accompanying Supervisors */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre de surveillants que vous apportez
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  Indiquez le nombre de surveillants que vous mettez à disposition en plus de vous-même
-                </p>
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={formData.nb_surveillants_accompagnants}
-                  onChange={(e) => setFormData({ ...formData, nb_surveillants_accompagnants: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              {formData.nb_surveillants_accompagnants > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Noms des surveillants
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Ex: Jean Dupont, Marie Martin"
-                    value={formData.noms_accompagnants}
-                    onChange={(e) => setFormData({ ...formData, noms_accompagnants: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Séparez les noms par des virgules ou des retours à la ligne
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Remarks/Instructions */}
