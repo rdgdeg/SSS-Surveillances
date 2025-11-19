@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authenticateUser } from '../lib/auth';
-import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, Home } from 'lucide-react';
 import { Button } from '../components/shared/Button';
 import toast from 'react-hot-toast';
 
@@ -113,6 +113,16 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => navigate('/')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              Retour à l'accueil
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -42,6 +42,7 @@ const UsersManagementPage = lazy(() => import('./pages/admin/UsersManagementPage
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
 const TeacherPresencePage = lazy(() => import('./pages/public/TeacherPresencePage'));
 const SharedDisponibilitesPage = lazy(() => import('./pages/public/SharedDisponibilitesPage'));
+const ExamSchedulePage = lazy(() => import('./pages/public/ExamSchedulePage'));
 
 
 const AppToaster = () => {
@@ -90,6 +91,7 @@ const AppContent: React.FC = () => {
                             <Route path="disponibilites" element={<DisponibilitesFormPage />} />
                             <Route path="consignes" element={<ConsignesPage />} />
                             <Route path="enseignant/presence" element={<TeacherPresencePage />} />
+                            <Route path="planning" element={<ExamSchedulePage />} />
                         </Route>
                         <Route path="/shared/disponibilites/:shareToken" element={<SharedDisponibilitesPage />} />
                         <Route path="/login" element={<LoginPage />} />
@@ -154,9 +156,9 @@ const DisponibilitesFormPage: React.FC = () => {
 const HomePage: React.FC = () => {
     return (
         <div className="min-h-[calc(100vh-120px)] bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-indigo-950 flex items-center justify-center px-4 -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8">
-            <div className="max-w-4xl w-full">
+            <div className="max-w-6xl w-full">
                 {/* Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Surveillant Card */}
                     <NavLink to="/disponibilites" className="group">
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 text-center transform hover:-translate-y-1">
@@ -213,6 +215,38 @@ const HomePage: React.FC = () => {
                                 {/* Button */}
                                 <div className="inline-flex items-center text-indigo-600 dark:text-indigo-400 font-medium group-hover:text-indigo-700 dark:group-hover:text-indigo-300">
                                     Accéder
+                                    <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </NavLink>
+
+                    {/* Planning Card */}
+                    <NavLink to="/planning" className="group">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 text-center transform hover:-translate-y-1">
+                            <div className="flex flex-col items-center">
+                                {/* Icon */}
+                                <div className="w-24 h-24 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                                    <svg className="w-12 h-12 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+
+                                {/* Title */}
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                                    Planning d'Examens
+                                </h2>
+
+                                {/* Description */}
+                                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                                    Consultez le planning complet des examens et vos surveillances
+                                </p>
+
+                                {/* Button */}
+                                <div className="inline-flex items-center text-purple-600 dark:text-purple-400 font-medium group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                                    Consulter
                                     <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                     </svg>

@@ -17,7 +17,9 @@ import {
   BookOpen,
   AlertCircle,
   Loader2,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
 import toast from 'react-hot-toast';
@@ -52,6 +54,7 @@ export default function TeacherPresencePage() {
   const [autoEmail, setAutoEmail] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const { data: activeSession } = useActiveSession();
 
@@ -325,14 +328,28 @@ export default function TeacherPresencePage() {
           </div>
         </div>
 
-        {/* Instructions du secrétariat */}
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-5 mb-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-indigo-900 dark:text-indigo-200">
-              <p className="font-bold mb-3">Informations importantes du secrétariat</p>
-              
-              <div className="space-y-3">
+        {/* Instructions du secrétariat - Accordéon */}
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg mb-6 overflow-hidden">
+          <button
+            onClick={() => setShowInstructions(!showInstructions)}
+            className="w-full flex items-center justify-between p-5 text-left hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+              <p className="font-bold text-indigo-900 dark:text-indigo-200">
+                Informations importantes du secrétariat
+              </p>
+            </div>
+            {showInstructions ? (
+              <ChevronUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            )}
+          </button>
+          
+          {showInstructions && (
+            <div className="px-5 pb-5 border-t border-indigo-200 dark:border-indigo-800">
+              <div className="pt-4 text-sm text-indigo-900 dark:text-indigo-200 space-y-3">
                 <div>
                   <p className="font-semibold mb-1">Merci de nous communiquer :</p>
                   <ul className="list-disc list-inside space-y-1 text-indigo-800 dark:text-indigo-300 ml-2">
@@ -363,7 +380,7 @@ export default function TeacherPresencePage() {
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {!selectedCours ? (
