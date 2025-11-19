@@ -38,3 +38,10 @@ dist-ssr
 
 # Vercel
 .vercel
+
+# Database backups
+backups/
+*.dump
+*.dump.gz
+*.sql.gz
+backup_*.sql

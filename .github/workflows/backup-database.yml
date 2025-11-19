@@ -1,0 +1,53 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Tous les jours à 2h du matin UTC (3h en hiver, 4h en été en Belgique)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Permet de lancer manuellement depuis GitHub
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      - name: Create backup directory
+        run: mkdir -p backups
+      
+      - name: Create database backup
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          DB_HOST: ${{ secrets.SUPABASE_DB_HOST }}
+        run: |
+          DATE=$(date +%Y%m%d_%H%M%S)
+          echo "Creating backup for $DATE"
+          
+          # Sauvegarde complète
+          pg_dump -h $DB_HOST -p 5432 -U postgres -d postgres -F c -f backups/backup_$DATE.dump
+          
+          # Compresser
+          gzip backups/backup_$DATE.dump
+          
+          echo "Backup created: backup_$DATE.dump.gz"
+          ls -lh backups/
+      
+      - name: Upload backup to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: database-backup-${{ github.run_number }}
+          path: backups/*.dump.gz
+          retention-days: 30
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Backup failed!"
+          echo "Check the logs for details"
