@@ -74,7 +74,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="CelineG, CarmenP..."
+                  placeholder="Votre nom d'utilisateur"
                   required
                   autoFocus
                 />
@@ -113,16 +113,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              Utilisateurs autorisés: CelineG, CarmenP, RomaneV, GuillaumeA, MaximeD
-              <br />
-              <span className="text-amber-600 dark:text-amber-400">
-                Mot de passe par défaut: admin123
-              </span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
