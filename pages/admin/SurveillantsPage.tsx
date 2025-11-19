@@ -278,7 +278,7 @@ const SurveillantsPage: React.FC = () => {
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [currentPage, setCurrentPage] = useState(1);
     const [updatingDispenseIds, setUpdatingDispenseIds] = useState<Set<string>>(new Set());
-    const ITEMS_PER_PAGE = 30;
+    const ITEMS_PER_PAGE = 25;
 
     
     const handleSave = useCallback(() => {

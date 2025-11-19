@@ -142,17 +142,6 @@ export default function ConsignesSecretariatPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Heure d'arrivée suggérée
-                      </label>
-                      <Input
-                        type="time"
-                        value={formData.heure_arrivee_suggeree || ''}
-                        onChange={(e) => setFormData({ ...formData, heure_arrivee_suggeree: e.target.value })}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Consignes d'arrivée
                       </label>
                       <textarea
@@ -213,16 +202,6 @@ export default function ConsignesSecretariatPage() {
                   </div>
                 ) : (
                   <div className="space-y-3 text-sm">
-                    {consigne.heure_arrivee_suggeree && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Heure d'arrivée :
-                        </span>
-                        <span className="ml-2 text-gray-600 dark:text-gray-400">
-                          {consigne.heure_arrivee_suggeree}
-                        </span>
-                      </div>
-                    )}
                     {consigne.consignes_arrivee && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">

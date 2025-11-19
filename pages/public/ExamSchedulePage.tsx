@@ -426,11 +426,6 @@ export default function ExamSchedulePage() {
                                   <p className="text-blue-800 dark:text-blue-300 mb-1">
                                     <strong>{consignes.nom_secretariat}</strong>
                                   </p>
-                                  {consignes.heure_arrivee_suggeree && (
-                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                      <strong>Heure d'arrivée :</strong> {consignes.heure_arrivee_suggeree}
-                                    </p>
-                                  )}
                                   {consignes.consignes_arrivee && (
                                     <p className="text-blue-700 dark:text-blue-300 mb-1">
                                       {consignes.consignes_arrivee}
