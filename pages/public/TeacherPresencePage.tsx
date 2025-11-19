@@ -43,6 +43,8 @@ export default function TeacherPresencePage() {
     type_presence: 'present_full' as 'present_full' | 'present_partial' | 'absent',
     type_examen: null as 'ecrit' | 'qcm' | 'autre' | null,
     type_examen_autre: '',
+    duree_examen_moins_2h: false,
+    duree_examen_minutes: 120,
     nb_surveillants_accompagnants: 0,
     noms_accompagnants: '',
     remarque: '',
@@ -141,6 +143,8 @@ export default function TeacherPresencePage() {
         type_presence: (existingPresence as any).type_presence || (existingPresence.est_present ? 'present_full' : 'absent'),
         type_examen: (existingPresence as any).type_examen || null,
         type_examen_autre: (existingPresence as any).type_examen_autre || '',
+        duree_examen_moins_2h: (existingPresence as any).duree_examen_moins_2h || false,
+        duree_examen_minutes: (existingPresence as any).duree_examen_minutes || 120,
         nb_surveillants_accompagnants: existingPresence.nb_surveillants_accompagnants,
         noms_accompagnants: existingPresence.noms_accompagnants || '',
         remarque: existingPresence.remarque || '',
@@ -266,6 +270,8 @@ export default function TeacherPresencePage() {
         type_presence: 'present_full',
         type_examen: null,
         type_examen_autre: '',
+        duree_examen_moins_2h: false,
+        duree_examen_minutes: 120,
         nb_surveillants_accompagnants: 0,
         noms_accompagnants: '',
         remarque: '',
@@ -315,6 +321,47 @@ export default function TeacherPresencePage() {
                 <li>Indiquez si vous serez présent et combien de personnes vous accompagnent</li>
                 <li>Les consignes que vous ajoutez seront conservées pour les prochaines sessions</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Instructions du secrétariat */}
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-5 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-indigo-900 dark:text-indigo-200">
+              <p className="font-bold mb-3">Informations importantes du secrétariat</p>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold mb-1">Merci de nous communiquer :</p>
+                  <ul className="list-disc list-inside space-y-1 text-indigo-800 dark:text-indigo-300 ml-2">
+                    <li>Le nombre de surveillants que vous mettrez à disposition pour votre examen (le nombre total nécessaire est indiqué entre parenthèses)</li>
+                    <li>Si possible, leurs noms et coordonnées</li>
+                    <li>Le type d'examen que vous organiserez (QCM, QROC avec ou sans Gradescope, Oral ou autre)</li>
+                    <li>Si vous souhaitez que votre examen dure moins de 2h (précisez la durée)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-indigo-100 dark:bg-indigo-900/40 rounded p-3">
+                  <p className="font-semibold text-indigo-900 dark:text-indigo-200 mb-2">
+                    📅 Pour Médecine et Médecine Dentaire - Dates limites de dépôt des examens :
+                  </p>
+                  <div className="space-y-1 text-xs text-indigo-800 dark:text-indigo-300">
+                    <p>• Examens du 8 au 19 décembre 2025 : <strong>Dimanche 23 novembre 2025</strong></p>
+                    <p>• Examens du 5 au 9 janvier 2026 : <strong>Mercredi 26 novembre 2025</strong></p>
+                    <p>• Examens du 12 au 16 janvier 2026 : <strong>Mercredi 3 décembre 2025</strong></p>
+                    <p>• Examens du 19 au 23 janvier 2026 : <strong>Mercredi 10 décembre 2025</strong></p>
+                  </div>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2 italic">
+                    ⚠️ Attention : QCM Contest deviendra obsolète l'année prochaine. L'alternative sera un QCM via Gradescope.
+                  </p>
+                </div>
+
+                <div className="text-xs text-indigo-700 dark:text-indigo-300">
+                  <p>Pour toute question : <strong>02/436.16.89</strong></p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -631,12 +678,59 @@ export default function TeacherPresencePage() {
                 {formData.type_examen === 'autre' && (
                   <input
                     type="text"
-                    placeholder="Précisez le type d'examen..."
+                    placeholder="Précisez le type d'examen (ex: Oral, QROC avec Gradescope, etc.)..."
                     value={formData.type_examen_autre}
                     onChange={(e) => setFormData({ ...formData, type_examen_autre: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                     required
                   />
+                )}
+              </div>
+            </div>
+
+            {/* Exam Duration */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Durée de l'examen
+              </label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <input
+                    type="checkbox"
+                    checked={formData.duree_examen_moins_2h}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      duree_examen_moins_2h: e.target.checked,
+                      duree_examen_minutes: e.target.checked ? formData.duree_examen_minutes : 120
+                    })}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Mon examen dure moins de 2 heures</span>
+                </label>
+                
+                {formData.duree_examen_moins_2h && (
+                  <div className="ml-6 space-y-2">
+                    <label className="block text-sm text-gray-600 dark:text-gray-400">
+                      Durée en minutes
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="15"
+                        max="120"
+                        step="15"
+                        value={formData.duree_examen_minutes}
+                        onChange={(e) => setFormData({ ...formData, duree_examen_minutes: parseInt(e.target.value) || 60 })}
+                        className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        minutes ({Math.floor(formData.duree_examen_minutes / 60)}h{formData.duree_examen_minutes % 60 > 0 ? (formData.duree_examen_minutes % 60).toString().padStart(2, '0') : ''})
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Durées courantes : 30min, 45min, 60min (1h), 90min (1h30)
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

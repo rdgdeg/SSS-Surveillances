@@ -75,6 +75,8 @@ export async function submitPresence(
     type_presence: data.type_presence,
     type_examen: data.type_examen,
     type_examen_autre: data.type_examen_autre || null,
+    duree_examen_moins_2h: (data as any).duree_examen_moins_2h || false,
+    duree_examen_minutes: (data as any).duree_examen_minutes || 120,
     nb_surveillants_accompagnants: data.nb_surveillants_accompagnants,
     noms_accompagnants: data.noms_accompagnants || null,
     remarque: data.remarque || null
