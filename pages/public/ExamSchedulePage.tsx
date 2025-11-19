@@ -164,17 +164,11 @@ export default function ExamSchedulePage() {
     setCurrentPage(1);
   }, [searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot]);
 
-  // Get unique secretariats from filtered exams
-  const activeSecretariats = useMemo(() => {
-    if (!paginatedExamens) return [];
-    return [...new Set(paginatedExamens.map(e => e.secretariat).filter(Boolean))];
-  }, [paginatedExamens]);
-
-  // Get consignes for active secretariats
-  const activeConsignes = useMemo(() => {
-    if (!consignesSecretariat || !activeSecretariats.length) return [];
-    return consignesSecretariat.filter(c => activeSecretariats.includes(c.code_secretariat));
-  }, [consignesSecretariat, activeSecretariats]);
+  // Helper function to get consignes for a specific secretariat
+  const getConsignesForSecretariat = (secretariatCode: string): ConsigneSecretariat | undefined => {
+    if (!consignesSecretariat || !secretariatCode) return undefined;
+    return consignesSecretariat.find(c => c.code_secretariat === secretariatCode);
+  };
 
   // Function to sort auditoires alphabetically
   const sortAuditoires = (auditoires: string): string => {
@@ -231,48 +225,7 @@ export default function ExamSchedulePage() {
           </div>
         </div>
 
-        {/* Consignes Secrétariat */}
-        {activeConsignes.length > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-3">
-                  Consignes pour les surveillants
-                </h3>
-                <div className="space-y-3">
-                  {activeConsignes.map((consigne) => (
-                    <div key={consigne.id} className="text-sm">
-                      <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">
-                        {consigne.nom_secretariat}
-                      </p>
-                      {consigne.heure_arrivee_suggeree && (
-                        <p className="text-blue-700 dark:text-blue-300 mb-1">
-                          <strong>Heure d'arrivée :</strong> {consigne.heure_arrivee_suggeree}
-                        </p>
-                      )}
-                      {consigne.consignes_arrivee && (
-                        <p className="text-blue-700 dark:text-blue-300 mb-1">
-                          {consigne.consignes_arrivee}
-                        </p>
-                      )}
-                      {consigne.consignes_mise_en_place && (
-                        <p className="text-blue-700 dark:text-blue-300 mb-1">
-                          <strong>Mise en place :</strong> {consigne.consignes_mise_en_place}
-                        </p>
-                      )}
-                      {consigne.consignes_generales && (
-                        <p className="text-blue-700 dark:text-blue-300">
-                          {consigne.consignes_generales}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Search and Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
@@ -400,14 +353,17 @@ export default function ExamSchedulePage() {
 
               {/* Examens list */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {paginatedExamens.map((examen) => (
-                <div key={examen.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                {paginatedExamens.map((examen) => {
+                  const consignes = getConsignesForSecretariat(examen.secretariat);
+                  
+                  return (
+                    <div key={examen.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         {/* Left: Course Info */}
                         <div className="flex-1">
                           <div className="flex items-start gap-3 mb-3">
                             <BookOpen className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                            <div>
+                            <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs font-bold">
                                   {examen.code_examen}
@@ -457,13 +413,51 @@ export default function ExamSchedulePage() {
                               </div>
                             )}
                           </div>
+
+                          {/* Consignes Secrétariat */}
+                          {consignes && (
+                            <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 text-xs">
+                                  <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                                    Consignes pour les surveillants
+                                  </p>
+                                  <p className="text-blue-800 dark:text-blue-300 mb-1">
+                                    <strong>{consignes.nom_secretariat}</strong>
+                                  </p>
+                                  {consignes.heure_arrivee_suggeree && (
+                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                      <strong>Heure d'arrivée :</strong> {consignes.heure_arrivee_suggeree}
+                                    </p>
+                                  )}
+                                  {consignes.consignes_arrivee && (
+                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                      {consignes.consignes_arrivee}
+                                    </p>
+                                  )}
+                                  {consignes.consignes_mise_en_place && (
+                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                      <strong>Mise en place :</strong> {consignes.consignes_mise_en_place}
+                                    </p>
+                                  )}
+                                  {consignes.consignes_generales && (
+                                    <p className="text-blue-700 dark:text-blue-300">
+                                      {consignes.consignes_generales}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Right: Surveillants */}
                         <ExamenSurveillants examenId={examen.id} />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
