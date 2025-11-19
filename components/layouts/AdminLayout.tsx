@@ -47,6 +47,7 @@ const AdminLayout: React.FC = () => {
         { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants', adminOnly: false },
         { to: 'examens', label: 'Examens', icon: FileText, category: 'enseignants', adminOnly: false },
         { to: 'presences-enseignants', label: 'Présences', icon: CheckSquare, category: 'enseignants', adminOnly: false },
+        { to: 'consignes-secretariat', label: 'Consignes Secrétariat', icon: FileText, category: 'enseignants', adminOnly: false },
         { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: 'rapports', adminOnly: true },
         { to: 'rapports', label: 'Rapports', icon: FileText, category: 'rapports', adminOnly: true },
         { to: 'messages', label: 'Messages', icon: MessageSquare, category: null, adminOnly: true },

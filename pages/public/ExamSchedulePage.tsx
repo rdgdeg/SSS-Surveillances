@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
@@ -10,7 +10,11 @@ import {
   Search,
   Loader2,
   AlertCircle,
-  Users
+  Users,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import ExamenSurveillants from '../../components/public/ExamenSurveillants';
 
@@ -22,26 +26,37 @@ interface Examen {
   auditoires: string;
   code_examen: string;
   nom_examen: string;
+  secretariat: string;
   cours: {
     code: string;
     intitule_complet: string;
   } | null;
 }
 
+interface ConsigneSecretariat {
+  id: string;
+  code_secretariat: string;
+  nom_secretariat: string;
+  consignes_arrivee: string;
+  consignes_mise_en_place: string;
+  consignes_generales: string;
+  heure_arrivee_suggeree: string;
+}
+
 export default function ExamSchedulePage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedSecretariat, setSelectedSecretariat] = useState<string>('');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const { data: activeSession } = useActiveSession();
 
-  // Fetch examens
+  // Fetch examens with surveillants
   const { data: examens, isLoading, error: queryError } = useQuery({
     queryKey: ['public-examens', activeSession?.id],
     queryFn: async () => {
-      if (!activeSession?.id) {
-        console.log('❌ Pas de session active');
-        return [];
-      }
-      
-      console.log('🔍 Recherche des examens pour la session:', activeSession.id, activeSession.name);
+      if (!activeSession?.id) return [];
       
       const { data, error } = await supabase
         .from('examens')
@@ -53,6 +68,7 @@ export default function ExamSchedulePage() {
           auditoires,
           code_examen,
           nom_examen,
+          secretariat,
           cours:cours_id (
             code,
             intitule_complet
@@ -62,38 +78,103 @@ export default function ExamSchedulePage() {
         .order('date_examen', { ascending: true })
         .order('heure_debut', { ascending: true });
       
-      if (error) {
-        console.error('❌ Erreur lors de la récupération des examens:', error);
-        throw error;
-      }
-      
-      console.log('✅ Examens récupérés:', data?.length || 0, 'examens');
-      console.log('📋 Données:', data);
-      
+      if (error) throw error;
       return (data || []) as unknown as Examen[];
     },
     enabled: !!activeSession?.id,
   });
 
-  // Filter examens based on search
-  const filteredExamens = examens?.filter(examen => {
-    if (!searchTerm) return true;
-    
-    const search = searchTerm.toLowerCase();
-    const coursCode = examen.cours?.code?.toLowerCase() || '';
-    const coursIntitule = examen.cours?.intitule_complet?.toLowerCase() || '';
-    const codeExamen = examen.code_examen?.toLowerCase() || '';
-    const nomExamen = examen.nom_examen?.toLowerCase() || '';
-    const auditoires = examen.auditoires?.toLowerCase() || '';
-    
-    return (
-      coursCode.includes(search) ||
-      coursIntitule.includes(search) ||
-      codeExamen.includes(search) ||
-      nomExamen.includes(search) ||
-      auditoires.includes(search)
-    );
+  // Fetch consignes secretariat
+  const { data: consignesSecretariat } = useQuery({
+    queryKey: ['consignes-secretariat'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('consignes_secretariat')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return (data || []) as ConsigneSecretariat[];
+    },
   });
+
+  // Get unique dates, secretariats, and time slots
+  const uniqueDates = useMemo(() => {
+    if (!examens) return [];
+    const dates = [...new Set(examens.map(e => e.date_examen).filter(Boolean))];
+    return dates.sort();
+  }, [examens]);
+
+  const uniqueSecretariats = useMemo(() => {
+    if (!examens) return [];
+    return [...new Set(examens.map(e => e.secretariat).filter(Boolean))].sort();
+  }, [examens]);
+
+  const uniqueTimeSlots = useMemo(() => {
+    if (!examens) return [];
+    return [...new Set(examens.map(e => e.heure_debut).filter(Boolean))].sort();
+  }, [examens]);
+
+  // Filter and search examens
+  const filteredExamens = useMemo(() => {
+    if (!examens) return [];
+    
+    return examens.filter(examen => {
+      // Search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const coursCode = examen.cours?.code?.toLowerCase() || '';
+        const coursIntitule = examen.cours?.intitule_complet?.toLowerCase() || '';
+        const codeExamen = examen.code_examen?.toLowerCase() || '';
+        const nomExamen = examen.nom_examen?.toLowerCase() || '';
+        const auditoires = examen.auditoires?.toLowerCase() || '';
+        
+        const matchesSearch = 
+          coursCode.includes(search) ||
+          coursIntitule.includes(search) ||
+          codeExamen.includes(search) ||
+          nomExamen.includes(search) ||
+          auditoires.includes(search);
+        
+        if (!matchesSearch) return false;
+      }
+      
+      // Date filter
+      if (selectedDate && examen.date_examen !== selectedDate) return false;
+      
+      // Secretariat filter
+      if (selectedSecretariat && examen.secretariat !== selectedSecretariat) return false;
+      
+      // Time slot filter
+      if (selectedTimeSlot && examen.heure_debut !== selectedTimeSlot) return false;
+      
+      return true;
+    });
+  }, [examens, searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredExamens.length / itemsPerPage);
+  const paginatedExamens = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredExamens.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredExamens, currentPage]);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot]);
+
+  // Get unique secretariats from filtered exams
+  const activeSecretariats = useMemo(() => {
+    if (!paginatedExamens) return [];
+    return [...new Set(paginatedExamens.map(e => e.secretariat).filter(Boolean))];
+  }, [paginatedExamens]);
+
+  // Get consignes for active secretariats
+  const activeConsignes = useMemo(() => {
+    if (!consignesSecretariat || !activeSecretariats.length) return [];
+    return consignesSecretariat.filter(c => activeSecretariats.includes(c.code_secretariat));
+  }, [consignesSecretariat, activeSecretariats]);
 
   if (!activeSession) {
     return (
@@ -135,31 +216,133 @@ export default function ExamSchedulePage() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher par cours, local, date..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-        </div>
-
-        {/* Debug Info */}
-        {activeSession && (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 text-xs">
-            <p className="text-gray-600 dark:text-gray-400">
-              <strong>Debug:</strong> Session ID: {activeSession.id} | 
-              Examens chargés: {examens?.length || 0} | 
-              Loading: {isLoading ? 'Oui' : 'Non'}
-              {queryError && ` | Erreur: ${queryError}`}
-            </p>
+        {/* Consignes Secrétariat */}
+        {activeConsignes.length > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-3">
+                  Consignes pour les surveillants
+                </h3>
+                <div className="space-y-3">
+                  {activeConsignes.map((consigne) => (
+                    <div key={consigne.id} className="text-sm">
+                      <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">
+                        {consigne.nom_secretariat}
+                      </p>
+                      {consigne.heure_arrivee_suggeree && (
+                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                          <strong>Heure d'arrivée :</strong> {consigne.heure_arrivee_suggeree}
+                        </p>
+                      )}
+                      {consigne.consignes_arrivee && (
+                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                          {consigne.consignes_arrivee}
+                        </p>
+                      )}
+                      {consigne.consignes_mise_en_place && (
+                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                          <strong>Mise en place :</strong> {consigne.consignes_mise_en_place}
+                        </p>
+                      )}
+                      {consigne.consignes_generales && (
+                        <p className="text-blue-700 dark:text-blue-300">
+                          {consigne.consignes_generales}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
+        {/* Search and Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher par cours, surveillant, local..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Filter className="inline h-4 w-4 mr-1" />
+                  Date
+                </label>
+                <select
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Toutes les dates</option>
+                  {uniqueDates.map((date) => (
+                    <option key={date} value={date}>
+                      {new Date(date).toLocaleDateString('fr-FR', {
+                        weekday: 'short',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Secrétariat
+                </label>
+                <select
+                  value={selectedSecretariat}
+                  onChange={(e) => setSelectedSecretariat(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Tous les secrétariats</option>
+                  {uniqueSecretariats.map((sec) => (
+                    <option key={sec} value={sec}>
+                      {sec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Créneau horaire
+                </label>
+                <select
+                  value={selectedTimeSlot}
+                  onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Tous les créneaux</option>
+                  {uniqueTimeSlots.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {filteredExamens.length} examen{filteredExamens.length !== 1 ? 's' : ''} trouvé{filteredExamens.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
 
         {/* Error Display */}
         {queryError && (
@@ -182,21 +365,27 @@ export default function ExamSchedulePage() {
         )}
 
         {/* Examens List */}
-        {!isLoading && filteredExamens && filteredExamens.length > 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Header */}
-            <div className="bg-indigo-50 dark:bg-indigo-900/20 px-6 py-3 border-b border-indigo-200 dark:border-indigo-800">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200">
-                  Examens de la session
-                </h2>
+        {!isLoading && paginatedExamens && paginatedExamens.length > 0 ? (
+          <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header */}
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 px-6 py-3 border-b border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <h2 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200">
+                      Examens de la session
+                    </h2>
+                  </div>
+                  <span className="text-sm text-indigo-700 dark:text-indigo-300">
+                    Page {currentPage} / {totalPages}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Examens list */}
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredExamens.map((examen) => (
+              {/* Examens list */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {paginatedExamens.map((examen) => (
                 <div key={examen.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         {/* Left: Course Info */}
@@ -262,6 +451,65 @@ export default function ExamSchedulePage() {
                 ))}
               </div>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 px-6 py-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Affichage {((currentPage - 1) * itemsPerPage) + 1} à {Math.min(currentPage * itemsPerPage, filteredExamens.length)} sur {filteredExamens.length}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Précédent
+                    </button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Suivant
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         ) : !isLoading && (
           <div className="text-center py-12">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />

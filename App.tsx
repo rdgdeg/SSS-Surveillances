@@ -37,6 +37,7 @@ const RapportsPage = lazy(() => import('./pages/admin/RapportsPage'));
 const AnalyseExamensPage = lazy(() => import('./pages/admin/AnalyseExamensPage'));
 const AidePage = lazy(() => import('./pages/admin/AidePage'));
 const UsersManagementPage = lazy(() => import('./pages/admin/UsersManagementPage'));
+const ConsignesSecretariatPage = lazy(() => import('./pages/admin/ConsignesSecretariatPage'));
 
 // Lazy load public pages
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
@@ -114,6 +115,7 @@ const AppContent: React.FC = () => {
                             <Route path="cours" element={<CoursPage />} />
                             <Route path="presences-enseignants" element={<PresencesEnseignantsPage />} />
                             <Route path="examens" element={<ExamensPage />} />
+                            <Route path="consignes-secretariat" element={<ConsignesSecretariatPage />} />
                             <Route path="rapports" element={<AdminOnlyRoute><RapportsPage /></AdminOnlyRoute>} />
                             <Route path="analyse-examens" element={<AdminOnlyRoute><AnalyseExamensPage /></AdminOnlyRoute>} />
                             <Route path="aide" element={<AidePage />} />
