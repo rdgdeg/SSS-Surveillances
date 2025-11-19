@@ -176,6 +176,21 @@ export default function ExamSchedulePage() {
     return consignesSecretariat.filter(c => activeSecretariats.includes(c.code_secretariat));
   }, [consignesSecretariat, activeSecretariats]);
 
+  // Function to sort auditoires alphabetically
+  const sortAuditoires = (auditoires: string): string => {
+    if (!auditoires) return '';
+    
+    // Split by common separators (comma, semicolon, slash, dash, etc.)
+    const separators = /[,;\/\-\+&]/;
+    const audList = auditoires.split(separators).map(a => a.trim()).filter(Boolean);
+    
+    // Sort alphabetically
+    audList.sort((a, b) => a.localeCompare(b, 'fr', { numeric: true, sensitivity: 'base' }));
+    
+    // Join back with comma
+    return audList.join(', ');
+  };
+
   if (!activeSession) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -438,7 +453,7 @@ export default function ExamSchedulePage() {
                             {examen.auditoires && (
                               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                 <MapPin className="h-4 w-4" />
-                                <span>{examen.auditoires}</span>
+                                <span>{sortAuditoires(examen.auditoires)}</span>
                               </div>
                             )}
                           </div>
