@@ -568,8 +568,15 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                     </td>
 
                     {/* Supervisors */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {examen.nb_surveillants_requis !== null ? examen.nb_surveillants_requis : '-'}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => setShowAuditoiresModal({ id: examen.id, nom: examen.nom_examen })}
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                        title="Gérer les auditoires et surveillants"
+                      >
+                        <Users className="h-4 w-4" />
+                        Gérer
+                      </button>
                     </td>
 
                     {/* Status */}
@@ -908,6 +915,15 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Auditoires */}
+      {showAuditoiresModal && (
+        <ExamenAuditoiresModal
+          examenId={showAuditoiresModal.id}
+          examenNom={showAuditoiresModal.nom}
+          onClose={() => setShowAuditoiresModal(null)}
+        />
       )}
     </div>
   );

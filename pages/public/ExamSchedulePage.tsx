@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Users
 } from 'lucide-react';
+import ExamenSurveillants from '../../components/public/ExamenSurveillants';
 
 interface Examen {
   id: string;
@@ -234,15 +235,8 @@ export default function ExamSchedulePage() {
                           </div>
                         </div>
 
-                        {/* Right: Surveillants (placeholder) */}
-                        <div className="md:w-64 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                          <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">
-                            Surveillants
-                          </p>
-                          <p className="text-xs text-amber-600 dark:text-amber-500">
-                            Session en cours d'attribution
-                          </p>
-                        </div>
+                        {/* Right: Surveillants */}
+                        <ExamenSurveillants examenId={examen.id} />
                     </div>
                   </div>
                 ))}
