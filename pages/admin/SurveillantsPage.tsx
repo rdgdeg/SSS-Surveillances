@@ -218,6 +218,9 @@ const SurveillantRow = memo<{
         <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400 truncate max-w-[200px]">
             {surveillant.email}
         </td>
+        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
+            {surveillant.telephone || '-'}
+        </td>
         <td className="px-3 py-2 whitespace-nowrap text-xs">
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                 {SurveillantTypeLabels[surveillant.type]}
@@ -574,7 +577,7 @@ const SurveillantsPage: React.FC = () => {
                 <CardContent>
                     {isLoading ? <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
                     : <div className="border rounded-lg dark:border-gray-700 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto max-h-[calc(100vh-400px)]">
+                        <div className="overflow-x-auto max-h-[calc(100vh-280px)]">
                             <table className="w-full table-auto">
                             <colgroup>
                                 <col style={{ width: '3%' }} />
@@ -601,6 +604,7 @@ const SurveillantsPage: React.FC = () => {
                                     </th>
                                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nom</th>
                                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Téléphone</th>
                                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</th>
                                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Faculté</th>
                                     <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Statut</th>
