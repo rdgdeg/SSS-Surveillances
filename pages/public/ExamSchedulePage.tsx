@@ -15,7 +15,6 @@ import {
 
 interface Examen {
   id: string;
-  date: string;
   heure_debut: string;
   heure_fin: string;
   local: string;
@@ -45,7 +44,6 @@ export default function ExamSchedulePage() {
         .from('examens')
         .select(`
           id,
-          date,
           heure_debut,
           heure_fin,
           local,
@@ -56,7 +54,6 @@ export default function ExamSchedulePage() {
           )
         `)
         .eq('session_id', activeSession.id)
-        .order('date', { ascending: true })
         .order('heure_debut', { ascending: true });
       
       if (error) {
@@ -80,25 +77,13 @@ export default function ExamSchedulePage() {
     const coursCode = examen.cours?.code?.toLowerCase() || '';
     const coursIntitule = examen.cours?.intitule_complet?.toLowerCase() || '';
     const local = examen.local?.toLowerCase() || '';
-    const date = new Date(examen.date).toLocaleDateString('fr-FR');
     
     return (
       coursCode.includes(search) ||
       coursIntitule.includes(search) ||
-      local.includes(search) ||
-      date.includes(search)
+      local.includes(search)
     );
   });
-
-  // Group examens by date
-  const examensByDate = filteredExamens?.reduce((acc, examen) => {
-    const date = examen.date;
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(examen);
-    return acc;
-  }, {} as Record<string, Examen[]>);
 
   if (!activeSession) {
     return (
@@ -187,29 +172,22 @@ export default function ExamSchedulePage() {
         )}
 
         {/* Examens List */}
-        {!isLoading && examensByDate && Object.keys(examensByDate).length > 0 ? (
-          <div className="space-y-6">
-            {Object.entries(examensByDate).map(([date, dayExamens]) => (
-              <div key={date} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {/* Date Header */}
-                <div className="bg-indigo-50 dark:bg-indigo-900/20 px-6 py-3 border-b border-indigo-200 dark:border-indigo-800">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    <h2 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200">
-                      {new Date(date).toLocaleDateString('fr-FR', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </h2>
-                  </div>
-                </div>
+        {!isLoading && filteredExamens && filteredExamens.length > 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Header */}
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 px-6 py-3 border-b border-indigo-200 dark:border-indigo-800">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200">
+                  Examens de la session
+                </h2>
+              </div>
+            </div>
 
-                {/* Examens for this date */}
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {dayExamens.map((examen) => (
-                    <div key={examen.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            {/* Examens list */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredExamens.map((examen) => (
+                <div key={examen.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         {/* Left: Course Info */}
                         <div className="flex-1">
@@ -265,13 +243,11 @@ export default function ExamSchedulePage() {
                             Session en cours d'attribution
                           </p>
                         </div>
-                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
         ) : !isLoading && (
           <div className="text-center py-12">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
