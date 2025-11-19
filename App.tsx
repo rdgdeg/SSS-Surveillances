@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminOnlyRoute from './components/auth/AdminOnlyRoute';
 import { DebugProvider, useDebug } from './contexts/DebugContext';
 import DebugPanel from './components/shared/DebugPanel';
 import { queryClient } from './src/lib/queryClient';
@@ -34,6 +35,7 @@ const PresencesEnseignantsPage = lazy(() => import('./pages/admin/PresencesEnsei
 const ExamensPage = lazy(() => import('./pages/admin/ExamensPage'));
 const RapportsPage = lazy(() => import('./pages/admin/RapportsPage'));
 const AnalyseExamensPage = lazy(() => import('./pages/admin/AnalyseExamensPage'));
+const AidePage = lazy(() => import('./pages/admin/AidePage'));
 
 // Lazy load public pages
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
@@ -95,21 +97,22 @@ const AppContent: React.FC = () => {
                                 <AdminLayout />
                             </ProtectedRoute>
                         }>
-                            <Route index element={<Navigate to="dashboard" replace />} />
-                            <Route path="dashboard" element={<DashboardPage />} />
-                            <Route path="sessions" element={<SessionsPage />} />
+                            <Route index element={<Navigate to="surveillants" replace />} />
+                            <Route path="dashboard" element={<AdminOnlyRoute><DashboardPage /></AdminOnlyRoute>} />
+                            <Route path="sessions" element={<AdminOnlyRoute><SessionsPage /></AdminOnlyRoute>} />
                             <Route path="surveillants" element={<SurveillantsPage />} />
                             <Route path="creneaux" element={<CreneauxPage />} />
                             <Route path="disponibilites" element={<DisponibilitesPage />} />
-                            <Route path="soumissions" element={<SoumissionsPage />} />
-                            <Route path="suivi-soumissions" element={<SuiviSoumissionsPage />} />
-                            <Route path="statistiques" element={<StatistiquesPage />} />
-                            <Route path="messages" element={<MessagesPage />} />
+                            <Route path="soumissions" element={<AdminOnlyRoute><SoumissionsPage /></AdminOnlyRoute>} />
+                            <Route path="suivi-soumissions" element={<AdminOnlyRoute><SuiviSoumissionsPage /></AdminOnlyRoute>} />
+                            <Route path="statistiques" element={<AdminOnlyRoute><StatistiquesPage /></AdminOnlyRoute>} />
+                            <Route path="messages" element={<AdminOnlyRoute><MessagesPage /></AdminOnlyRoute>} />
                             <Route path="cours" element={<CoursPage />} />
                             <Route path="presences-enseignants" element={<PresencesEnseignantsPage />} />
                             <Route path="examens" element={<ExamensPage />} />
-                            <Route path="rapports" element={<RapportsPage />} />
-                            <Route path="analyse-examens" element={<AnalyseExamensPage />} />
+                            <Route path="rapports" element={<AdminOnlyRoute><RapportsPage /></AdminOnlyRoute>} />
+                            <Route path="analyse-examens" element={<AdminOnlyRoute><AnalyseExamensPage /></AdminOnlyRoute>} />
+                            <Route path="aide" element={<AidePage />} />
                         </Route>
                     </Routes>
                 </Suspense>

@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../lib/routePreloader';
 
 const AdminLayout: React.FC = () => {
     const { isDarkMode, toggleTheme } = useTheme();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -31,22 +31,36 @@ const AdminLayout: React.FC = () => {
 
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
     
-    const navLinks = [
-        { to: 'dashboard', label: 'Tableau de bord', icon: Home, category: null },
-        { to: 'sessions', label: 'Sessions', icon: CalendarDays, category: null },
-        { to: 'surveillants', label: 'Surveillants', icon: Users, category: 'surveillants' },
-        { to: 'creneaux', label: 'Créneaux', icon: Clock, category: 'surveillants' },
-        { to: 'disponibilites', label: 'Disponibilités', icon: FileText, category: 'surveillants' },
-        { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList, category: 'surveillants' },
-        { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare, category: 'surveillants' },
-        { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants' },
-        { to: 'examens', label: 'Examens', icon: FileText, category: 'enseignants' },
-        { to: 'analyse-examens', label: 'Analyse Examens', icon: BarChart3, category: 'enseignants' },
-        { to: 'presences-enseignants', label: 'Présences', icon: CheckSquare, category: 'enseignants' },
-        { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: 'rapports' },
-        { to: 'rapports', label: 'Rapports', icon: FileText, category: 'rapports' },
-        { to: 'messages', label: 'Messages', icon: MessageSquare, category: null },
+    // Vérifier si l'utilisateur est RaphD (admin complet)
+    const isFullAdmin = user?.username === 'RaphD';
+    
+    // Définir tous les liens de navigation
+    const allNavLinks = [
+        { to: 'dashboard', label: 'Tableau de bord', icon: Home, category: null, adminOnly: true },
+        { to: 'sessions', label: 'Sessions', icon: CalendarDays, category: null, adminOnly: true },
+        { to: 'surveillants', label: 'Surveillants', icon: Users, category: 'surveillants', adminOnly: false },
+        { to: 'creneaux', label: 'Créneaux', icon: Clock, category: 'surveillants', adminOnly: false },
+        { to: 'disponibilites', label: 'Disponibilités', icon: FileText, category: 'surveillants', adminOnly: false },
+        { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList, category: 'surveillants', adminOnly: true },
+        { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare, category: 'surveillants', adminOnly: true },
+        { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants', adminOnly: false },
+        { to: 'examens', label: 'Examens', icon: FileText, category: 'enseignants', adminOnly: false },
+        { to: 'analyse-examens', label: 'Analyse Examens', icon: BarChart3, category: 'enseignants', adminOnly: true },
+        { to: 'presences-enseignants', label: 'Présences', icon: CheckSquare, category: 'enseignants', adminOnly: false },
+        { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: 'rapports', adminOnly: true },
+        { to: 'rapports', label: 'Rapports', icon: FileText, category: 'rapports', adminOnly: true },
+        { to: 'messages', label: 'Messages', icon: MessageSquare, category: null, adminOnly: true },
+        { to: 'aide', label: 'Aide', icon: HelpCircle, category: null, adminOnly: false },
     ];
+    
+    // Filtrer les liens selon les permissions
+    const navLinks = useMemo(() => {
+        if (isFullAdmin) {
+            return allNavLinks; // RaphD voit tout
+        }
+        // Les autres utilisateurs ne voient que les liens non-admin
+        return allNavLinks.filter(link => !link.adminOnly);
+    }, [isFullAdmin]);
 
     const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
         `flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-md transition-colors duration-200 whitespace-nowrap ${
