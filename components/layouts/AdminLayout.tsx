@@ -38,6 +38,7 @@ const AdminLayout: React.FC = () => {
     const allNavLinks = [
         { to: 'dashboard', label: 'Tableau de bord', icon: Home, category: null, adminOnly: true },
         { to: 'sessions', label: 'Sessions', icon: CalendarDays, category: null, adminOnly: true },
+        { to: 'users', label: 'Utilisateurs', icon: Users, category: null, adminOnly: true },
         { to: 'surveillants', label: 'Surveillants', icon: Users, category: 'surveillants', adminOnly: false },
         { to: 'creneaux', label: 'Créneaux', icon: Clock, category: 'surveillants', adminOnly: false },
         { to: 'disponibilites', label: 'Disponibilités', icon: FileText, category: 'surveillants', adminOnly: false },
