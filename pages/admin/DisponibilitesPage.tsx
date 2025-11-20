@@ -105,6 +105,19 @@ const HistoryModal: React.FC<{
                                 </div>
                             </div>
                         </div>
+
+                        {/* Remarque générale */}
+                        {submission.remarque_generale && (
+                            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <span className="text-sm font-semibold text-amber-900 dark:text-amber-300 block mb-1">Remarque du surveillant :</span>
+                                        <p className="text-sm text-amber-800 dark:text-amber-300 whitespace-pre-wrap">{submission.remarque_generale}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Historique des modifications */}
@@ -232,6 +245,17 @@ const CreneauView: React.FC<{
                         {soumissions.map(s => (
                             <th key={s.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">
                                 <div>{s.prenom} {s.nom}</div>
+                                {s.telephone && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 normal-case font-normal mt-0.5">📞 {s.telephone}</div>
+                                )}
+                                {s.remarque_generale && (
+                                    <div className="mt-1 normal-case font-normal">
+                                        <div className="text-xs text-amber-700 dark:text-amber-400 flex items-center justify-center gap-1" title={s.remarque_generale}>
+                                            <FileText className="h-3 w-3" />
+                                            <span className="truncate max-w-[100px]">Remarque</span>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="mt-1 normal-case font-normal">
                                     <TimestampCell submission={s} onClick={() => onShowHistory(s)} />
                                 </div>
@@ -327,7 +351,18 @@ const SurveillantView: React.FC<{
                             <td className="sticky left-0 bg-white dark:bg-gray-900 px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100 border-r dark:border-gray-700 z-10">
                                 <div>{submission.prenom} {submission.nom}</div>
                                 <div className="text-xs text-gray-500">{SurveillantTypeLabels[submission.type_surveillant as keyof typeof SurveillantTypeLabels]}</div>
+                                {submission.telephone && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">📞 {submission.telephone}</div>
+                                )}
                                 <div className="mt-1"><Badge variant="default">{availableCount} créneau{availableCount > 1 ? 'x' : ''}</Badge></div>
+                                {submission.remarque_generale && (
+                                    <div className="mt-2 pt-2 border-t dark:border-gray-700">
+                                        <div className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1">
+                                            <FileText className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                            <span className="line-clamp-2" title={submission.remarque_generale}>{submission.remarque_generale}</span>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="mt-2 pt-2 border-t dark:border-gray-700">
                                     <TimestampCell submission={submission} onClick={() => onShowHistory(submission)} />
                                 </div>
