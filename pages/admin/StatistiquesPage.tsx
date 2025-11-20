@@ -190,8 +190,9 @@ const StatistiquesPage: React.FC = () => {
             let valA: any, valB: any;
             
             if (sortKey === 'nom') {
-                valA = a.nom;
-                valB = b.nom;
+                // Trier par nom de famille d'abord, puis prénom
+                valA = `${a.nom} ${a.prenom}`;
+                valB = `${b.nom} ${b.prenom}`;
             } else if (sortKey === 'taux') {
                 valA = a.tauxDisponibilite;
                 valB = b.tauxDisponibilite;

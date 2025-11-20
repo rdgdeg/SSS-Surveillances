@@ -117,6 +117,7 @@ async function submitToAPI(payload: SubmissionPayload): Promise<SoumissionDispon
     nom: payload.nom.trim(),
     prenom: payload.prenom.trim(),
     type_surveillant: payload.type_surveillant,
+    telephone: payload.telephone?.trim() || null,
     remarque_generale: payload.remarque_generale?.trim() || null,
     historique_disponibilites: payload.availabilities,
     submitted_at: new Date().toISOString(),

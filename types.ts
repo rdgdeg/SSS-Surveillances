@@ -234,6 +234,7 @@ export interface SubmissionPayload {
   nom: string;
   prenom: string;
   type_surveillant: string;
+  telephone?: string;
   remarque_generale?: string;
   availabilities: Array<{ creneau_id: string; est_disponible: boolean }>;
 }

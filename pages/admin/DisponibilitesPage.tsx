@@ -237,8 +237,8 @@ const CreneauView: React.FC<{
     }, [creneaux, soumissions, availabilityMap]);
 
     return (
-        <div className="overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
+        <div className="w-full overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
+            <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0" style={{ minWidth: 'max-content' }}>
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
                         <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">Créneau</th>
@@ -332,8 +332,8 @@ const SurveillantView: React.FC<{
     onShowHistory: (submission: SoumissionDisponibilite) => void;
 }> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle, onShowHistory }) => {
     return (
-        <div className="overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0">
+        <div className="w-full overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
+            <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0" style={{ minWidth: 'max-content' }}>
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
                         <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">Surveillant</th>
@@ -648,7 +648,7 @@ const DisponibilitesPage: React.FC = () => {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-hidden">
                 {editMode && (
                     <div className="mb-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-300 p-3 rounded-lg flex items-start gap-3">
                         <Edit className="h-5 w-5 mt-0.5 flex-shrink-0" />
