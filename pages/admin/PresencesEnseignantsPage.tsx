@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getCoursWithPresences } from '../../lib/teacherPresenceApi';
+import { getCoursWithPresences, deletePresence } from '../../lib/teacherPresenceApi';
 import { supabase } from '../../lib/supabaseClient';
 import { CoursWithPresence } from '../../types';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
@@ -15,7 +15,8 @@ import {
   BookOpen,
   AlertCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
 import { ExportButton } from '../../components/shared/ExportButton';
@@ -559,6 +560,28 @@ export default function PresencesEnseignantsPage() {
                         setEditFormData({});
                       };
                       
+                      const handleDelete = async () => {
+                        if (!confirm('Êtes-vous sûr de vouloir supprimer cette déclaration de présence ?')) {
+                          return;
+                        }
+                        
+                        setIsSaving(true);
+                        try {
+                          await deletePresence(presence.id);
+                          handleRefresh();
+                          
+                          // Si c'était la dernière présence, fermer le modal
+                          if (selectedCours.presences.length === 1) {
+                            setSelectedCours(null);
+                          }
+                        } catch (err) {
+                          console.error('Error deleting presence:', err);
+                          alert('Erreur lors de la suppression');
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      };
+                      
                       return (
                         <div
                           key={presence.id}
@@ -595,12 +618,21 @@ export default function PresencesEnseignantsPage() {
                                 </span>
                               )}
                               {!isEditing && (
-                                <button
-                                  onClick={handleEdit}
-                                  className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs"
-                                >
-                                  Modifier
-                                </button>
+                                <>
+                                  <button
+                                    onClick={handleEdit}
+                                    className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs"
+                                  >
+                                    Modifier
+                                  </button>
+                                  <button
+                                    onClick={handleDelete}
+                                    disabled={isSaving}
+                                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>

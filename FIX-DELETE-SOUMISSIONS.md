@@ -1,49 +1,80 @@
-# Correction du problème de suppression des soumissions
+# Suppression des Soumissions de Présence Enseignants
 
-## Problème
-Les soumissions ne peuvent pas être supprimées car il manque une politique RLS (Row Level Security) pour l'opération DELETE sur la table `soumissions_disponibilites`.
+## Fonctionnalité Ajoutée
 
-## Solution
+Les administrateurs peuvent maintenant **supprimer** les déclarations de présence des enseignants depuis la page "Présences Enseignants".
 
-### Étape 1 : Accéder à Supabase
-1. Allez sur https://supabase.com
-2. Connectez-vous à votre projet
-3. Allez dans l'onglet "SQL Editor"
+## Utilisation
 
-### Étape 2 : Exécuter la requête SQL
-Copiez et exécutez la requête suivante :
+### Accès à la Fonctionnalité
 
-```sql
--- Ajouter une politique pour permettre la suppression des soumissions
-CREATE POLICY "Allow delete submissions" ON soumissions_disponibilites
-    FOR DELETE USING (true);
+1. Aller dans **Admin** → **Présences Enseignants**
+2. Cliquer sur **Détails** pour un cours
+3. Dans le modal de détails, chaque déclaration de présence affiche maintenant :
+   - Un bouton **Modifier** (existant)
+   - Un bouton **🗑️ Supprimer** (nouveau)
+
+### Suppression d'une Déclaration
+
+1. Cliquer sur l'icône de corbeille (🗑️) à côté de la déclaration
+2. Confirmer la suppression dans la boîte de dialogue
+3. La déclaration est supprimée immédiatement
+4. Les statistiques sont mises à jour automatiquement
+
+### Comportement
+
+- **Confirmation requise** : Une confirmation est demandée avant suppression
+- **Mise à jour automatique** : Les compteurs et statistiques sont rafraîchis
+- **Fermeture du modal** : Si c'était la dernière déclaration du cours, le modal se ferme automatiquement
+- **Historique** : La suppression est définitive (pas d'historique conservé)
+
+## Cas d'Usage
+
+Cette fonctionnalité est utile pour :
+
+- **Corriger des erreurs** : Supprimer une déclaration soumise par erreur
+- **Doublons** : Retirer des déclarations en double
+- **Données obsolètes** : Nettoyer des déclarations qui ne sont plus pertinentes
+- **Tests** : Supprimer des données de test
+
+## Modifications Techniques
+
+### Fichiers Modifiés
+
+1. **`lib/teacherPresenceApi.ts`**
+   - Ajout de la fonction `deletePresence(id: string)`
+   - Suppression directe dans la table `presences_enseignants`
+
+2. **`pages/admin/PresencesEnseignantsPage.tsx`**
+   - Import de `deletePresence` et icône `Trash2`
+   - Ajout du bouton de suppression dans le modal
+   - Fonction `handleDelete` avec confirmation
+   - Gestion de l'état pendant la suppression
+
+### API
+
+```typescript
+// Supprimer une présence
+await deletePresence(presenceId);
 ```
 
-### Étape 3 : Vérifier
-1. Cliquez sur "Run" pour exécuter la requête
-2. Vous devriez voir un message de succès
-3. Retournez dans votre application et essayez de supprimer une soumission
-4. La suppression devrait maintenant fonctionner correctement
+## Sécurité
 
-## Vérification des politiques existantes
+- ✅ Confirmation obligatoire avant suppression
+- ✅ Accessible uniquement aux administrateurs
+- ✅ Gestion des erreurs avec messages utilisateur
+- ⚠️ Suppression définitive (pas de corbeille)
 
-Pour voir toutes les politiques RLS sur la table `soumissions_disponibilites`, vous pouvez exécuter :
+## Recommandations
 
-```sql
-SELECT * FROM pg_policies WHERE tablename = 'soumissions_disponibilites';
-```
+1. **Vérifier avant de supprimer** : La suppression est définitive
+2. **Utiliser la modification** : Pour corriger des informations, préférer la modification
+3. **Documenter** : Noter les raisons de suppression importantes
+4. **Backup** : Faire des sauvegardes régulières de la base de données
 
-Vous devriez maintenant voir 4 politiques :
-- `Public can insert submissions` (INSERT)
-- `Public can update own submissions` (UPDATE)
-- `Public can view submissions` (SELECT)
-- `Allow delete submissions` (DELETE) ← Nouvelle politique
+## Prochaines Améliorations Possibles
 
-## Note de sécurité
-
-Cette politique permet à tous les utilisateurs de supprimer des soumissions. Si vous souhaitez restreindre cette opération uniquement aux administrateurs, vous devrez :
-
-1. Implémenter un système d'authentification
-2. Modifier la politique pour vérifier le rôle de l'utilisateur
-
-Pour l'instant, comme votre application est protégée au niveau de l'interface (seuls les admins ont accès à la page de suppression), cette politique est suffisante.
+- [ ] Historique des suppressions dans les audit logs
+- [ ] Suppression en masse (plusieurs déclarations à la fois)
+- [ ] Corbeille temporaire avec restauration possible
+- [ ] Export des données avant suppression

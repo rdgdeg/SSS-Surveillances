@@ -19,7 +19,7 @@ Crée la table `consignes_secretariat` avec :
 - `is_active` : Statut actif/inactif
 
 Secrétariats pré-configurés :
-- FASB - Faculté des Sciences Agronomiques et de Bioingénierie
+- FASB - Faculté de Pharmacie et Sciences Biomédicales
 - DENT - Faculté de Médecine Dentaire
 - MED - Faculté de Médecine
 - BAC11 - BAC 11

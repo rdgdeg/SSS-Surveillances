@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS consignes_secretariat (
 
 -- Insert default secretariats
 INSERT INTO consignes_secretariat (code_secretariat, nom_secretariat, consignes_arrivee, heure_arrivee_suggeree) VALUES
-  ('FASB', 'Faculté des Sciences Agronomiques et de Bioingénierie', 'Veuillez vous présenter à l''accueil de la faculté.', '08:15'),
+  ('FASB', 'Faculté de Pharmacie et Sciences Biomédicales', 'Veuillez vous présenter à l''accueil de la faculté.', '08:15'),
   ('DENT', 'Faculté de Médecine Dentaire', 'Veuillez vous présenter à l''accueil de la faculté.', '08:15'),
   ('MED', 'Faculté de Médecine', 'Veuillez vous présenter à l''accueil de la faculté.', '08:15'),
   ('BAC11', 'BAC 11', 'Veuillez vous présenter à l''accueil.', '08:15'),

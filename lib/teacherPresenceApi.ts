@@ -371,3 +371,19 @@ export async function archiveNotification(id: string): Promise<void> {
     throw error;
   }
 }
+
+/**
+ * Supprime une présence enseignant
+ * @param id ID de la présence à supprimer
+ */
+export async function deletePresence(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('presences_enseignants')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error('Error deleting presence:', error);
+    throw error;
+  }
+}
