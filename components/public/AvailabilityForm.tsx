@@ -873,6 +873,57 @@ const AvailabilityForm: React.FC = () => {
 
     if (!session) return <div className="text-center text-red-500">Aucune session active n'a pu être chargée. Veuillez contacter l'administrateur.</div>;
 
+    // Vérifier si les soumissions sont verrouillées
+    if (session.lock_submissions) {
+        return (
+            <div className="max-w-2xl mx-auto py-8">
+                <Card className="border-amber-400 dark:border-amber-600 shadow-lg">
+                    <CardHeader className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-full">
+                                <svg className="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <CardTitle className="text-2xl text-amber-800 dark:text-amber-300">
+                                Les disponibilités sont verrouillées
+                            </CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4 rounded-lg">
+                            <p className="text-blue-800 dark:text-blue-300">
+                                {session.lock_message || 'La période de soumission des disponibilités est terminée.'}
+                            </p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                                Si vous avez besoin de modifier vos disponibilités pour des raisons exceptionnelles :
+                            </p>
+                            <ul className="space-y-2 text-gray-700 dark:text-gray-300">
+                                <li className="flex items-start gap-2">
+                                    <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                                    <span>Contactez le secrétariat : <strong className="text-indigo-600 dark:text-indigo-400">02/436.16.89</strong></span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                                    <span>Ou organisez-vous avec un collègue pour un échange de surveillance</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="pt-4 border-t dark:border-gray-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                                Merci de votre compréhension.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-4xl mx-auto">
             {/* Avertissement si LocalStorage non disponible */}
