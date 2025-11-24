@@ -202,8 +202,9 @@ const SurveillantRow = memo<{
     onEdit: (s: Surveillant) => void; 
     onDelete: (s: Surveillant) => void;
     onToggleDispense: (s: Surveillant) => void;
+    onTypeChange: (s: Surveillant, newType: SurveillantType) => void;
     nbAttributions: number;
-}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete, onToggleDispense, nbAttributions }) => {
+}>(({ surveillant, isSelected, onToggleSelect, onEdit, onDelete, onToggleDispense, onTypeChange, nbAttributions }) => {
     const quotaRemaining = (surveillant.quota_surveillances || 0) - nbAttributions;
     const isOverQuota = quotaRemaining < 0;
     const isNearQuota = quotaRemaining >= 0 && quotaRemaining <= 1;
@@ -228,9 +229,19 @@ const SurveillantRow = memo<{
             {surveillant.telephone || '-'}
         </td>
         <td className="px-3 py-2 whitespace-nowrap text-xs">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                {SurveillantTypeLabels[surveillant.type]}
-            </span>
+            <Select 
+                value={surveillant.type} 
+                onValueChange={(value) => onTypeChange(surveillant, value as SurveillantType)}
+            >
+                <SelectTrigger className="h-7 text-xs w-full">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {Object.entries(SurveillantTypeLabels).map(([k, l]) => (
+                        <SelectItem key={k} value={k} className="text-xs">{l}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </td>
         <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
             {surveillant.affectation_faculte || '-'}
@@ -418,6 +429,20 @@ const SurveillantsPage: React.FC = () => {
                 newSet.delete(surveillant.id);
                 return newSet;
             });
+        }
+    };
+
+    const handleTypeChange = async (surveillant: Surveillant, newType: SurveillantType) => {
+        try {
+            await updateSurveillant(surveillant.id, {
+                type: newType
+            });
+
+            toast.success(`Type modifié : ${SurveillantTypeLabels[newType]}`);
+            refetch();
+        } catch (error) {
+            console.error('Error updating type:', error);
+            toast.error('Erreur lors de la mise à jour du type');
         }
     };
     
@@ -658,6 +683,7 @@ const SurveillantsPage: React.FC = () => {
                                         onEdit={handleEdit} 
                                         onDelete={openDeleteConfirmation}
                                         onToggleDispense={handleToggleDispense}
+                                        onTypeChange={handleTypeChange}
                                         nbAttributions={attributions.get(s.id) || 0}
                                     />
                                 ))}
