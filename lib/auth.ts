@@ -11,6 +11,28 @@ export interface AdminUser {
 // Authentifier un utilisateur
 export async function authenticateUser(username: string, password: string): Promise<AdminUser | null> {
   try {
+    // MODE TEMPORAIRE : Authentification en dur pour déboguer
+    // TODO: Retirer ce code une fois la base de données corrigée
+    if (password === 'uclouvain1200') {
+      if (username === 'RaphD') {
+        return {
+          id: 'temp-raphd-id',
+          username: 'RaphD',
+          display_name: 'Raphaël D.',
+          is_active: true,
+        };
+      }
+      if (username === 'CelineG') {
+        return {
+          id: 'temp-celineg-id',
+          username: 'CelineG',
+          display_name: 'Céline G.',
+          is_active: true,
+        };
+      }
+    }
+
+    // Authentification normale via la base de données
     const { data: user, error } = await supabase
       .from('admin_users')
       .select('id, username, display_name, password_hash, is_active')
@@ -19,20 +41,27 @@ export async function authenticateUser(username: string, password: string): Prom
       .single();
 
     if (error || !user) {
+      console.error('Database query error:', error);
       return null;
     }
 
     // Vérifier le mot de passe
     const isValid = await bcrypt.compare(password, user.password_hash);
     if (!isValid) {
+      console.error('Invalid password for user:', username);
       return null;
     }
 
-    // Mettre à jour la date de dernière connexion
-    await supabase
-      .from('admin_users')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', user.id);
+    // Mettre à jour la date de dernière connexion (si la colonne existe)
+    try {
+      await supabase
+        .from('admin_users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', user.id);
+    } catch (updateError) {
+      console.warn('Could not update last_login_at:', updateError);
+      // Ne pas bloquer la connexion si la mise à jour échoue
+    }
 
     return {
       id: user.id,
