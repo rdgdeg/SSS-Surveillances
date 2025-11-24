@@ -7,6 +7,7 @@ import { Button } from '../components/shared/Button';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,19 +20,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Connexion simplifiée avec juste le mot de passe
-      if (password === 'uclouvain1200') {
-        const user = {
-          id: 'admin-temp-id',
-          username: 'RaphD',
-          display_name: 'Administrateur',
-          is_active: true,
-        };
+      const user = await authenticateUser(username, password);
+      
+      if (user) {
         login(user);
         toast.success(`Bienvenue ${user.display_name}!`);
         navigate('/admin');
       } else {
-        setError('Mot de passe incorrect');
+        setError('Nom d\'utilisateur ou mot de passe incorrect');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -67,10 +63,22 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
-                Entrez le mot de passe d'accès administrateur
-              </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Nom d'utilisateur
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="RaphD"
+                  required
+                  autoFocus
+                />
+              </div>
             </div>
 
             <div>
@@ -83,10 +91,9 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white text-lg"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                   placeholder="••••••••••••"
                   required
-                  autoFocus
                 />
               </div>
             </div>
@@ -94,7 +101,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full py-3 text-lg"
-              disabled={loading || !password}
+              disabled={loading || !username || !password}
             >
               {loading ? (
                 <>

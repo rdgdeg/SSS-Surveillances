@@ -11,28 +11,7 @@ export interface AdminUser {
 // Authentifier un utilisateur
 export async function authenticateUser(username: string, password: string): Promise<AdminUser | null> {
   try {
-    // MODE TEMPORAIRE : Authentification en dur pour déboguer
-    // TODO: Retirer ce code une fois la base de données corrigée
-    if (password === 'uclouvain1200') {
-      if (username === 'RaphD') {
-        return {
-          id: 'temp-raphd-id',
-          username: 'RaphD',
-          display_name: 'Raphaël D.',
-          is_active: true,
-        };
-      }
-      if (username === 'CelineG') {
-        return {
-          id: 'temp-celineg-id',
-          username: 'CelineG',
-          display_name: 'Céline G.',
-          is_active: true,
-        };
-      }
-    }
-
-    // Authentification normale via la base de données
+    // Récupérer l'utilisateur depuis la base de données
     const { data: user, error } = await supabase
       .from('admin_users')
       .select('id, username, display_name, password_hash, is_active')
@@ -52,7 +31,7 @@ export async function authenticateUser(username: string, password: string): Prom
       return null;
     }
 
-    // Mettre à jour la date de dernière connexion (si la colonne existe)
+    // Mettre à jour la date de dernière connexion
     try {
       await supabase
         .from('admin_users')
