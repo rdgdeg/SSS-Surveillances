@@ -154,7 +154,7 @@ const SurveillantForm: React.FC<{ surveillant?: Surveillant | null; onSave: () =
              <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="type" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Type</label>
-                    <Select onValueChange={handleSelectChange} defaultValue={formData.type}>
+                    <Select onValueChange={handleSelectChange} value={formData.type}>
                         <SelectTrigger id="type"><SelectValue/></SelectTrigger>
                         <SelectContent>{Object.entries(SurveillantTypeLabels).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
                     </Select>
