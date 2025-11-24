@@ -242,22 +242,22 @@ const CreneauView: React.FC<{
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
                         <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">Créneau</th>
-                        {soumissions.map(s => (
-                            <th key={s.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">
-                                <div>{s.prenom} {s.nom}</div>
-                                {s.telephone && (
-                                    <div className="text-xs text-gray-600 dark:text-gray-400 normal-case font-normal mt-0.5">📞 {s.telephone}</div>
+                        {soumissions.map(soumission => (
+                            <th key={soumission.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">
+                                <div>{soumission.prenom} {soumission.nom}</div>
+                                {soumission.telephone && (
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 normal-case font-normal mt-0.5">📞 {soumission.telephone}</div>
                                 )}
-                                {s.remarque_generale && (
+                                {soumission.remarque_generale && (
                                     <div className="mt-1 normal-case font-normal">
-                                        <div className="text-xs text-amber-700 dark:text-amber-400 flex items-center justify-center gap-1" title={s.remarque_generale}>
+                                        <div className="text-xs text-amber-700 dark:text-amber-400 flex items-center justify-center gap-1" title={soumission.remarque_generale}>
                                             <FileText className="h-3 w-3" />
                                             <span className="truncate max-w-[100px]">Remarque</span>
                                         </div>
                                     </div>
                                 )}
                                 <div className="mt-1 normal-case font-normal">
-                                    <TimestampCell submission={s} onClick={() => onShowHistory(s)} />
+                                    <TimestampCell submission={soumission} onClick={() => onShowHistory(soumission)} />
                                 </div>
                             </th>
                         ))}
@@ -288,9 +288,9 @@ const CreneauView: React.FC<{
                                     />
                                 </div>
                             </td>
-                            {soumissions.map(submission => {
-                                const key = `${submission.surveillant_id ?? submission.email}-${creneau.id}`;
-                                const cellKey = `${submission.id}-${creneau.id}`;
+                            {soumissions.map(soumission => {
+                                const key = `${soumission.surveillant_id ?? soumission.email}-${creneau.id}`;
+                                const cellKey = `${soumission.id}-${creneau.id}`;
                                 const availability = availabilityMap.get(key);
                                 const Icon = availability ? (availability.est_disponible ? CheckIcon : XIcon) : MinusIcon;
                                 const colorClass = availability ? (availability.est_disponible ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : 'text-gray-400';
@@ -299,9 +299,9 @@ const CreneauView: React.FC<{
                                 
                                 return (
                                     <td 
-                                        key={submission.id} 
+                                        key={soumission.id} 
                                         className={`px-6 py-3 text-sm ${bgClass} ${editMode ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''}`}
-                                        onClick={() => editMode && onToggle(submission, creneau.id)}
+                                        onClick={() => editMode && onToggle(soumission, creneau.id)}
                                         title={editMode ? 'Cliquer pour modifier' : ''}
                                     >
                                         <div className="flex justify-center">
