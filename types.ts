@@ -346,6 +346,9 @@ export interface Examen {
   enseignants: string[]; // Array d'emails/noms des enseignants
   secretariat: string | null;
   nb_surveillants_requis: number | null;
+  nb_enseignants_presents_manuel: number | null; // Saisie manuelle
+  nb_accompagnants_manuel: number | null; // Saisie manuelle
+  use_manual_counts: boolean; // Utiliser les valeurs manuelles
   saisie_manuelle: boolean;
   cree_par_email: string | null;
   valide: boolean;
@@ -495,6 +498,9 @@ export interface ExamenFormData {
   enseignants: string[];
   secretariat: string;
   nb_surveillants_requis: number | null;
+  nb_enseignants_presents_manuel?: number | null;
+  nb_accompagnants_manuel?: number | null;
+  use_manual_counts?: boolean;
 }
 
 export interface ExamenFilters {

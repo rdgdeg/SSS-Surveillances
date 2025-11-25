@@ -31,6 +31,9 @@ interface ExamFormData {
   enseignants: string[];
   secretariat: string;
   nb_surveillants_requis: number | null;
+  nb_enseignants_presents_manuel?: number | null;
+  nb_accompagnants_manuel?: number | null;
+  use_manual_counts?: boolean;
 }
 
 export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateExam }: ExamListProps) {
@@ -59,6 +62,9 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     enseignants: [],
     secretariat: '',
     nb_surveillants_requis: null,
+    nb_enseignants_presents_manuel: null,
+    nb_accompagnants_manuel: null,
+    use_manual_counts: false,
   });
 
   // Utiliser le terme debounced pour les requêtes API
@@ -197,6 +203,9 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
       enseignants: [],
       secretariat: '',
       nb_surveillants_requis: null,
+      nb_enseignants_presents_manuel: null,
+      nb_accompagnants_manuel: null,
+      use_manual_counts: false,
     });
     setShowCreateModal(true);
   };
@@ -236,6 +245,9 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
       enseignants: [],
       secretariat: exam.secretariat || '',
       nb_surveillants_requis: exam.nb_surveillants_requis,
+      nb_enseignants_presents_manuel: exam.nb_enseignants_presents_manuel || null,
+      nb_accompagnants_manuel: exam.nb_accompagnants_manuel || null,
+      use_manual_counts: exam.use_manual_counts || false,
     });
     setShowEditModal(true);
   };
@@ -984,6 +996,57 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                   min="0"
                 />
+              </div>
+
+              {/* Section saisie manuelle */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <input
+                    type="checkbox"
+                    id="use_manual_counts"
+                    checked={formData.use_manual_counts || false}
+                    onChange={(e) => setFormData({ ...formData, use_manual_counts: e.target.checked })}
+                    className="rounded"
+                  />
+                  <label htmlFor="use_manual_counts" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Utiliser la saisie manuelle pour les présences
+                  </label>
+                </div>
+
+                {formData.use_manual_counts && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nombre d'enseignants présents
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.nb_enseignants_presents_manuel || ''}
+                        onChange={(e) => setFormData({ ...formData, nb_enseignants_presents_manuel: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                        min="0"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nombre d'accompagnants
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.nb_accompagnants_manuel || ''}
+                        onChange={(e) => setFormData({ ...formData, nb_accompagnants_manuel: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                        min="0"
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Personnes apportées autres que les assistants
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -125,10 +125,17 @@ export async function getExamens(
       const examensWithStatus: ExamenWithStatus[] = allExamens.map(examen => {
         const examenPresences = presencesByExamen.get(examen.id) || [];
         const nb_presences_declarees = examenPresences.length;
-        const nb_enseignants_presents = examenPresences.filter(p => p.est_present).length;
-        const nb_surveillants_accompagnants = examenPresences
-          .filter(p => p.est_present)
-          .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
+        
+        // Use manual counts if enabled, otherwise use declarations
+        const nb_enseignants_presents = examen.use_manual_counts 
+          ? (examen.nb_enseignants_presents_manuel || 0)
+          : examenPresences.filter(p => p.est_present).length;
+        
+        const nb_surveillants_accompagnants = examen.use_manual_counts
+          ? (examen.nb_accompagnants_manuel || 0)
+          : examenPresences
+              .filter(p => p.est_present)
+              .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
 
         return {
           ...examen,
@@ -195,10 +202,17 @@ export async function getExamens(
       const examensWithStatus: ExamenWithStatus[] = examens.map(examen => {
         const examenPresences = presencesByExamen.get(examen.id) || [];
         const nb_presences_declarees = examenPresences.length;
-        const nb_enseignants_presents = examenPresences.filter(p => p.est_present).length;
-        const nb_surveillants_accompagnants = examenPresences
-          .filter(p => p.est_present)
-          .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
+        
+        // Use manual counts if enabled, otherwise use declarations
+        const nb_enseignants_presents = examen.use_manual_counts 
+          ? (examen.nb_enseignants_presents_manuel || 0)
+          : examenPresences.filter(p => p.est_present).length;
+        
+        const nb_surveillants_accompagnants = examen.use_manual_counts
+          ? (examen.nb_accompagnants_manuel || 0)
+          : examenPresences
+              .filter(p => p.est_present)
+              .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
 
         return {
           ...examen,
@@ -297,6 +311,9 @@ export async function createExamen(
       enseignants: data.enseignants,
       secretariat: data.secretariat || null,
       nb_surveillants_requis: data.nb_surveillants_requis,
+      nb_enseignants_presents_manuel: data.nb_enseignants_presents_manuel || null,
+      nb_accompagnants_manuel: data.nb_accompagnants_manuel || null,
+      use_manual_counts: data.use_manual_counts || false,
       saisie_manuelle: false,
       valide: true
     };
@@ -368,6 +385,15 @@ export async function updateExamen(
     if (updates.secretariat !== undefined) updateData.secretariat = updates.secretariat || null;
     if (updates.nb_surveillants_requis !== undefined) {
       updateData.nb_surveillants_requis = updates.nb_surveillants_requis;
+    }
+    if (updates.nb_enseignants_presents_manuel !== undefined) {
+      updateData.nb_enseignants_presents_manuel = updates.nb_enseignants_presents_manuel;
+    }
+    if (updates.nb_accompagnants_manuel !== undefined) {
+      updateData.nb_accompagnants_manuel = updates.nb_accompagnants_manuel;
+    }
+    if (updates.use_manual_counts !== undefined) {
+      updateData.use_manual_counts = updates.use_manual_counts;
     }
 
     const { data: examen, error } = await supabase
