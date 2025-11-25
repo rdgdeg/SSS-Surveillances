@@ -83,9 +83,16 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
     try {
       setSaving(true);
+      
+      // Convert to number for numeric fields
+      let value: any = editValue || null;
+      if (field === 'nb_surveillants_requis' || field === 'duree_minutes') {
+        value = editValue ? parseInt(editValue, 10) : null;
+      }
+      
       await updateExamen(
         examenId, 
-        { [field]: editValue || null } as any,
+        { [field]: value } as any,
         user?.id,
         user?.username
       );
@@ -546,7 +553,10 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                   Secrétariat
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Surveillants
+                  Surv. requis
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Attribution
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ens. présents
@@ -568,7 +578,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             <tbody className="bg-white divide-y divide-gray-200">
               {examens.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={13} className="px-6 py-12 text-center text-gray-500">
                     Aucun examen trouvé
                   </td>
                 </tr>
@@ -721,7 +731,32 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                       )}
                     </td>
 
-                    {/* Supervisors */}
+                    {/* Surveillants requis - Inline editable */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {editingField?.examenId === examen.id && editingField?.field === 'nb_surveillants_requis' ? (
+                        <input
+                          type="number"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleSaveEdit(examen.id, 'nb_surveillants_requis')}
+                          onKeyDown={(e) => handleKeyPress(e, examen.id, 'nb_surveillants_requis')}
+                          className="w-20 px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          disabled={saving}
+                          min="0"
+                        />
+                      ) : (
+                        <div
+                          onClick={() => handleStartEdit(examen.id, 'nb_surveillants_requis', examen.nb_surveillants_requis?.toString() || '0')}
+                          className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                          title="Cliquer pour modifier le nombre de surveillants requis"
+                        >
+                          {examen.nb_surveillants_requis || 0}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Attribution des surveillants */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => setShowAuditoiresModal({ id: examen.id, nom: examen.nom_examen })}
