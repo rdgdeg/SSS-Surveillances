@@ -125,6 +125,64 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     }
   };
 
+  // Handle export
+  const handleExport = () => {
+    try {
+      // Prepare CSV data
+      const headers = [
+        'Code',
+        'Nom',
+        'Date',
+        'Heure début',
+        'Heure fin',
+        'Durée (min)',
+        'Auditoires',
+        'Secrétariat',
+        'Surveillants requis',
+        'Enseignants présents',
+        'Accompagnants',
+        'Statut déclarations'
+      ];
+
+      const rows = examens.map(exam => [
+        exam.code_examen,
+        exam.nom_examen,
+        exam.date_examen || '',
+        exam.heure_debut || '',
+        exam.heure_fin || '',
+        exam.duree_minutes?.toString() || '',
+        exam.auditoires || '',
+        exam.secretariat || '',
+        exam.nb_surveillants_requis?.toString() || '',
+        exam.nb_enseignants_presents?.toString() || '0',
+        exam.nb_surveillants_accompagnants?.toString() || '0',
+        exam.has_presence_declarations ? 'Déclaré' : 'En attente'
+      ]);
+
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      // Create blob and download
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `examens_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Export réussi');
+    } catch (error) {
+      console.error('Error exporting:', error);
+      toast.error('Erreur lors de l\'export');
+    }
+  };
+
   // Handle create exam
   const handleOpenCreateModal = () => {
     setFormData({
@@ -227,10 +285,16 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
       {/* Header with Create Button */}
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-gray-900">Liste des examens ({total})</h2>
-        <Button onClick={handleOpenCreateModal}>
-          <Plus className="h-4 w-4 mr-2" />
-          Créer un examen
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <FileText className="h-4 w-4 mr-2" />
+            Exporter
+          </Button>
+          <Button onClick={handleOpenCreateModal}>
+            <Plus className="h-4 w-4 mr-2" />
+            Créer un examen
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -406,6 +470,12 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                   Surveillants
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ens. présents
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Accompagnants
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Statut
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -416,7 +486,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             <tbody className="bg-white divide-y divide-gray-200">
               {examens.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                     Aucun examen trouvé
                   </td>
                 </tr>
@@ -579,6 +649,20 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                         <Users className="h-4 w-4" />
                         Gérer
                       </button>
+                    </td>
+
+                    {/* Enseignants présents */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className={examen.nb_enseignants_presents > 0 ? 'text-green-600 font-medium' : 'text-gray-400'}>
+                        {examen.nb_enseignants_presents || 0}
+                      </span>
+                    </td>
+
+                    {/* Accompagnants (autres que surveillants) */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className={examen.nb_surveillants_accompagnants > 0 ? 'text-blue-600 font-medium' : 'text-gray-400'}>
+                        {examen.nb_surveillants_accompagnants || 0}
+                      </span>
                     </td>
 
                     {/* Status */}

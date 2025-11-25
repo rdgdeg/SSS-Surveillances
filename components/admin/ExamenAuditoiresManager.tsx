@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
-import { Plus, Trash2, Users, Save, X } from 'lucide-react';
+import { Plus, Trash2, Users, Save, X, Search } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 
@@ -27,6 +27,7 @@ interface Props {
 export default function ExamenAuditoiresManager({ examenId }: Props) {
   const queryClient = useQueryClient();
   const [editingAuditoire, setEditingAuditoire] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<{ [key: string]: string }>({});
   const [newAuditoire, setNewAuditoire] = useState({
     auditoire: '',
     nb_surveillants_requis: 1,
@@ -173,26 +174,43 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Surveillants assignés ({auditoire.surveillants?.length || 0})
                 </label>
+                
+                {/* Barre de recherche */}
+                <input
+                  type="text"
+                  placeholder="Rechercher un surveillant..."
+                  value={searchTerm[auditoire.id] || ''}
+                  onChange={(e) => setSearchTerm({ ...searchTerm, [auditoire.id]: e.target.value })}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+                
                 <div className="max-h-40 overflow-y-auto space-y-1">
-                  {surveillants?.map((surveillant) => {
-                    const isSelected = auditoire.surveillants?.includes(surveillant.id);
-                    return (
-                      <label
-                        key={surveillant.id}
-                        className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSurveillant(auditoire.id, auditoire.surveillants || [], surveillant.id)}
-                          className="rounded"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {surveillant.prenom} {surveillant.nom}
-                        </span>
-                      </label>
-                    );
-                  })}
+                  {surveillants
+                    ?.filter((surveillant) => {
+                      const search = (searchTerm[auditoire.id] || '').toLowerCase();
+                      if (!search) return true;
+                      const fullName = `${surveillant.prenom} ${surveillant.nom}`.toLowerCase();
+                      return fullName.includes(search);
+                    })
+                    .map((surveillant) => {
+                      const isSelected = auditoire.surveillants?.includes(surveillant.id);
+                      return (
+                        <label
+                          key={surveillant.id}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSurveillant(auditoire.id, auditoire.surveillants || [], surveillant.id)}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {surveillant.prenom} {surveillant.nom}
+                          </span>
+                        </label>
+                      );
+                    })}
                 </div>
               </div>
             </div>

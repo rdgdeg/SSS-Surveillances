@@ -62,7 +62,8 @@ export async function getExamens(
     }
 
     if (filters?.secretariat) {
-      query = query.eq('secretariat', filters.secretariat);
+      const secretariatTerm = `%${filters.secretariat}%`;
+      query = query.ilike('secretariat', secretariatTerm);
     }
 
     if (filters?.hasCoursLinked !== undefined) {
@@ -87,71 +88,133 @@ export async function getExamens(
       .order('heure_debut', { ascending: true, nullsFirst: false })
       .order('code_examen', { ascending: true });
 
-    // Apply pagination
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
+    // For responseStatus filter, we need to fetch all exams first, then filter
+    // This is because we can't filter on presence declarations in the SQL query
+    const needsPresenceFilter = filters?.responseStatus && filters.responseStatus !== 'all';
+    
+    if (needsPresenceFilter) {
+      // Fetch all exams without pagination
+      const { data: allExamens, error } = await query;
 
-    const { data: examens, error, count } = await query;
-
-    if (error) {
-      console.error('Error fetching examens:', error);
-      throw error;
-    }
-
-    if (!examens) {
-      return { data: [], total: 0 };
-    }
-
-    // Fetch presence declarations for all exams
-    const examenIds = examens.map(e => e.id);
-    const { data: presences } = await supabase
-      .from('presences_enseignants')
-      .select('examen_id, est_present, nb_surveillants_accompagnants')
-      .in('examen_id', examenIds);
-
-    // Group presences by exam
-    const presencesByExamen = new Map<string, typeof presences>();
-    (presences || []).forEach(p => {
-      if (!presencesByExamen.has(p.examen_id)) {
-        presencesByExamen.set(p.examen_id, []);
+      if (error) {
+        console.error('Error fetching examens:', error);
+        throw error;
       }
-      presencesByExamen.get(p.examen_id)!.push(p);
-    });
 
-    // Build ExamenWithStatus objects
-    const examensWithStatus: ExamenWithStatus[] = examens.map(examen => {
-      const examenPresences = presencesByExamen.get(examen.id) || [];
-      const nb_presences_declarees = examenPresences.length;
-      const nb_enseignants_presents = examenPresences.filter(p => p.est_present).length;
-      const nb_surveillants_accompagnants = examenPresences
-        .filter(p => p.est_present)
-        .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
+      if (!allExamens || allExamens.length === 0) {
+        return { data: [], total: 0 };
+      }
 
-      return {
-        ...examen,
-        cours: examen.cours || undefined,
-        has_presence_declarations: nb_presences_declarees > 0,
-        nb_presences_declarees,
-        nb_enseignants_presents,
-        nb_surveillants_accompagnants
-      };
-    });
+      // Fetch presence declarations for all exams
+      const examenIds = allExamens.map(e => e.id);
+      const { data: presences } = await supabase
+        .from('presences_enseignants')
+        .select('examen_id, est_present, nb_surveillants_accompagnants')
+        .in('examen_id', examenIds);
 
-    // Apply response status filter (after fetching presences)
-    let filteredExamens = examensWithStatus;
-    if (filters?.responseStatus && filters.responseStatus !== 'all') {
+      // Group presences by exam
+      const presencesByExamen = new Map<string, typeof presences>();
+      (presences || []).forEach(p => {
+        if (!presencesByExamen.has(p.examen_id)) {
+          presencesByExamen.set(p.examen_id, []);
+        }
+        presencesByExamen.get(p.examen_id)!.push(p);
+      });
+
+      // Build ExamenWithStatus objects
+      const examensWithStatus: ExamenWithStatus[] = allExamens.map(examen => {
+        const examenPresences = presencesByExamen.get(examen.id) || [];
+        const nb_presences_declarees = examenPresences.length;
+        const nb_enseignants_presents = examenPresences.filter(p => p.est_present).length;
+        const nb_surveillants_accompagnants = examenPresences
+          .filter(p => p.est_present)
+          .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
+
+        return {
+          ...examen,
+          cours: examen.cours || undefined,
+          has_presence_declarations: nb_presences_declarees > 0,
+          nb_presences_declarees,
+          nb_enseignants_presents,
+          nb_surveillants_accompagnants
+        };
+      });
+
+      // Apply response status filter
+      let filteredExamens = examensWithStatus;
       if (filters.responseStatus === 'declared') {
         filteredExamens = examensWithStatus.filter(e => e.has_presence_declarations);
       } else if (filters.responseStatus === 'pending') {
         filteredExamens = examensWithStatus.filter(e => !e.has_presence_declarations);
       }
-    }
 
-    return {
-      data: filteredExamens,
-      total: count || 0
-    };
+      // Apply pagination after filtering
+      const total = filteredExamens.length;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize;
+      const paginatedExamens = filteredExamens.slice(from, to);
+
+      return {
+        data: paginatedExamens,
+        total
+      };
+    } else {
+      // No presence filter, use normal pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data: examens, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching examens:', error);
+        throw error;
+      }
+
+      if (!examens || examens.length === 0) {
+        return { data: [], total: 0 };
+      }
+
+      // Fetch presence declarations for paginated exams
+      const examenIds = examens.map(e => e.id);
+      const { data: presences } = await supabase
+        .from('presences_enseignants')
+        .select('examen_id, est_present, nb_surveillants_accompagnants')
+        .in('examen_id', examenIds);
+
+      // Group presences by exam
+      const presencesByExamen = new Map<string, typeof presences>();
+      (presences || []).forEach(p => {
+        if (!presencesByExamen.has(p.examen_id)) {
+          presencesByExamen.set(p.examen_id, []);
+        }
+        presencesByExamen.get(p.examen_id)!.push(p);
+      });
+
+      // Build ExamenWithStatus objects
+      const examensWithStatus: ExamenWithStatus[] = examens.map(examen => {
+        const examenPresences = presencesByExamen.get(examen.id) || [];
+        const nb_presences_declarees = examenPresences.length;
+        const nb_enseignants_presents = examenPresences.filter(p => p.est_present).length;
+        const nb_surveillants_accompagnants = examenPresences
+          .filter(p => p.est_present)
+          .reduce((sum, p) => sum + (p.nb_surveillants_accompagnants || 0), 0);
+
+        return {
+          ...examen,
+          cours: examen.cours || undefined,
+          has_presence_declarations: nb_presences_declarees > 0,
+          nb_presences_declarees,
+          nb_enseignants_presents,
+          nb_surveillants_accompagnants
+        };
+      });
+
+      return {
+        data: examensWithStatus,
+        total: count || 0
+      };
+    }
   } catch (error) {
     console.error('Error in getExamens:', error);
     throw error;
