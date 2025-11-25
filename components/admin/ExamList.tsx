@@ -131,10 +131,24 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     }
   };
 
-  // Handle export
-  const handleExport = () => {
+  // Handle export - fetch all exams and export to Excel
+  const handleExport = async (format: 'csv' | 'excel' = 'excel') => {
     try {
-      // Prepare CSV data
+      toast.loading('Récupération des données...');
+      
+      // Fetch ALL exams with current filters (no pagination)
+      const { getExamens } = await import('../../lib/examenManagementApi');
+      const result = await getExamens(sessionId, debouncedFilters, 1, 10000); // Large page size to get all
+      
+      const allExamens = result.data;
+      
+      if (allExamens.length === 0) {
+        toast.dismiss();
+        toast.error('Aucun examen à exporter');
+        return;
+      }
+
+      // Prepare data
       const headers = [
         'Code',
         'Nom',
@@ -150,7 +164,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
         'Statut déclarations'
       ];
 
-      const rows = examens.map(exam => [
+      const rows = allExamens.map(exam => [
         exam.code_examen,
         exam.nom_examen,
         exam.date_examen || '',
@@ -165,26 +179,55 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
         exam.has_presence_declarations ? 'Déclaré' : 'En attente'
       ]);
 
-      // Create CSV content
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
+      const filename = `examens_${new Date().toISOString().split('T')[0]}`;
 
-      // Create blob and download
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `examens_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (format === 'excel') {
+        // Export to Excel
+        const XLSX = await import('xlsx');
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 15 }, // Code
+          { wch: 40 }, // Nom
+          { wch: 12 }, // Date
+          { wch: 12 }, // Heure début
+          { wch: 12 }, // Heure fin
+          { wch: 12 }, // Durée
+          { wch: 30 }, // Auditoires
+          { wch: 15 }, // Secrétariat
+          { wch: 18 }, // Surveillants requis
+          { wch: 18 }, // Enseignants présents
+          { wch: 15 }, // Accompagnants
+          { wch: 20 }  // Statut
+        ];
 
-      toast.success('Export réussi');
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Examens');
+        XLSX.writeFile(wb, `${filename}.xlsx`);
+      } else {
+        // Export to CSV
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      toast.dismiss();
+      toast.success(`${allExamens.length} examen(s) exporté(s) avec succès`);
     } catch (error) {
       console.error('Error exporting:', error);
+      toast.dismiss();
       toast.error('Erreur lors de l\'export');
     }
   };
@@ -298,10 +341,24 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold text-gray-900">Liste des examens ({total})</h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <FileText className="h-4 w-4 mr-2" />
-            Exporter
-          </Button>
+          <div className="relative inline-block">
+            <Button 
+              variant="outline" 
+              onClick={() => handleExport('excel')}
+              className="rounded-r-none border-r-0"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Exporter Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => handleExport('csv')}
+              className="rounded-l-none"
+              title="Exporter en CSV"
+            >
+              CSV
+            </Button>
+          </div>
           <Button onClick={handleOpenCreateModal}>
             <Plus className="h-4 w-4 mr-2" />
             Créer un examen
