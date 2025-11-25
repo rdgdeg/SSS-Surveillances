@@ -161,23 +161,32 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
         'Surveillants requis',
         'Enseignants présents',
         'Accompagnants',
+        'Surveillants à attribuer',
         'Statut déclarations'
       ];
 
-      const rows = allExamens.map(exam => [
-        exam.code_examen,
-        exam.nom_examen,
-        exam.date_examen || '',
-        exam.heure_debut || '',
-        exam.heure_fin || '',
-        exam.duree_minutes?.toString() || '',
-        exam.auditoires || '',
-        exam.secretariat || '',
-        exam.nb_surveillants_requis?.toString() || '',
-        exam.nb_enseignants_presents?.toString() || '0',
-        exam.nb_surveillants_accompagnants?.toString() || '0',
-        exam.has_presence_declarations ? 'Déclaré' : 'En attente'
-      ]);
+      const rows = allExamens.map(exam => {
+        const requis = exam.nb_surveillants_requis || 0;
+        const presents = exam.nb_enseignants_presents || 0;
+        const accompagnants = exam.nb_surveillants_accompagnants || 0;
+        const aAttribuer = Math.max(0, requis - presents - accompagnants);
+        
+        return [
+          exam.code_examen,
+          exam.nom_examen,
+          exam.date_examen || '',
+          exam.heure_debut || '',
+          exam.heure_fin || '',
+          exam.duree_minutes?.toString() || '',
+          exam.auditoires || '',
+          exam.secretariat || '',
+          requis.toString(),
+          presents.toString(),
+          accompagnants.toString(),
+          aAttribuer.toString(),
+          exam.has_presence_declarations ? 'Déclaré' : 'En attente'
+        ];
+      });
 
       const filename = `examens_${new Date().toISOString().split('T')[0]}`;
 
@@ -199,6 +208,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
           { wch: 18 }, // Surveillants requis
           { wch: 18 }, // Enseignants présents
           { wch: 15 }, // Accompagnants
+          { wch: 20 }, // Surveillants à attribuer
           { wch: 20 }  // Statut
         ];
 
@@ -545,6 +555,9 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                   Accompagnants
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Surv. à attribuer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Statut
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -555,7 +568,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             <tbody className="bg-white divide-y divide-gray-200">
               {examens.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
                     Aucun examen trouvé
                   </td>
                 </tr>
@@ -732,6 +745,29 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                       <span className={examen.nb_surveillants_accompagnants > 0 ? 'text-blue-600 font-medium' : 'text-gray-400'}>
                         {examen.nb_surveillants_accompagnants || 0}
                       </span>
+                    </td>
+
+                    {/* Surveillants à attribuer (calculé) */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {(() => {
+                        const requis = examen.nb_surveillants_requis || 0;
+                        const presents = examen.nb_enseignants_presents || 0;
+                        const accompagnants = examen.nb_surveillants_accompagnants || 0;
+                        const aAttribuer = Math.max(0, requis - presents - accompagnants);
+                        
+                        return (
+                          <span 
+                            className={
+                              aAttribuer === 0 ? 'text-green-600 font-medium' : 
+                              aAttribuer > 0 ? 'text-orange-600 font-medium' : 
+                              'text-gray-400'
+                            }
+                            title={`${requis} requis - ${presents} enseignants - ${accompagnants} accompagnants = ${aAttribuer}`}
+                          >
+                            {aAttribuer}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     {/* Status */}
