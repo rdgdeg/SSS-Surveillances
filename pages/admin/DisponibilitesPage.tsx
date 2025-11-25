@@ -406,6 +406,7 @@ const DisponibilitesPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('creneau');
     const [filterType, setFilterType] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
     const [editMode, setEditMode] = useState<boolean>(false);
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
@@ -524,8 +525,16 @@ const DisponibilitesPage: React.FC = () => {
         return soumissions
             .filter(s => filterType === 'all' || s.type_surveillant === filterType)
             .filter(s => `${s.prenom} ${s.nom}`.toLowerCase().includes(lowercasedQuery))
-            .sort((a, b) => (a.nom || '').localeCompare(b.nom || '') || (a.prenom || '').localeCompare(b.prenom || ''));
-    }, [soumissions, filterType, searchQuery]);
+            .sort((a, b) => {
+                if (sortBy === 'date') {
+                    // Tri par date de soumission (plus récent en premier)
+                    return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+                } else {
+                    // Tri par nom
+                    return (a.nom || '').localeCompare(b.nom || '') || (a.prenom || '').localeCompare(b.prenom || '');
+                }
+            });
+    }, [soumissions, filterType, searchQuery, sortBy]);
     
     // Export function
     const handleExportDisponibilites = async () => {
@@ -636,6 +645,17 @@ const DisponibilitesPage: React.FC = () => {
                             <SelectContent>
                                 <SelectItem value="all">Tous les types</SelectItem>
                                 {Object.entries(SurveillantTypeLabels).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-gray-500" />
+                        <label htmlFor="sort-by" className="text-sm font-medium shrink-0">Trier par:</label>
+                        <Select onValueChange={(value) => setSortBy(value as 'name' | 'date')} defaultValue="name">
+                            <SelectTrigger id="sort-by" className="w-[180px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="name">Nom (A-Z)</SelectItem>
+                                <SelectItem value="date">Date de soumission</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
