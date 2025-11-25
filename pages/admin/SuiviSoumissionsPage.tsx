@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/shared/Card';
 import { Button } from '../../components/shared/Button';
-import { Loader2, CheckCircle, XCircle, AlertCircle, Mail, UserX, UserCheck, Copy, Download } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertCircle, Mail, UserX, UserCheck, Copy, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { getSurveillants, getSubmissionStatusData, updateSurveillant } from '../../lib/api';
 import { Surveillant, SurveillantType, SoumissionDisponibilite } from '../../types';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ const SuiviSoumissionsPage: React.FC = () => {
     const [activeSessionName, setActiveSessionName] = useState<string | null>(null);
     const [filter, setFilter] = useState<'all' | 'submitted' | 'pending' | 'dispensed'>('pending');
     const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+    const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     useEffect(() => {
         loadData();
@@ -92,19 +94,40 @@ const SuiviSoumissionsPage: React.FC = () => {
         }
     };
 
-    const filteredSurveillants = surveillants.filter(s => {
-        switch (filter) {
-            case 'submitted':
-                return s.hasSubmitted;
-            case 'pending':
-                return !s.hasSubmitted && !s.dispense_surveillance;
-            case 'dispensed':
-                return s.dispense_surveillance;
-            case 'all':
-            default:
-                return true;
+    const handleSortToggle = (field: 'name' | 'date') => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder(field === 'date' ? 'desc' : 'asc');
         }
-    });
+    };
+
+    const filteredSurveillants = surveillants
+        .filter(s => {
+            switch (filter) {
+                case 'submitted':
+                    return s.hasSubmitted;
+                case 'pending':
+                    return !s.hasSubmitted && !s.dispense_surveillance;
+                case 'dispensed':
+                    return s.dispense_surveillance;
+                case 'all':
+                default:
+                    return true;
+            }
+        })
+        .sort((a, b) => {
+            let comparison = 0;
+            if (sortBy === 'date') {
+                const dateA = a.submissionDate ? new Date(a.submissionDate).getTime() : 0;
+                const dateB = b.submissionDate ? new Date(b.submissionDate).getTime() : 0;
+                comparison = dateA - dateB;
+            } else {
+                comparison = a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom);
+            }
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
 
     const exportEmails = () => {
         const emails = filteredSurveillants.map(s => s.email).join('; ');
@@ -293,7 +316,17 @@ const SuiviSoumissionsPage: React.FC = () => {
                             <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Nom
+                                        <button
+                                            onClick={() => handleSortToggle('name')}
+                                            className="flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                        >
+                                            <span>Nom</span>
+                                            {sortBy === 'name' ? (
+                                                sortOrder === 'asc' ? <ArrowUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> : <ArrowDown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                            ) : (
+                                                <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                            )}
+                                        </button>
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Email
@@ -305,7 +338,17 @@ const SuiviSoumissionsPage: React.FC = () => {
                                         Statut
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Date soumission
+                                        <button
+                                            onClick={() => handleSortToggle('date')}
+                                            className="flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                        >
+                                            <span>Date soumission</span>
+                                            {sortBy === 'date' ? (
+                                                sortOrder === 'asc' ? <ArrowUp className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> : <ArrowDown className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                            ) : (
+                                                <ArrowUpDown className="h-4 w-4 opacity-30" />
+                                            )}
+                                        </button>
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Actions
