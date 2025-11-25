@@ -7,7 +7,7 @@ import { Input } from '../../components/shared/Input';
 import { CheckIcon } from '../../components/icons/CheckIcon';
 import { XIcon } from '../../components/icons/XIcon';
 import { MinusIcon } from '../../components/icons/MinusIcon';
-import { Filter, FileText, Search, Loader2, List, Columns, Edit, Clock, History, Calendar, Users } from 'lucide-react';
+import { Filter, FileText, Search, Loader2, List, Columns, Edit, Clock, History, Calendar, Users, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Badge } from '../../components/shared/Badge';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import { Button } from '../../components/shared/Button';
@@ -328,15 +328,46 @@ const SurveillantView: React.FC<{
     availabilityMap: Map<string, any>;
     editMode: boolean;
     updatingCell: string | null;
+    sortBy: 'name' | 'date';
+    sortOrder: 'asc' | 'desc';
     onToggle: (submission: SoumissionDisponibilite, creneauId: string) => void;
     onShowHistory: (submission: SoumissionDisponibilite) => void;
-}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, onToggle, onShowHistory }) => {
+    onSortToggle: (field: 'name' | 'date') => void;
+}> = ({ creneaux, soumissions, availabilityMap, editMode, updatingCell, sortBy, sortOrder, onToggle, onShowHistory, onSortToggle }) => {
     return (
         <div className="w-full overflow-x-auto overflow-y-auto border rounded-lg dark:border-gray-700 max-h-[70vh]">
             <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 border-separate border-spacing-0" style={{ minWidth: 'max-content' }}>
                 <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                        <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">Surveillant</th>
+                        <th scope="col" className="sticky left-0 top-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase z-30 border-b dark:border-gray-700">
+                            <div className="flex items-center gap-2">
+                                <span>Surveillant</span>
+                                <div className="flex flex-col gap-0.5">
+                                    <button
+                                        onClick={() => onSortToggle('name')}
+                                        className={`hover:text-gray-700 dark:hover:text-gray-100 transition-colors ${sortBy === 'name' ? 'text-indigo-600 dark:text-indigo-400' : ''}`}
+                                        title="Trier par nom"
+                                    >
+                                        {sortBy === 'name' ? (
+                                            sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                        ) : (
+                                            <ArrowUpDown className="h-3 w-3" />
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => onSortToggle('date')}
+                                        className={`hover:text-gray-700 dark:hover:text-gray-100 transition-colors ${sortBy === 'date' ? 'text-indigo-600 dark:text-indigo-400' : ''}`}
+                                        title="Trier par date de soumission"
+                                    >
+                                        {sortBy === 'date' ? (
+                                            sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                        ) : (
+                                            <Clock className="h-3 w-3" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </th>
                         {creneaux.map(c => <th key={c.id} scope="col" className="sticky top-0 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap border-b dark:border-gray-700">
                             <div>{new Date(c.date_surveillance + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}</div>
                             <div className="font-normal">{c.heure_debut_surveillance?.substring(0, 5)}-{c.heure_fin_surveillance?.substring(0, 5)}</div>
@@ -407,10 +438,23 @@ const DisponibilitesPage: React.FC = () => {
     const [filterType, setFilterType] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [editMode, setEditMode] = useState<boolean>(false);
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
     const [showShareModal, setShowShareModal] = useState(false);
+
+    // Handle sort toggle
+    const handleSortToggle = (field: 'name' | 'date') => {
+        if (sortBy === field) {
+            // Toggle order if same field
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Change field and reset to ascending
+            setSortBy(field);
+            setSortOrder(field === 'date' ? 'desc' : 'asc'); // Date defaults to desc (newest first)
+        }
+    };
     
     // Export hook
     const { exportData, isExporting } = useExport();
@@ -526,15 +570,17 @@ const DisponibilitesPage: React.FC = () => {
             .filter(s => filterType === 'all' || s.type_surveillant === filterType)
             .filter(s => `${s.prenom} ${s.nom}`.toLowerCase().includes(lowercasedQuery))
             .sort((a, b) => {
+                let comparison = 0;
                 if (sortBy === 'date') {
-                    // Tri par date de soumission (plus récent en premier)
-                    return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+                    // Tri par date de soumission
+                    comparison = new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
                 } else {
                     // Tri par nom
-                    return (a.nom || '').localeCompare(b.nom || '') || (a.prenom || '').localeCompare(b.prenom || '');
+                    comparison = (a.nom || '').localeCompare(b.nom || '') || (a.prenom || '').localeCompare(b.prenom || '');
                 }
+                return sortOrder === 'asc' ? comparison : -comparison;
             });
-    }, [soumissions, filterType, searchQuery, sortBy]);
+    }, [soumissions, filterType, searchQuery, sortBy, sortOrder]);
     
     // Export function
     const handleExportDisponibilites = async () => {
@@ -697,8 +743,11 @@ const DisponibilitesPage: React.FC = () => {
                             availabilityMap={availabilityMap}
                             editMode={editMode}
                             updatingCell={updatingCell}
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
                             onToggle={handleToggleAvailability}
                             onShowHistory={setSelectedSubmission}
+                            onSortToggle={handleSortToggle}
                           />
                 )}
             </CardContent>
