@@ -48,7 +48,7 @@ export function useExamens(
     } finally {
       setLoading(false);
     }
-  }, [sessionId, filters, page, pageSize]);
+  }, [sessionId, JSON.stringify(filters), page, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (sessionId) {
