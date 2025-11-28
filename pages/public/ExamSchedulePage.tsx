@@ -34,7 +34,16 @@ interface Examen {
   cours: {
     code: string;
     intitule_complet: string;
+    consignes: string | null;
   } | null;
+  surveillants_noms?: string[]; // Added for search/filter
+}
+
+interface AuditoireWithSurveillants {
+  id: string;
+  examen_id: string;
+  auditoire: string;
+  surveillants_noms: string[];
 }
 
 interface ConsigneSecretariat {
@@ -52,6 +61,7 @@ export default function ExamSchedulePage() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSecretariat, setSelectedSecretariat] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedSurveillant, setSelectedSurveillant] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const { data: activeSession } = useActiveSession();
@@ -76,7 +86,8 @@ export default function ExamSchedulePage() {
           secretariat,
           cours:cours_id (
             code,
-            intitule_complet
+            intitule_complet,
+            consignes
           )
         `)
         .eq('session_id', activeSession.id)
@@ -138,29 +149,81 @@ export default function ExamSchedulePage() {
     },
   });
 
-  // Get unique dates, secretariats, and time slots
+  // Fetch surveillants for all examens
+  const { data: auditoires } = useQuery({
+    queryKey: ['all-auditoires-surveillants', activeSession?.id],
+    queryFn: async () => {
+      if (!activeSession?.id || !examens) return [];
+      
+      const examenIds = examens.map(e => e.id);
+      if (examenIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('v_examen_auditoires_with_surveillants')
+        .select('*')
+        .in('examen_id', examenIds);
+      
+      if (error) throw error;
+      return (data || []) as AuditoireWithSurveillants[];
+    },
+    enabled: !!activeSession?.id && !!examens && examens.length > 0,
+  });
+
+  // Enrich examens with surveillants names
+  const examensWithSurveillants = useMemo(() => {
+    if (!examens || !auditoires) return examens || [];
+    
+    return examens.map(examen => {
+      const examenAuditoires = auditoires.filter(a => a.examen_id === examen.id);
+      const surveillantsNoms = examenAuditoires.flatMap(a => a.surveillants_noms || []);
+      
+      return {
+        ...examen,
+        surveillants_noms: surveillantsNoms,
+      };
+    });
+  }, [examens, auditoires]);
+
+  // Get unique dates, secretariats, time slots, and surveillants
   const uniqueDates = useMemo(() => {
-    if (!examens) return [];
-    const dates = [...new Set(examens.map(e => e.date_examen).filter(Boolean))];
+    if (!examensWithSurveillants) return [];
+    const dates = [...new Set(examensWithSurveillants.map(e => e.date_examen).filter(Boolean))];
     return dates.sort();
-  }, [examens]);
+  }, [examensWithSurveillants]);
 
   const uniqueSecretariats = useMemo(() => {
-    if (!examens) return [];
-    return [...new Set(examens.map(e => e.secretariat).filter(Boolean))].sort();
-  }, [examens]);
+    if (!examensWithSurveillants) return [];
+    return [...new Set(examensWithSurveillants.map(e => e.secretariat).filter(Boolean))].sort();
+  }, [examensWithSurveillants]);
 
   const uniqueTimeSlots = useMemo(() => {
-    if (!examens) return [];
-    return [...new Set(examens.map(e => e.heure_debut).filter(Boolean))].sort();
-  }, [examens]);
+    if (!examensWithSurveillants) return [];
+    return [...new Set(examensWithSurveillants.map(e => e.heure_debut).filter(Boolean))].sort();
+  }, [examensWithSurveillants]);
+
+  // Get unique surveillants (last names only)
+  const uniqueSurveillants = useMemo(() => {
+    if (!examensWithSurveillants) return [];
+    
+    const allSurveillants = examensWithSurveillants.flatMap(e => e.surveillants_noms || []);
+    
+    // Extract last names (assuming format "Nom Prénom" or "Nom")
+    const lastNames = allSurveillants
+      .map(nom => {
+        const parts = nom.trim().split(/\s+/);
+        return parts[0]; // First word is typically the last name
+      })
+      .filter(Boolean);
+    
+    return [...new Set(lastNames)].sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [examensWithSurveillants]);
 
   // Filter and search examens
   const filteredExamens = useMemo(() => {
-    if (!examens) return [];
+    if (!examensWithSurveillants) return [];
     
-    return examens.filter(examen => {
-      // Search filter
+    return examensWithSurveillants.filter(examen => {
+      // Search filter (includes surveillants)
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const coursCode = examen.cours?.code?.toLowerCase() || '';
@@ -168,13 +231,15 @@ export default function ExamSchedulePage() {
         const codeExamen = examen.code_examen?.toLowerCase() || '';
         const nomExamen = examen.nom_examen?.toLowerCase() || '';
         const auditoires = examen.auditoires?.toLowerCase() || '';
+        const surveillantsText = (examen.surveillants_noms || []).join(' ').toLowerCase();
         
         const matchesSearch = 
           coursCode.includes(search) ||
           coursIntitule.includes(search) ||
           codeExamen.includes(search) ||
           nomExamen.includes(search) ||
-          auditoires.includes(search);
+          auditoires.includes(search) ||
+          surveillantsText.includes(search);
         
         if (!matchesSearch) return false;
       }
@@ -188,9 +253,17 @@ export default function ExamSchedulePage() {
       // Time slot filter
       if (selectedTimeSlot && examen.heure_debut !== selectedTimeSlot) return false;
       
+      // Surveillant filter (by last name)
+      if (selectedSurveillant) {
+        const hasSurveillant = (examen.surveillants_noms || []).some(nom => 
+          nom.toLowerCase().startsWith(selectedSurveillant.toLowerCase())
+        );
+        if (!hasSurveillant) return false;
+      }
+      
       return true;
     });
-  }, [examens, searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot]);
+  }, [examensWithSurveillants, searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot, selectedSurveillant]);
 
   // Pagination
   const totalPages = Math.ceil(filteredExamens.length / itemsPerPage);
@@ -202,7 +275,7 @@ export default function ExamSchedulePage() {
   // Reset to page 1 when filters change
   useMemo(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot]);
+  }, [searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot, selectedSurveillant]);
 
   // Helper function to get consignes for a specific secretariat
   const getConsignesForSecretariat = (secretariatCode: string): ConsigneSecretariat | undefined => {
@@ -257,9 +330,9 @@ export default function ExamSchedulePage() {
             <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800 dark:text-blue-200">
               <p className="font-medium mb-1">Pour les surveillants</p>
-              <p>Recherchez votre nom ou prénom pour voir les surveillances qui vous sont attribuées.</p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 italic">
-                Note : L'attribution des surveillants sera ajoutée prochainement.
+              <p>Utilisez la barre de recherche ou le filtre "Surveillant" pour trouver rapidement vos surveillances.</p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                💡 Astuce : Le filtre "Surveillant" affiche uniquement les noms de famille pour une recherche rapide.
               </p>
             </div>
           </div>
@@ -283,7 +356,7 @@ export default function ExamSchedulePage() {
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Filter className="inline h-4 w-4 mr-1" />
@@ -339,6 +412,25 @@ export default function ExamSchedulePage() {
                   {uniqueTimeSlots.map((time) => (
                     <option key={time} value={time}>
                       {time}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Users className="inline h-4 w-4 mr-1" />
+                  Surveillant
+                </label>
+                <select
+                  value={selectedSurveillant}
+                  onChange={(e) => setSelectedSurveillant(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Tous les surveillants</option>
+                  {uniqueSurveillants.map((nom) => (
+                    <option key={nom} value={nom}>
+                      {nom}
                     </option>
                   ))}
                 </select>
@@ -454,8 +546,8 @@ export default function ExamSchedulePage() {
                             )}
                           </div>
 
-                          {/* Consignes Secrétariat ou Spécifiques */}
-                          {(examen.utiliser_consignes_specifiques || consignes) && (
+                          {/* Consignes : Spécifiques > Cours > Secrétariat */}
+                          {(examen.utiliser_consignes_specifiques || examen.cours?.consignes || consignes) && (
                             <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -483,6 +575,15 @@ export default function ExamSchedulePage() {
                                           {examen.consignes_specifiques_generales}
                                         </p>
                                       )}
+                                    </>
+                                  ) : examen.cours?.consignes ? (
+                                    <>
+                                      <p className="text-blue-800 dark:text-blue-300 mb-1">
+                                        <strong>Consignes du cours {examen.cours.code}</strong>
+                                      </p>
+                                      <p className="text-blue-700 dark:text-blue-300 whitespace-pre-wrap">
+                                        {examen.cours.consignes}
+                                      </p>
                                     </>
                                   ) : consignes && (
                                     <>
