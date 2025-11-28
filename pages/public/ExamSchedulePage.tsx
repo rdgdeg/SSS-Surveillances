@@ -62,6 +62,8 @@ export default function ExamSchedulePage() {
   const [selectedSecretariat, setSelectedSecretariat] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedSurveillant, setSelectedSurveillant] = useState<string>('');
+  const [surveillantInput, setSurveillantInput] = useState<string>('');
+  const [showSurveillantSuggestions, setShowSurveillantSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const { data: activeSession } = useActiveSession();
@@ -201,22 +203,26 @@ export default function ExamSchedulePage() {
     return [...new Set(examensWithSurveillants.map(e => e.heure_debut).filter(Boolean))].sort();
   }, [examensWithSurveillants]);
 
-  // Get unique surveillants (last names only)
+  // Get unique surveillants (full names)
   const uniqueSurveillants = useMemo(() => {
     if (!examensWithSurveillants) return [];
     
     const allSurveillants = examensWithSurveillants.flatMap(e => e.surveillants_noms || []);
     
-    // Extract last names (assuming format "Nom Prénom" or "Nom")
-    const lastNames = allSurveillants
-      .map(nom => {
-        const parts = nom.trim().split(/\s+/);
-        return parts[0]; // First word is typically the last name
-      })
-      .filter(Boolean);
-    
-    return [...new Set(lastNames)].sort((a, b) => a.localeCompare(b, 'fr'));
+    return [...new Set(allSurveillants)]
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, 'fr'));
   }, [examensWithSurveillants]);
+
+  // Filter surveillants based on input
+  const filteredSurveillants = useMemo(() => {
+    if (!surveillantInput.trim()) return uniqueSurveillants;
+    
+    const search = surveillantInput.toLowerCase();
+    return uniqueSurveillants.filter(nom => 
+      nom.toLowerCase().includes(search)
+    );
+  }, [uniqueSurveillants, surveillantInput]);
 
   // Filter and search examens
   const filteredExamens = useMemo(() => {
@@ -253,10 +259,10 @@ export default function ExamSchedulePage() {
       // Time slot filter
       if (selectedTimeSlot && examen.heure_debut !== selectedTimeSlot) return false;
       
-      // Surveillant filter (by last name)
+      // Surveillant filter (by full name)
       if (selectedSurveillant) {
         const hasSurveillant = (examen.surveillants_noms || []).some(nom => 
-          nom.toLowerCase().startsWith(selectedSurveillant.toLowerCase())
+          nom.toLowerCase().includes(selectedSurveillant.toLowerCase())
         );
         if (!hasSurveillant) return false;
       }
@@ -332,7 +338,7 @@ export default function ExamSchedulePage() {
               <p className="font-medium mb-1">Pour les surveillants</p>
               <p>Utilisez la barre de recherche ou le filtre "Surveillant" pour trouver rapidement vos surveillances.</p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                💡 Astuce : Le filtre "Surveillant" affiche uniquement les noms de famille pour une recherche rapide.
+                💡 Astuce : Tapez quelques lettres dans le filtre "Surveillant" pour voir les suggestions.
               </p>
             </div>
           </div>
@@ -417,23 +423,73 @@ export default function ExamSchedulePage() {
                 </select>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Users className="inline h-4 w-4 mr-1" />
                   Surveillant
                 </label>
-                <select
-                  value={selectedSurveillant}
-                  onChange={(e) => setSelectedSurveillant(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Tous les surveillants</option>
-                  {uniqueSurveillants.map((nom) => (
-                    <option key={nom} value={nom}>
-                      {nom}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Taper un nom..."
+                    value={surveillantInput}
+                    onChange={(e) => {
+                      setSurveillantInput(e.target.value);
+                      setShowSurveillantSuggestions(true);
+                      if (!e.target.value.trim()) {
+                        setSelectedSurveillant('');
+                      }
+                    }}
+                    onFocus={() => setShowSurveillantSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSurveillantSuggestions(false), 200)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                  />
+                  {surveillantInput && (
+                    <button
+                      onClick={() => {
+                        setSurveillantInput('');
+                        setSelectedSurveillant('');
+                        setShowSurveillantSuggestions(false);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  
+                  {/* Suggestions dropdown */}
+                  {showSurveillantSuggestions && filteredSurveillants.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredSurveillants.slice(0, 50).map((nom) => (
+                        <button
+                          key={nom}
+                          onClick={() => {
+                            setSurveillantInput(nom);
+                            setSelectedSurveillant(nom);
+                            setShowSurveillantSuggestions(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                        >
+                          {nom}
+                        </button>
+                      ))}
+                      {filteredSurveillants.length > 50 && (
+                        <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                          ... et {filteredSurveillants.length - 50} autres. Continuez à taper pour affiner.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* No results message */}
+                  {showSurveillantSuggestions && surveillantInput && filteredSurveillants.length === 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-3">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                        Aucun surveillant trouvé
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
