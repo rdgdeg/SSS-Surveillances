@@ -18,7 +18,7 @@ export interface Creneau {
   heure_debut_surveillance: string | null; // HH:MM
   heure_fin_surveillance: string | null; // HH:MM
   type_creneau: 'PRINCIPAL' | 'RESERVE' | string;
-  nb_surveillants_requis?: number; // Nombre de surveillants nécessaires (1-20) - Admin only
+  nb_surveillants_requis?: number; // Nombre de surveillants nécessaires (1-100) - Admin only
   created_at?: string;
 }
 

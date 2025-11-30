@@ -53,8 +53,8 @@ export const CapacityInput: React.FC<CapacityInputProps> = ({
       return { valid: false, error: 'Valeur invalide' };
     }
 
-    if (num < 1 || num > 20) {
-      return { valid: false, error: 'Entre 1 et 20' };
+    if (num < 1 || num > 100) {
+      return { valid: false, error: 'Entre 1 et 100' };
     }
 
     return { valid: true, numValue: num };
@@ -122,7 +122,7 @@ export const CapacityInput: React.FC<CapacityInputProps> = ({
       <Input
         type="number"
         min="1"
-        max="20"
+        max="100"
         value={localValue}
         onChange={handleChange}
         onBlur={handleBlur}

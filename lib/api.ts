@@ -418,8 +418,8 @@ export async function updateCreneauCapacity(
   nb_surveillants_requis: number | null
 ): Promise<Creneau> {
   // Validation côté client
-  if (nb_surveillants_requis !== null && (nb_surveillants_requis < 1 || nb_surveillants_requis > 20)) {
-    throw new Error('La capacité doit être un nombre entre 1 et 20');
+  if (nb_surveillants_requis !== null && (nb_surveillants_requis < 1 || nb_surveillants_requis > 100)) {
+    throw new Error('La capacité doit être un nombre entre 1 et 100');
   }
 
   const { data, error } = await supabase
@@ -511,8 +511,8 @@ export async function bulkUpdateCreneauCapacity(
   nb_surveillants_requis: number
 ): Promise<import('../types').BulkUpdateResult> {
   // Validation
-  if (nb_surveillants_requis < 1 || nb_surveillants_requis > 20) {
-    throw new Error('La capacité doit être un nombre entre 1 et 20');
+  if (nb_surveillants_requis < 1 || nb_surveillants_requis > 100) {
+    throw new Error('La capacité doit être un nombre entre 1 et 100');
   }
 
   if (creneauIds.length === 0) {
