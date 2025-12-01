@@ -602,65 +602,70 @@ export default function ExamSchedulePage() {
                             )}
                           </div>
 
-                          {/* Consignes : Spécifiques > Cours > Secrétariat */}
-                          {(examen.utiliser_consignes_specifiques || examen.cours?.consignes || consignes) && (
+                          {/* Consignes générales du secrétariat (toujours affichées si disponibles) */}
+                          {consignes && (
                             <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                                 <div className="flex-1 text-xs">
                                   <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                                    Consignes pour les surveillants
+                                    Consignes générales - {consignes.nom_secretariat}
                                   </p>
+                                  {consignes.consignes_arrivee && (
+                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                      <strong>Arrivée :</strong> {consignes.consignes_arrivee}
+                                    </p>
+                                  )}
+                                  {consignes.consignes_mise_en_place && (
+                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                      <strong>Mise en place :</strong> {consignes.consignes_mise_en_place}
+                                    </p>
+                                  )}
+                                  {consignes.consignes_generales && (
+                                    <p className="text-blue-700 dark:text-blue-300">
+                                      <strong>Consignes générales :</strong> {consignes.consignes_generales}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Consignes spécifiques (si activées) ou consignes du cours */}
+                          {(examen.utiliser_consignes_specifiques || examen.cours?.consignes) && (
+                            <div className="mt-2 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 text-xs">
                                   {examen.utiliser_consignes_specifiques ? (
                                     <>
-                                      <p className="text-blue-800 dark:text-blue-300 mb-1">
-                                        <strong>Consignes spécifiques pour cet examen</strong>
+                                      <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                        Consignes spécifiques pour cet examen
                                       </p>
                                       {examen.consignes_specifiques_arrivee && (
-                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                          {examen.consignes_specifiques_arrivee}
+                                        <p className="text-amber-700 dark:text-amber-300 mb-1">
+                                          <strong>Arrivée :</strong> {examen.consignes_specifiques_arrivee}
                                         </p>
                                       )}
                                       {examen.consignes_specifiques_mise_en_place && (
-                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
+                                        <p className="text-amber-700 dark:text-amber-300 mb-1">
                                           <strong>Mise en place :</strong> {examen.consignes_specifiques_mise_en_place}
                                         </p>
                                       )}
                                       {examen.consignes_specifiques_generales && (
-                                        <p className="text-blue-700 dark:text-blue-300">
-                                          {examen.consignes_specifiques_generales}
+                                        <p className="text-amber-700 dark:text-amber-300">
+                                          <strong>Consignes :</strong> {examen.consignes_specifiques_generales}
                                         </p>
                                       )}
                                     </>
-                                  ) : examen.cours?.consignes ? (
+                                  ) : examen.cours?.consignes && (
                                     <>
-                                      <p className="text-blue-800 dark:text-blue-300 mb-1">
-                                        <strong>Consignes du cours {examen.cours.code}</strong>
+                                      <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                        Consignes du cours {examen.cours.code}
                                       </p>
-                                      <p className="text-blue-700 dark:text-blue-300 whitespace-pre-wrap">
+                                      <p className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
                                         {examen.cours.consignes}
                                       </p>
-                                    </>
-                                  ) : consignes && (
-                                    <>
-                                      <p className="text-blue-800 dark:text-blue-300 mb-1">
-                                        <strong>{consignes.nom_secretariat}</strong>
-                                      </p>
-                                      {consignes.consignes_arrivee && (
-                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                          <strong>Consignes d'arrivée :</strong> {consignes.consignes_arrivee}
-                                        </p>
-                                      )}
-                                      {consignes.consignes_mise_en_place && (
-                                        <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                          <strong>Consignes de mise en place :</strong> {consignes.consignes_mise_en_place}
-                                        </p>
-                                      )}
-                                      {consignes.consignes_generales && (
-                                        <p className="text-blue-700 dark:text-blue-300">
-                                          <strong>Consignes générales :</strong> {consignes.consignes_generales}
-                                        </p>
-                                      )}
                                     </>
                                   )}
                                 </div>
