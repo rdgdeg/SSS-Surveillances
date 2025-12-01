@@ -661,7 +661,7 @@ export default function ExamSchedulePage() {
                                   ) : examen.cours?.consignes && (
                                     <>
                                       <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-                                        Consignes du cours {examen.cours.code}
+                                        Consignes spécifiques du cours {examen.cours.code}
                                       </p>
                                       <p className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
                                         {examen.cours.consignes}
