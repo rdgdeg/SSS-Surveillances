@@ -42,9 +42,8 @@ Permettre aux administrateurs de contrôler quand les surveillants peuvent modif
 │  Si vous avez besoin de modifier vos               │
 │  disponibilités pour des raisons exceptionnelles : │
 │                                                     │
-│  • Contactez le secrétariat : 02/436.16.89        │
-│  • Ou organisez-vous avec un collègue pour un     │
-│    échange de surveillance                         │
+│  ⚠️ Rappel important : Le surveillant est tenu     │
+│     de permuter avec l'un de ses collègues.        │
 │                                                     │
 │  Merci de votre compréhension.                     │
 └─────────────────────────────────────────────────────┘
@@ -100,25 +99,21 @@ Permettre aux administrateurs de contrôler quand les surveillants peuvent modif
 
 ### Pendant la préparation
 ```
-La période de soumission des disponibilités est terminée. 
-Les attributions sont en cours de préparation.
-Pour toute modification exceptionnelle, contactez le 
-secrétariat au 02/436.16.89.
+L'établissement du planning est en cours et les attributions vont suivre.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 ### Pendant la session
 ```
-Les disponibilités sont verrouillées pour la durée de 
-la session d'examens. Pour tout changement de dernière 
-minute, contactez immédiatement le secrétariat au 
-02/436.16.89.
+Les disponibilités sont verrouillées pour la durée de la session d'examens.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 ### Après une date limite
 ```
 La date limite de soumission était le 15 janvier 2025.
 Les disponibilités sont maintenant verrouillées.
-Contactez le secrétariat pour toute situation exceptionnelle.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 ## ✅ Avantages

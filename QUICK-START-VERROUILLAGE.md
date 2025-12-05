@@ -123,7 +123,7 @@ Session d'examens
 - Script de test : `scripts/test-lock-submissions.sql`
 - Résumé : `RESUME-VERROUILLAGE-DISPONIBILITES.md`
 
-**Contact secrétariat :** 02/436.16.89
+**Rappel :** Permutation obligatoire entre collègues en cas d'indisponibilité
 
 ---
 

@@ -163,7 +163,7 @@ export const LockSubmissionsControl: React.FC<LockSubmissionsControlProps> = ({ 
                             <Input
                                 value={customMessage}
                                 onChange={(e) => setCustomMessage(e.target.value)}
-                                placeholder="Ex: La période de soumission est terminée. Contactez le secrétariat pour toute modification."
+                                placeholder="Ex: L'établissement du planning est en cours et les attributions vont suivre."
                                 className="w-full"
                             />
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

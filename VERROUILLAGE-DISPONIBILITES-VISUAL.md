@@ -112,8 +112,8 @@ Action : Envoyer des rappels
 │  │ La période de soumission est   │  │
 │  │ terminée.                      │  │
 │  │                                │  │
-│  │ 📞 Contactez le secrétariat :  │  │
-│  │    02/436.16.89                │  │
+│  │ ⚠️ Rappel : Permutation        │  │
+│  │    obligatoire avec collègue   │  │
 │  └────────────────────────────────┘  │
 └──────────────────────────────────────┘
 
@@ -175,10 +175,10 @@ Action : Envoyer des rappels
 │  │    disponibilités. Ils doivent vous contacter.       │ │
 │  │                                                       │ │
 │  │ 📝 Message affiché aux surveillants :                │ │
-│  │    "La période de soumission des disponibilités      │ │
-│  │     est terminée. Pour toute modification            │ │
-│  │     exceptionnelle, contactez le secrétariat         │ │
-│  │     au 02/436.16.89."                                │ │
+│  │    "L'établissement du planning est en cours et      │ │
+│  │     les attributions vont suivre. En cas             │ │
+│  │     d'indisponibilité, le surveillant est tenu       │ │
+│  │     de permuter avec l'un de ses collègues."         │ │
 │  │                                                       │ │
 │  │ [🔓 Déverrouiller les disponibilités]                │ │
 │  │ [✏️ Modifier le message]                              │ │
@@ -301,7 +301,7 @@ Note : Pas besoin de déverrouiller !
 
 🔒 Quand verrouillé :
    "Les disponibilités sont verrouillées"
-   📞 02/436.16.89
+   ⚠️ Permutation obligatoire
 ```
 
 ## 📱 Responsive

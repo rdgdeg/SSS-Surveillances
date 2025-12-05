@@ -16,7 +16,7 @@
 ✅ **Blocage des modifications pour les surveillants**
 - Formulaire complètement bloqué quand verrouillé
 - Message clair affiché
-- Coordonnées du secrétariat affichées
+- Rappel de l'obligation de permuter avec un collègue
 
 ✅ **Message personnalisable**
 - Possibilité d'ajouter un message spécifique
@@ -60,7 +60,7 @@
 ### Après le verrouillage
 - ❌ Surveillants ne peuvent plus soumettre
 - ❌ Surveillants ne peuvent plus modifier
-- ⚠️ Message affiché : "Contactez le secrétariat"
+- ⚠️ Message affiché : "Permutation obligatoire avec un collègue"
 - ✅ Admins peuvent toujours modifier (mode édition)
 
 ## 📚 Documentation créée
@@ -133,7 +133,7 @@ En plus de ce que vous avez demandé, j'ai ajouté :
 
 **Questions ?**
 - Documentation : Voir les 9 fichiers créés
-- Contact secrétariat : 02/436.16.89
+- Rappel : Permutation obligatoire entre collègues en cas d'indisponibilité
 
 ## 🎁 Bonus : Exemples de messages
 

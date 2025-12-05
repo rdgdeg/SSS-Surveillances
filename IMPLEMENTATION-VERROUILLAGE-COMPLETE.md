@@ -93,8 +93,7 @@ export interface Session {
 Quand les disponibilités sont verrouillées :
 - Le formulaire affiche un message clair
 - Impossible de soumettre ou modifier
-- Coordonnées du secrétariat affichées : **02/436.16.89**
-- Suggestion d'échange avec un collègue
+- Rappel de l'obligation de permuter avec un collègue en cas d'indisponibilité
 
 ## ✅ Tests effectués
 
@@ -142,18 +141,14 @@ La période de soumission des disponibilités est terminée.
 
 ### Message recommandé pendant la préparation
 ```
-La période de soumission des disponibilités est terminée. 
-Les attributions sont en cours de préparation.
-Pour toute modification exceptionnelle, contactez le 
-secrétariat au 02/436.16.89.
+L'établissement du planning est en cours et les attributions vont suivre.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 ### Message recommandé pendant la session
 ```
-Les disponibilités sont verrouillées pour la durée de 
-la session d'examens. Pour tout changement de dernière 
-minute, contactez immédiatement le secrétariat au 
-02/436.16.89.
+Les disponibilités sont verrouillées pour la durée de la session d'examens.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 ## 🔐 Sécurité
@@ -232,7 +227,7 @@ Ces améliorations peuvent être ajoutées plus tard si nécessaire :
 2. `GUIDE-VERROUILLAGE-DISPONIBILITES.md` pour les détails
 3. `scripts/test-lock-submissions.sql` pour tester
 
-**Contact secrétariat :** 02/436.16.89
+**Rappel :** En cas d'indisponibilité, permutation obligatoire entre collègues
 
 ## ✨ Résumé
 

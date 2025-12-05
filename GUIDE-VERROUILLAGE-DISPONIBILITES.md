@@ -57,15 +57,14 @@ Exemples de messages à afficher aux surveillants :
 
 **Pendant la préparation :**
 ```
-La période de soumission des disponibilités est terminée. 
-Les attributions sont en cours de préparation.
-Pour toute modification exceptionnelle, contactez le secrétariat au 02/436.16.89.
+L'établissement du planning est en cours et les attributions vont suivre.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 **Pendant la session :**
 ```
 Les disponibilités sont verrouillées pour la durée de la session d'examens.
-Pour tout changement de dernière minute, contactez immédiatement le secrétariat au 02/436.16.89.
+En cas d'indisponibilité, le surveillant est tenu de permuter avec l'un de ses collègues.
 ```
 
 ## Interface administrateur
@@ -112,26 +111,27 @@ Le formulaire de disponibilités vérifie automatiquement :
 
 Si un surveillant a une raison valable de modifier ses disponibilités :
 
-1. **Option 1 : Modification manuelle par l'admin**
+1. **Option 1 : Permutation entre collègues (recommandé)**
+   - Le surveillant s'organise avec un collègue
+   - Ils échangent leurs créneaux de surveillance
+   - Informer l'admin de la permutation
+
+2. **Option 2 : Modification manuelle par l'admin**
    - Aller dans Admin > Disponibilités
    - Activer le mode édition
    - Modifier directement les disponibilités du surveillant
 
-2. **Option 2 : Déverrouillage temporaire**
+3. **Option 3 : Déverrouillage temporaire (exceptionnel)**
    - Déverrouiller les disponibilités
    - Informer le surveillant qu'il peut modifier
    - Reverrouiller immédiatement après
-
-3. **Option 3 : Échange entre surveillants**
-   - Organiser un échange avec un collègue
-   - Mettre à jour manuellement dans l'admin
 
 ### Urgence de dernière minute
 
 En cas d'absence imprévue pendant la session :
 - Les disponibilités restent verrouillées
-- Le secrétariat gère la réattribution manuellement
-- Utiliser le téléphone du surveillant pour le contacter
+- Le surveillant doit permuter avec un collègue
+- L'admin met à jour manuellement les attributions si nécessaire
 
 ## Sécurité et traçabilité
 
@@ -154,7 +154,7 @@ Seuls les administrateurs peuvent :
 ### ✅ À faire
 
 - Verrouiller immédiatement après l'export
-- Définir un message clair avec les coordonnées du secrétariat
+- Définir un message clair rappelant l'obligation de permutation
 - Garder verrouillé pendant toute la session
 - Documenter les modifications exceptionnelles
 

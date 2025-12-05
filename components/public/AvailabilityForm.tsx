@@ -893,24 +893,19 @@ const AvailabilityForm: React.FC = () => {
                     <CardContent className="pt-6 space-y-4">
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4 rounded-lg">
                             <p className="text-blue-800 dark:text-blue-300">
-                                {session.lock_message || 'La période de soumission des disponibilités est terminée.'}
+                                {session.lock_message || "L'établissement du planning est en cours et les attributions vont suivre."}
                             </p>
                         </div>
                         
                         <div className="space-y-3">
                             <p className="font-semibold text-gray-900 dark:text-white">
-                                Si vous avez besoin de modifier vos disponibilités pour des raisons exceptionnelles :
+                                En cas d'indisponibilité :
                             </p>
-                            <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-                                <li className="flex items-start gap-2">
-                                    <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
-                                    <span>Contactez le secrétariat : <strong className="text-indigo-600 dark:text-indigo-400">02/436.16.89</strong></span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
-                                    <span>Ou organisez-vous avec un collègue pour un échange de surveillance</span>
-                                </li>
-                            </ul>
+                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4 rounded-lg">
+                                <p className="text-amber-800 dark:text-amber-300">
+                                    <strong>Rappel important :</strong> Le surveillant est tenu de permuter avec l'un de ses collègues.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="pt-4 border-t dark:border-gray-700">
