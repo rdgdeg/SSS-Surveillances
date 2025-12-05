@@ -192,12 +192,23 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
                       const fullName = `${surveillant.prenom} ${surveillant.nom}`.toLowerCase();
                       return fullName.includes(search);
                     })
+                    .sort((a, b) => {
+                      // Trier : surveillants attribués en premier
+                      const aSelected = auditoire.surveillants?.includes(a.id);
+                      const bSelected = auditoire.surveillants?.includes(b.id);
+                      if (aSelected && !bSelected) return -1;
+                      if (!aSelected && bSelected) return 1;
+                      // Ensuite par nom
+                      return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`);
+                    })
                     .map((surveillant) => {
                       const isSelected = auditoire.surveillants?.includes(surveillant.id);
                       return (
                         <label
                           key={surveillant.id}
-                          className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
+                          className={`flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer ${
+                            isSelected ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' : ''
+                          }`}
                         >
                           <input
                             type="checkbox"
@@ -205,7 +216,7 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
                             onChange={() => toggleSurveillant(auditoire.id, auditoire.surveillants || [], surveillant.id)}
                             className="rounded"
                           />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                          <span className={`text-sm ${isSelected ? 'font-medium text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
                             {surveillant.prenom} {surveillant.nom}
                           </span>
                         </label>

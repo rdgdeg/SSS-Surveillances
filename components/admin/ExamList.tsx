@@ -534,14 +534,14 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="sticky left-0 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                  Code / Gérer
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Heure
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nom
@@ -554,9 +554,6 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Surv. requis
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Attribution
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ens. présents
@@ -584,7 +581,37 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                 </tr>
               ) : (
                 examens.map((examen) => (
-                  <tr key={examen.id} className="hover:bg-gray-50">
+                  <tr key={examen.id} className="hover:bg-gray-50 group">
+                    {/* Code + Bouton Gérer - Colonne fixe */}
+                    <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap border-r border-gray-200">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900">{examen.code_examen}</span>
+                          {!examen.cours_id && (
+                            <svg
+                              className="ml-2 h-4 w-4 text-yellow-500"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setShowAuditoiresModal({ id: examen.id, nom: examen.nom_examen })}
+                          className="flex items-center gap-1 px-3 py-1 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                          title="Gérer les auditoires et surveillants"
+                        >
+                          <Users className="h-4 w-4" />
+                          Gérer
+                        </button>
+                      </div>
+                    </td>
+
                     {/* Date - Inline editable */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {editingField?.examenId === examen.id && editingField?.field === 'date_examen' ? (
@@ -655,26 +682,6 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                           >
                             {examen.heure_fin || '--:--'}
                           </div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Code */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">{examen.code_examen}</span>
-                        {!examen.cours_id && (
-                          <svg
-                            className="ml-2 h-4 w-4 text-yellow-500"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
                         )}
                       </div>
                     </td>
@@ -754,18 +761,6 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                           {examen.nb_surveillants_requis || 0}
                         </div>
                       )}
-                    </td>
-
-                    {/* Attribution des surveillants */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => setShowAuditoiresModal({ id: examen.id, nom: examen.nom_examen })}
-                        className="flex items-center gap-1 px-3 py-1 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
-                        title="Gérer les auditoires et surveillants"
-                      >
-                        <Users className="h-4 w-4" />
-                        Gérer
-                      </button>
                     </td>
 
                     {/* Enseignants présents */}
