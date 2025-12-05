@@ -279,7 +279,7 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
     </>
 ));
 
-const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; onViewHistory?: () => void; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount, onViewHistory }) => {
+const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; onViewHistory?: () => void; isReadOnly?: boolean; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount, onViewHistory, isReadOnly }) => {
     const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
     const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(null);
     const [showScrollIndicator, setShowScrollIndicator] = useState(false);
@@ -316,12 +316,36 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
     <>
         <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
         <SubmissionInfoBanner submittedAt={submittedAt} updatedAt={updatedAt} modificationsCount={modificationsCount} onViewHistory={onViewHistory} />
+        {isReadOnly && (
+            <div className="mb-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                    <svg className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <div>
+                        <h4 className="font-semibold text-amber-800 dark:text-amber-300">Mode consultation uniquement</h4>
+                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                            Les disponibilités sont verrouillées. Vous pouvez consulter vos disponibilités soumises mais ne pouvez plus les modifier.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center"><Calendar className="mr-2 h-6 w-6" /> Disponibilités {isModification && '(Modification)'}</CardTitle>
+                <CardTitle className="flex items-center">
+                    <Calendar className="mr-2 h-6 w-6" /> 
+                    {isReadOnly ? 'Mes disponibilités (lecture seule)' : `Disponibilités ${isModification ? '(Modification)' : ''}`}
+                </CardTitle>
                 <CardDescription>
-                    {isModification && <span className="text-blue-600 dark:text-blue-400 font-medium">Vous modifiez vos disponibilités existantes. </span>}
-                    Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date{totalDates > 1 ? 's' : ''}).
+                    {isReadOnly ? (
+                        <>Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date{totalDates > 1 ? 's' : ''}).</>
+                    ) : (
+                        <>
+                            {isModification && <span className="text-blue-600 dark:text-blue-400 font-medium">Vous modifiez vos disponibilités existantes. </span>}
+                            Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date{totalDates > 1 ? 's' : ''}).
+                        </>
+                    )}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 relative">
@@ -378,8 +402,8 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                                     const hasHighDemand = nbSurveillants && nbSurveillants >= 5;
                                     
                                     return (
-                                        <label htmlFor={`creneau-${creneau.id}`} key={creneau.id} className={`flex items-center p-3 rounded-lg border dark:border-gray-700 cursor-pointer transition-all duration-200 ${isChecked ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-                                            <Checkbox id={`creneau-${creneau.id}`} checked={!!isChecked} onCheckedChange={(checked) => onAvailabilityChange(creneau.id, !!checked)} />
+                                        <label htmlFor={`creneau-${creneau.id}`} key={creneau.id} className={`flex items-center p-3 rounded-lg border dark:border-gray-700 ${isReadOnly ? 'opacity-75' : 'cursor-pointer'} transition-all duration-200 ${isChecked ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                                            <Checkbox id={`creneau-${creneau.id}`} checked={!!isChecked} onCheckedChange={(checked) => !isReadOnly && onAvailabilityChange(creneau.id, !!checked)} className={isReadOnly ? 'pointer-events-none' : ''} />
                                             <div className="ml-4 flex-1 flex justify-between items-center gap-3">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium">{creneau.heure_debut_surveillance} - {creneau.heure_fin_surveillance}</span>
@@ -419,8 +443,16 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                 )}
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Button onClick={onPrev} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</Button>
-                <Button onClick={onNext}>Suivant <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                {isReadOnly ? (
+                    <Button onClick={onPrev} variant="outline" className="mx-auto">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Retour
+                    </Button>
+                ) : (
+                    <>
+                        <Button onClick={onPrev} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Précédent</Button>
+                        <Button onClick={onNext}>Suivant <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                    </>
+                )}
             </CardFooter>
         </Card>
     </>
@@ -762,7 +794,12 @@ const AvailabilityForm: React.FC = () => {
                     setFoundSurveillantId(found.id);
                 }
                 
-                toast.success('Vos disponibilités ont été chargées ! Vous pouvez les modifier.', { duration: 4000 });
+                // Si verrouillé, afficher en lecture seule
+                if (session.lock_submissions) {
+                    toast.success('Vos disponibilités ont été chargées en lecture seule.', { duration: 4000 });
+                } else {
+                    toast.success('Vos disponibilités ont été chargées ! Vous pouvez les modifier.', { duration: 4000 });
+                }
                 setStep(2);
             } else {
                 console.log('❌ Aucune soumission existante trouvée pour', formData.email);
@@ -857,7 +894,7 @@ const AvailabilityForm: React.FC = () => {
             case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} telephone={formData.telephone} onEmailChange={handleInputChange} onTelephoneChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
-            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} />;
+            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={session?.lock_submissions ? () => setStep(0) : nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} isReadOnly={session?.lock_submissions} />;
             case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
             case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
             default: return null;
@@ -876,8 +913,8 @@ const AvailabilityForm: React.FC = () => {
     // Vérifier si les soumissions sont verrouillées
     if (session.lock_submissions) {
         return (
-            <div className="max-w-2xl mx-auto py-8">
-                <Card className="border-amber-400 dark:border-amber-600 shadow-lg">
+            <div className="max-w-4xl mx-auto py-8">
+                <Card className="border-amber-400 dark:border-amber-600 shadow-lg mb-6">
                     <CardHeader className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
                         <div className="flex items-center gap-4">
                             <div className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-full">
@@ -907,12 +944,59 @@ const AvailabilityForm: React.FC = () => {
                                 </p>
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
 
-                        <div className="pt-4 border-t dark:border-gray-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                                Merci de votre compréhension.
-                            </p>
-                        </div>
+                {/* Formulaire de consultation en lecture seule */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center">
+                            <User className="mr-2 h-6 w-6" /> 
+                            Consulter mes disponibilités
+                        </CardTitle>
+                        <CardDescription>
+                            Entrez votre email pour consulter vos disponibilités soumises (lecture seule).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleEmailCheck} className="space-y-4">
+                            <div>
+                                <label htmlFor="email-readonly" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Adresse email
+                                </label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                                    <Input 
+                                        id="email-readonly" 
+                                        name="email" 
+                                        type="email" 
+                                        placeholder="votre.nom@uclouvain.be" 
+                                        value={formData.email} 
+                                        onChange={handleInputChange} 
+                                        required 
+                                        className="pl-10" 
+                                    />
+                                </div>
+                            </div>
+                            
+                            <Button 
+                                type="submit" 
+                                className="w-full" 
+                                disabled={isCheckingEmail}
+                            >
+                                {isCheckingEmail ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        Recherche en cours...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search className="mr-2 h-5 w-5" />
+                                        Consulter mes disponibilités
+                                    </>
+                                )}
+                            </Button>
+                        </form>
                     </CardContent>
                 </Card>
             </div>
