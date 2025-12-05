@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ExamenWithStatus, ExamenFilters } from '../../types';
 import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
+import { AttributionStatusBadge } from '../shared/AttributionStatusBadge';
 import { Pagination } from '../shared/Pagination';
 import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
 import { Plus, Edit2, Trash2, X, Save, Users, FileText } from 'lucide-react';
@@ -11,6 +12,7 @@ import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
 import { useAuth } from '../../contexts/AuthContext';
 import ExamenAuditoiresModal from './ExamenAuditoiresModal';
 import ExamenConsignesModal from './ExamenConsignesModal';
+import { useExamenAuditoiresStats } from '../../src/hooks/useExamenAuditoiresStats';
 
 interface ExamListProps {
   sessionId: string;
@@ -70,6 +72,10 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   // Utiliser le terme debounced pour les requêtes API
   const debouncedFilters = { ...filters, search: debouncedTerm };
   const { examens, loading, error, total, refetch } = useExamens(sessionId, debouncedFilters, page, pageSize);
+  
+  // Récupérer les stats d'attribution pour tous les examens affichés
+  const examenIds = examens.map(e => e.id);
+  const { data: auditoiresStats } = useExamenAuditoiresStats(examenIds);
 
   // Handle inline edit start
   const handleStartEdit = (examenId: string, field: string, currentValue: string) => {
@@ -585,11 +591,16 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                     {/* Code + Bouton Gérer - Colonne fixe */}
                     <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex flex-col gap-2">
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-2">
+                          <AttributionStatusBadge
+                            requis={auditoiresStats?.[examen.id]?.total_requis || 0}
+                            attribues={auditoiresStats?.[examen.id]?.total_attribues || 0}
+                            size="sm"
+                          />
                           <span className="text-sm font-medium text-gray-900">{examen.code_examen}</span>
                           {!examen.cours_id && (
                             <svg
-                              className="ml-2 h-4 w-4 text-yellow-500"
+                              className="ml-1 h-4 w-4 text-yellow-500"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
