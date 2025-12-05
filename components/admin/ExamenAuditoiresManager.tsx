@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
-import { Plus, Trash2, Users, Save, X, Search } from 'lucide-react';
+import { Plus, Trash2, Users, Save, X, Search, RefreshCw } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
+import { SurveillantRemplacementModal } from './SurveillantRemplacementModal';
+import { ExamenAuditoire, SurveillantRemplacement } from '../../types';
 
 interface Surveillant {
   id: string;
   nom: string;
   prenom: string;
-}
-
-interface ExamenAuditoire {
-  id: string;
-  examen_id: string;
-  auditoire: string;
-  nb_surveillants_requis: number;
-  surveillants: string[];
-  remarques: string | null;
 }
 
 interface Props {
@@ -28,6 +21,10 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
   const queryClient = useQueryClient();
   const [editingAuditoire, setEditingAuditoire] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<{ [key: string]: string }>({});
+  const [remplacementModal, setRemplacementModal] = useState<{
+    auditoireId: string;
+    ancienSurveillant: Surveillant;
+  } | null>(null);
   const [newAuditoire, setNewAuditoire] = useState({
     auditoire: '',
     nb_surveillants_requis: 1,
@@ -136,6 +133,47 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
     handleUpdateSurveillants(auditoireId, newSurveillants);
   };
 
+  const handleRemplacer = (auditoireId: string, ancienId: string) => {
+    const surveillant = surveillants?.find(s => s.id === ancienId);
+    if (!surveillant) return;
+    setRemplacementModal({ auditoireId, ancienSurveillant: surveillant });
+  };
+
+  const handleConfirmRemplacement = async (nouveauId: string, raison: string) => {
+    if (!remplacementModal) return;
+
+    const auditoire = auditoires?.find(a => a.id === remplacementModal.auditoireId);
+    if (!auditoire) return;
+
+    // Retirer l'ancien et ajouter le nouveau
+    const newSurveillants = auditoire.surveillants
+      .filter(id => id !== remplacementModal.ancienSurveillant.id)
+      .concat(nouveauId);
+
+    // Ajouter à l'historique des remplacements
+    const remplacement: SurveillantRemplacement = {
+      ancien_id: remplacementModal.ancienSurveillant.id,
+      nouveau_id: nouveauId,
+      date: new Date().toISOString(),
+      raison: raison || undefined,
+    };
+
+    const surveillantsRemplaces = [
+      ...(auditoire.surveillants_remplaces || []),
+      remplacement,
+    ];
+
+    updateMutation.mutate({
+      id: remplacementModal.auditoireId,
+      data: {
+        surveillants: newSurveillants,
+        surveillants_remplaces: surveillantsRemplaces as any,
+      },
+    });
+
+    setRemplacementModal(null);
+  };
+
   if (isLoading) return <div className="text-sm text-gray-500">Chargement...</div>;
 
   return (
@@ -169,59 +207,131 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
                 </button>
               </div>
 
-              {/* Sélection des surveillants */}
+              {/* Surveillants assignés avec historique */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Surveillants assignés ({auditoire.surveillants?.length || 0})
                 </label>
-                
-                {/* Barre de recherche */}
-                <input
-                  type="text"
-                  placeholder="Rechercher un surveillant..."
-                  value={searchTerm[auditoire.id] || ''}
-                  onChange={(e) => setSearchTerm({ ...searchTerm, [auditoire.id]: e.target.value })}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-                
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {surveillants
-                    ?.filter((surveillant) => {
-                      const search = (searchTerm[auditoire.id] || '').toLowerCase();
-                      if (!search) return true;
-                      const fullName = `${surveillant.prenom} ${surveillant.nom}`.toLowerCase();
-                      return fullName.includes(search);
-                    })
-                    .sort((a, b) => {
-                      // Trier : surveillants attribués en premier
-                      const aSelected = auditoire.surveillants?.includes(a.id);
-                      const bSelected = auditoire.surveillants?.includes(b.id);
-                      if (aSelected && !bSelected) return -1;
-                      if (!aSelected && bSelected) return 1;
-                      // Ensuite par nom
-                      return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`);
-                    })
-                    .map((surveillant) => {
-                      const isSelected = auditoire.surveillants?.includes(surveillant.id);
+
+                {/* Liste des surveillants actifs */}
+                {auditoire.surveillants && auditoire.surveillants.length > 0 && (
+                  <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 p-2 space-y-1">
+                    {auditoire.surveillants.map((survId) => {
+                      const surv = surveillants?.find(s => s.id === survId);
+                      if (!surv) return null;
                       return (
-                        <label
-                          key={surveillant.id}
-                          className={`flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer ${
-                            isSelected ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' : ''
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSurveillant(auditoire.id, auditoire.surveillants || [], surveillant.id)}
-                            className="rounded"
-                          />
-                          <span className={`text-sm ${isSelected ? 'font-medium text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                            {surveillant.prenom} {surveillant.nom}
+                        <div key={survId} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                          <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                            ✓ {surv.prenom} {surv.nom}
                           </span>
-                        </label>
+                          <button
+                            onClick={() => handleRemplacer(auditoire.id, survId)}
+                            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1"
+                            title="Remplacer ce surveillant"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Remplacer
+                          </button>
+                        </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* Historique des remplacements */}
+                {auditoire.surveillants_remplaces && auditoire.surveillants_remplaces.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                      Historique des remplacements
+                    </p>
+                    <div className="space-y-1">
+                      {auditoire.surveillants_remplaces.map((remp, idx) => {
+                        const ancien = surveillants?.find(s => s.id === remp.ancien_id);
+                        const nouveau = surveillants?.find(s => s.id === remp.nouveau_id);
+                        return (
+                          <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-700 rounded p-2">
+                            <div className="flex items-center gap-2">
+                              <span className="line-through text-red-600 dark:text-red-400">
+                                {ancien ? `${ancien.prenom} ${ancien.nom}` : 'Inconnu'}
+                              </span>
+                              <span className="text-gray-400">→</span>
+                              <span className="text-green-600 dark:text-green-400">
+                                {nouveau ? `${nouveau.prenom} ${nouveau.nom}` : 'Inconnu'}
+                              </span>
+                            </div>
+                            {remp.raison && (
+                              <p className="text-gray-500 dark:text-gray-400 mt-1 italic">
+                                {remp.raison}
+                              </p>
+                            )}
+                            <p className="text-gray-400 dark:text-gray-500 mt-1">
+                              {new Date(remp.date).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Barre de recherche pour ajouter */}
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Ajouter un surveillant
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Rechercher un surveillant..."
+                    value={searchTerm[auditoire.id] || ''}
+                    onChange={(e) => setSearchTerm({ ...searchTerm, [auditoire.id]: e.target.value })}
+                    className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                  
+                  <div className="max-h-40 overflow-y-auto space-y-1 mt-2">
+                    {surveillants
+                      ?.filter((surveillant) => {
+                        const search = (searchTerm[auditoire.id] || '').toLowerCase();
+                        if (!search) return true;
+                        const fullName = `${surveillant.prenom} ${surveillant.nom}`.toLowerCase();
+                        return fullName.includes(search);
+                      })
+                      .sort((a, b) => {
+                        // Trier : surveillants attribués en premier
+                        const aSelected = auditoire.surveillants?.includes(a.id);
+                        const bSelected = auditoire.surveillants?.includes(b.id);
+                        if (aSelected && !bSelected) return -1;
+                        if (!aSelected && bSelected) return 1;
+                        // Ensuite par nom
+                        return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`);
+                      })
+                      .map((surveillant) => {
+                        const isSelected = auditoire.surveillants?.includes(surveillant.id);
+                        return (
+                          <label
+                            key={surveillant.id}
+                            className={`flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer ${
+                              isSelected ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' : ''
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSurveillant(auditoire.id, auditoire.surveillants || [], surveillant.id)}
+                              className="rounded"
+                            />
+                            <span className={`text-sm ${isSelected ? 'font-medium text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {surveillant.prenom} {surveillant.nom}
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -270,6 +380,16 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* Modal de remplacement */}
+      {remplacementModal && (
+        <SurveillantRemplacementModal
+          ancienSurveillant={remplacementModal.ancienSurveillant}
+          surveillantsDisponibles={surveillants?.filter(s => s.id !== remplacementModal.ancienSurveillant.id) || []}
+          onConfirm={handleConfirmRemplacement}
+          onCancel={() => setRemplacementModal(null)}
+        />
+      )}
     </div>
   );
 }

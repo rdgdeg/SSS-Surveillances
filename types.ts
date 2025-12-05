@@ -38,6 +38,23 @@ export const SurveillantTypeLabels: { [key in SurveillantType]: string } = {
 };
 
 
+export interface SurveillantRemplacement {
+  ancien_id: string;
+  nouveau_id: string;
+  date: string; // ISO timestamp
+  raison?: string;
+}
+
+export interface ExamenAuditoire {
+  id: string;
+  examen_id: string;
+  auditoire: string;
+  nb_surveillants_requis: number;
+  surveillants: string[];
+  surveillants_remplaces?: SurveillantRemplacement[];
+  remarques: string | null;
+}
+
 export interface Surveillant {
   id: string;
   email: string;
