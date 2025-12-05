@@ -732,8 +732,8 @@ const AvailabilityForm: React.FC = () => {
     const handleEmailCheck = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validation du téléphone
-        if (!formData.telephone || formData.telephone.trim() === '') {
+        // Validation du téléphone uniquement si pas en mode lecture seule
+        if (!session?.lock_submissions && (!formData.telephone || formData.telephone.trim() === '')) {
             toast.error('Veuillez renseigner votre numéro de GSM');
             return;
         }
