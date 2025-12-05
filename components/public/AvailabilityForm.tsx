@@ -124,18 +124,57 @@ const SubmissionInfoBanner: React.FC<{
     );
 });
 
-const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; telephone: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onTelephoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; hasExistingSubmission: boolean; }>(({ onEmailCheck, email, telephone, onEmailChange, onTelephoneChange, isChecking, hasExistingSubmission }) => (
-    <div className="w-full max-w-md mx-auto py-4">
+const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: string; telephone: string; onEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onTelephoneChange: (e: React.ChangeEvent<HTMLInputElement>) => void; isChecking: boolean; hasExistingSubmission: boolean; isLocked?: boolean; lockMessage?: string; }>(({ onEmailCheck, email, telephone, onEmailChange, onTelephoneChange, isChecking, hasExistingSubmission, isLocked, lockMessage }) => (
+    <div className="w-full max-w-4xl mx-auto py-4">
         <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">Déclaration de Disponibilités</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                {isLocked ? 'Consultation des Disponibilités' : 'Déclaration de Disponibilités'}
+            </h1>
         </div>
+        
+        {isLocked && (
+            <Card className="border-amber-400 dark:border-amber-600 shadow-lg mb-6">
+                <CardHeader className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-full">
+                            <svg className="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <CardTitle className="text-2xl text-amber-800 dark:text-amber-300">
+                            Les disponibilités sont verrouillées
+                        </CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4 rounded-lg">
+                        <p className="text-blue-800 dark:text-blue-300">
+                            {lockMessage || "L'établissement du planning est en cours et les attributions vont suivre."}
+                        </p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                            En cas d'indisponibilité :
+                        </p>
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4 rounded-lg">
+                            <p className="text-amber-800 dark:text-amber-300">
+                                <strong>Rappel important :</strong> Le surveillant est tenu de permuter avec l'un de ses collègues.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
         
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-indigo-100/50 dark:shadow-indigo-900/20 p-6 md:p-8 space-y-6">
             <div className="text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 mb-4">
-                    <Mail className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                    {isLocked ? <Search className="h-8 w-8 text-indigo-600 dark:text-indigo-400" /> : <Mail className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />}
                 </div>
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Vérifiez votre email UCLouvain</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {isLocked ? 'Consulter mes disponibilités' : 'Vérifiez votre email UCLouvain'}
+                </h2>
             </div>
 
             <form onSubmit={onEmailCheck} className="space-y-5">
@@ -156,24 +195,26 @@ const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: stri
                     </div>
                 </div>
 
-                <div>
-                    <label htmlFor="telephone-check" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Numéro de GSM <span className="text-red-500">*</span>
-                    </label>
-                    <Input 
-                        id="telephone-check" 
-                        name="telephone" 
-                        type="tel" 
-                        placeholder="0470123456" 
-                        value={telephone} 
-                        onChange={onTelephoneChange} 
-                        required 
-                        className="h-12 text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Ce numéro ne sera visible que par le secrétariat et utilisé uniquement en cas de changement de dernière minute ou pour vous contacter en cas d'absence.
-                    </p>
-                </div>
+                {!isLocked && (
+                    <div>
+                        <label htmlFor="telephone-check" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Numéro de GSM <span className="text-red-500">*</span>
+                        </label>
+                        <Input 
+                            id="telephone-check" 
+                            name="telephone" 
+                            type="tel" 
+                            placeholder="0470123456" 
+                            value={telephone} 
+                            onChange={onTelephoneChange} 
+                            required 
+                            className="h-12 text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Ce numéro ne sera visible que par le secrétariat et utilisé uniquement en cas de changement de dernière minute ou pour vous contacter en cas d'absence.
+                        </p>
+                    </div>
+                )}
                 
                 <Button 
                     type="submit" 
@@ -188,7 +229,7 @@ const EmailStep = memo<{ onEmailCheck: (e: React.FormEvent) => void; email: stri
                     ) : (
                         <>
                             <Search className="mr-2 h-5 w-5" />
-                            Vérifier mon email
+                            {isLocked ? 'Consulter mes disponibilités' : 'Vérifier mon email'}
                         </>
                     )}
                 </Button>
@@ -891,7 +932,7 @@ const AvailabilityForm: React.FC = () => {
         const selectedCount = Object.keys(availabilities).filter(id => availabilities[id].available).length;
 
         switch (step) {
-            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} telephone={formData.telephone} onEmailChange={handleInputChange} onTelephoneChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} />;
+            case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} telephone={formData.telephone} onEmailChange={handleInputChange} onTelephoneChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} isLocked={session?.lock_submissions} lockMessage={session?.lock_message} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
             case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={session?.lock_submissions ? () => setStep(0) : nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} isReadOnly={session?.lock_submissions} />;
@@ -909,99 +950,6 @@ const AvailabilityForm: React.FC = () => {
     );
 
     if (!session) return <div className="text-center text-red-500">Aucune session active n'a pu être chargée. Veuillez contacter l'administrateur.</div>;
-
-    // Vérifier si les soumissions sont verrouillées
-    if (session.lock_submissions) {
-        return (
-            <div className="max-w-4xl mx-auto py-8">
-                <Card className="border-amber-400 dark:border-amber-600 shadow-lg mb-6">
-                    <CardHeader className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-full">
-                                <svg className="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
-                            </div>
-                            <CardTitle className="text-2xl text-amber-800 dark:text-amber-300">
-                                Les disponibilités sont verrouillées
-                            </CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4 rounded-lg">
-                            <p className="text-blue-800 dark:text-blue-300">
-                                {session.lock_message || "L'établissement du planning est en cours et les attributions vont suivre."}
-                            </p>
-                        </div>
-                        
-                        <div className="space-y-3">
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                                En cas d'indisponibilité :
-                            </p>
-                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4 rounded-lg">
-                                <p className="text-amber-800 dark:text-amber-300">
-                                    <strong>Rappel important :</strong> Le surveillant est tenu de permuter avec l'un de ses collègues.
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Formulaire de consultation en lecture seule */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center">
-                            <User className="mr-2 h-6 w-6" /> 
-                            Consulter mes disponibilités
-                        </CardTitle>
-                        <CardDescription>
-                            Entrez votre email pour consulter vos disponibilités soumises (lecture seule).
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleEmailCheck} className="space-y-4">
-                            <div>
-                                <label htmlFor="email-readonly" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Adresse email
-                                </label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-                                    <Input 
-                                        id="email-readonly" 
-                                        name="email" 
-                                        type="email" 
-                                        placeholder="votre.nom@uclouvain.be" 
-                                        value={formData.email} 
-                                        onChange={handleInputChange} 
-                                        required 
-                                        className="pl-10" 
-                                    />
-                                </div>
-                            </div>
-                            
-                            <Button 
-                                type="submit" 
-                                className="w-full" 
-                                disabled={isCheckingEmail}
-                            >
-                                {isCheckingEmail ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        Recherche en cours...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Search className="mr-2 h-5 w-5" />
-                                        Consulter mes disponibilités
-                                    </>
-                                )}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
 
     return (
         <div className="max-w-4xl mx-auto">
