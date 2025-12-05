@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Creneau, SoumissionDisponibilite, SurveillantTypeLabels, CreneauWithStats } from '../../types';
+import { Creneau, SoumissionDisponibilite, SurveillantTypeLabels, CreneauWithStats, Session } from '../../types';
 import { getDisponibilitesData, updateSoumissionDisponibilites, getCreneauxWithStats, calculateCapacityStats } from '../../lib/api';
+import { supabase } from '../../lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/shared/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
 import { Input } from '../../components/shared/Input';
@@ -19,6 +20,7 @@ import { exportDisponibilitesMatriciel } from '../../lib/exportData';
 import { exportToXLSX } from '../../lib/exportUtils';
 import { ShareLinkModal } from '../../components/admin/ShareLinkModal';
 import { Share2 } from 'lucide-react';
+import { LockSubmissionsControl } from '../../components/admin/LockSubmissionsControl';
 
 interface DisponibilitesData {
     creneaux: Creneau[];
@@ -433,6 +435,7 @@ const SurveillantView: React.FC<{
 const DisponibilitesPage: React.FC = () => {
     const { data, isLoading, refetch } = useDataFetching(getDisponibilitesData, initialData);
     const { creneaux, soumissions, activeSessionName } = data;
+    const [activeSession, setActiveSession] = React.useState<Session | null>(null);
     
     const [viewMode, setViewMode] = useState<ViewMode>('creneau');
     const [filterType, setFilterType] = useState<string>('all');
@@ -443,6 +446,27 @@ const DisponibilitesPage: React.FC = () => {
     const [updatingCell, setUpdatingCell] = useState<string | null>(null);
     const [selectedSubmission, setSelectedSubmission] = useState<SoumissionDisponibilite | null>(null);
     const [showShareModal, setShowShareModal] = useState(false);
+
+    // Charger la session active pour le contrôle de verrouillage
+    React.useEffect(() => {
+        const loadActiveSession = async () => {
+            try {
+                const { data: session, error } = await supabase
+                    .from('sessions')
+                    .select('*')
+                    .eq('is_active', true)
+                    .limit(1)
+                    .single();
+                
+                if (!error && session) {
+                    setActiveSession(session);
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement de la session:', error);
+            }
+        };
+        loadActiveSession();
+    }, [data]);
 
     // Handle sort toggle
     const handleSortToggle = (field: 'name' | 'date') => {
@@ -630,6 +654,24 @@ const DisponibilitesPage: React.FC = () => {
                     onClose={() => setShowShareModal(false)}
                 />
             )}
+            
+            {/* Contrôle de verrouillage des disponibilités */}
+            <LockSubmissionsControl 
+                session={activeSession} 
+                onUpdate={() => {
+                    refetch();
+                    // Recharger la session
+                    supabase
+                        .from('sessions')
+                        .select('*')
+                        .eq('is_active', true)
+                        .limit(1)
+                        .single()
+                        .then(({ data }) => {
+                            if (data) setActiveSession(data);
+                        });
+                }} 
+            />
             
             {/* Tableau de bord de capacité */}
             <CapacityDashboard stats={capacityStats} isLoading={isLoading} />
