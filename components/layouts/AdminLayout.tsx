@@ -42,6 +42,7 @@ const AdminLayout: React.FC = () => {
         { to: 'surveillants', label: 'Surveillants', icon: Users, category: 'surveillants', adminOnly: false },
         { to: 'creneaux', label: 'Créneaux', icon: Clock, category: 'surveillants', adminOnly: false },
         { to: 'disponibilites', label: 'Disponibilités', icon: FileText, category: 'surveillants', adminOnly: false },
+        { to: 'messages-disponibilites', label: 'Messages', icon: MessageSquare, category: 'surveillants', adminOnly: false },
         { to: 'soumissions', label: 'Suivi Soumissions', icon: ClipboardList, category: 'surveillants', adminOnly: true },
         { to: 'suivi-soumissions', label: 'Relances', icon: CheckSquare, category: 'surveillants', adminOnly: true },
         { to: 'cours', label: 'Cours', icon: BookOpen, category: 'enseignants', adminOnly: false },

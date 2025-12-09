@@ -29,6 +29,7 @@ const DisponibilitesPage = lazy(() => import('./pages/admin/DisponibilitesPage')
 const SoumissionsPage = lazy(() => import('./pages/admin/SoumissionsPage'));
 const SuiviSoumissionsPage = lazy(() => import('./pages/admin/SuiviSoumissionsPage'));
 const MessagesPage = lazy(() => import('./pages/admin/MessagesPage'));
+const MessagesDisponibilitesPage = lazy(() => import('./pages/admin/MessagesDisponibilitesPage'));
 const StatistiquesPage = lazy(() => import('./pages/admin/StatistiquesPage'));
 const CoursPage = lazy(() => import('./pages/admin/CoursPage'));
 const PresencesEnseignantsPage = lazy(() => import('./pages/admin/PresencesEnseignantsPage'));
@@ -112,6 +113,7 @@ const AppContent: React.FC = () => {
                             <Route path="suivi-soumissions" element={<AdminOnlyRoute><SuiviSoumissionsPage /></AdminOnlyRoute>} />
                             <Route path="statistiques" element={<AdminOnlyRoute><StatistiquesPage /></AdminOnlyRoute>} />
                             <Route path="messages" element={<AdminOnlyRoute><MessagesPage /></AdminOnlyRoute>} />
+                            <Route path="messages-disponibilites" element={<MessagesDisponibilitesPage />} />
                             <Route path="cours" element={<CoursPage />} />
                             <Route path="presences-enseignants" element={<PresencesEnseignantsPage />} />
                             <Route path="examens" element={<ExamensPage />} />
