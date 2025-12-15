@@ -12,18 +12,44 @@ const ContactsPage: React.FC = () => {
     const [typeFilter, setTypeFilter] = useState<SurveillantType | 'all'>('all');
     const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
-    // Récupérer tous les surveillants actifs
+    // Récupérer tous les surveillants actifs avec leurs téléphones depuis les soumissions
     const { data: surveillants = [], isLoading, error } = useQuery({
         queryKey: ['surveillants-contacts'],
         queryFn: async () => {
-            const { data, error } = await supabase
+            // D'abord récupérer les surveillants
+            const { data: surveillantsData, error: surveillantsError } = await supabase
                 .from('surveillants')
                 .select('id, email, nom, prenom, type, telephone, affectation_faculte, affectation_institut')
                 .eq('is_active', true)
                 .order('nom', { ascending: true });
 
-            if (error) throw error;
-            return data as Surveillant[];
+            if (surveillantsError) throw surveillantsError;
+
+            // Ensuite récupérer les téléphones depuis les soumissions pour compléter
+            const { data: soumissionsData, error: soumissionsError } = await supabase
+                .from('soumissions_disponibilites')
+                .select('email, telephone, submitted_at')
+                .not('telephone', 'is', null)
+                .neq('telephone', '')
+                .order('submitted_at', { ascending: false });
+
+            if (soumissionsError) throw soumissionsError;
+
+            // Créer un map des téléphones les plus récents par email
+            const telephoneMap = new Map<string, string>();
+            soumissionsData?.forEach(soumission => {
+                if (!telephoneMap.has(soumission.email) && soumission.telephone) {
+                    telephoneMap.set(soumission.email, soumission.telephone);
+                }
+            });
+
+            // Enrichir les surveillants avec les téléphones des soumissions si nécessaire
+            const enrichedSurveillants = surveillantsData?.map(surveillant => ({
+                ...surveillant,
+                telephone: surveillant.telephone || telephoneMap.get(surveillant.email) || null
+            }));
+
+            return enrichedSurveillants as Surveillant[];
         }
     });
 
