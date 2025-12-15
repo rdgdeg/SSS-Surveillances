@@ -24,6 +24,7 @@ const AdminLayout = lazy(() => import('./components/layouts/AdminLayout'));
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
 const SessionsPage = lazy(() => import('./pages/admin/SessionsPage'));
 const SurveillantsPage = lazy(() => import('./pages/admin/SurveillantsPage'));
+const ContactsPage = lazy(() => import('./pages/admin/ContactsPage'));
 const CreneauxPage = lazy(() => import('./pages/admin/CreneauxPage'));
 const DisponibilitesPage = lazy(() => import('./pages/admin/DisponibilitesPage'));
 const SoumissionsPage = lazy(() => import('./pages/admin/SoumissionsPage'));
@@ -107,6 +108,7 @@ const AppContent: React.FC = () => {
                             <Route path="sessions" element={<AdminOnlyRoute><SessionsPage /></AdminOnlyRoute>} />
                             <Route path="users" element={<AdminOnlyRoute><UsersManagementPage /></AdminOnlyRoute>} />
                             <Route path="surveillants" element={<SurveillantsPage />} />
+                            <Route path="contacts" element={<ContactsPage />} />
                             <Route path="creneaux" element={<CreneauxPage />} />
                             <Route path="disponibilites" element={<DisponibilitesPage />} />
                             <Route path="soumissions" element={<AdminOnlyRoute><SoumissionsPage /></AdminOnlyRoute>} />

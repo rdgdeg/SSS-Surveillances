@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../lib/routePreloader';
@@ -40,6 +40,7 @@ const AdminLayout: React.FC = () => {
         { to: 'sessions', label: 'Sessions', icon: CalendarDays, category: null, adminOnly: true },
         { to: 'users', label: 'Utilisateurs', icon: Users, category: null, adminOnly: true },
         { to: 'surveillants', label: 'Surveillants', icon: Users, category: 'surveillants', adminOnly: false },
+        { to: 'contacts', label: 'Contacts', icon: Phone, category: 'surveillants', adminOnly: false },
         { to: 'creneaux', label: 'Créneaux', icon: Clock, category: 'surveillants', adminOnly: false },
         { to: 'disponibilites', label: 'Disponibilités', icon: FileText, category: 'surveillants', adminOnly: false },
         { to: 'messages-disponibilites', label: 'Messages', icon: MessageSquare, category: 'surveillants', adminOnly: false },
