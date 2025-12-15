@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Phone, Mail, User, Download, Copy, Check, Edit2, Save, X } from 'lucide-react';
+import { Search, Phone, Mail, User, Download, Copy, Check, Edit2, Save, X, Link, MessageSquare } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
 import { Input } from '../../components/shared/Input';
 import { supabase } from '../../lib/supabaseClient';
@@ -261,6 +261,44 @@ const ContactsPage: React.FC = () => {
         updatePhoneMutation.mutate({ surveillantId, telephone: suggestedPhone });
     };
 
+    // Générer le lien pour la mise à jour des téléphones
+    const generatePhoneUpdateLink = () => {
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/#/telephone`;
+        
+        navigator.clipboard.writeText(link);
+        toast.success('Lien copié dans le presse-papiers !');
+    };
+
+    // Générer le message email pour demander les téléphones
+    const generateEmailMessage = () => {
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/#/telephone`;
+        
+        const message = `Bonjour,
+
+Dans le cadre de l'organisation des surveillances d'examens, nous avons besoin de votre numéro de téléphone pour pouvoir vous contacter en cas d'urgence ou de changement de dernière minute.
+
+Pourriez-vous prendre 2 minutes pour renseigner votre numéro de téléphone via ce lien sécurisé :
+
+${link}
+
+Il vous suffit de :
+1. Saisir votre adresse email UCLouvain
+2. Indiquer votre numéro de téléphone
+3. Valider
+
+Vos informations seront automatiquement mises à jour dans notre système.
+
+Merci d'avance pour votre collaboration !
+
+Cordialement,
+L'équipe de gestion des surveillances`;
+
+        navigator.clipboard.writeText(message);
+        toast.success('Message email copié dans le presse-papiers !');
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -312,6 +350,28 @@ const ContactsPage: React.FC = () => {
                         <Download className="h-4 w-4" />
                         {phoneFilter === 'without' ? 'Exporter emails sans téléphone' : 'Exporter CSV'}
                     </Button>
+                    
+                    {phoneFilter === 'without' && filteredSurveillants.length > 0 && (
+                        <>
+                            <Button
+                                onClick={generatePhoneUpdateLink}
+                                variant="outline"
+                                className="flex items-center gap-2"
+                            >
+                                <Link className="h-4 w-4" />
+                                Copier le lien
+                            </Button>
+                            
+                            <Button
+                                onClick={generateEmailMessage}
+                                variant="outline"
+                                className="flex items-center gap-2"
+                            >
+                                <MessageSquare className="h-4 w-4" />
+                                Copier message email
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -365,6 +425,32 @@ const ContactsPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Aide pour les téléphones manquants */}
+            {phoneFilter === 'without' && filteredSurveillants.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
+                    <div className="flex items-start gap-3">
+                        <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                                Collecte des téléphones manquants
+                            </h3>
+                            <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+                                {filteredSurveillants.length} surveillant{filteredSurveillants.length > 1 ? 's' : ''} sans téléphone. 
+                                Utilisez les boutons ci-dessus pour :
+                            </p>
+                            <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                                <li>• <strong>Exporter emails</strong> : Liste CSV pour envoi groupé</li>
+                                <li>• <strong>Copier le lien</strong> : URL directe vers le formulaire de mise à jour</li>
+                                <li>• <strong>Copier message email</strong> : Message prêt à envoyer avec instructions</li>
+                            </ul>
+                            <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                                💡 Le lien permet aux surveillants de mettre à jour leur téléphone en 2 clics !
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Filtres */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
