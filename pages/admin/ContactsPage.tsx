@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, Phone, Mail, User, Download, Copy, Check } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, Phone, Mail, User, Download, Copy, Check, Edit2, Save, X } from 'lucide-react';
 import { Button } from '../../components/shared/Button';
 import { Input } from '../../components/shared/Input';
 import { supabase } from '../../lib/supabaseClient';
@@ -11,6 +11,10 @@ const ContactsPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<SurveillantType | 'all'>('all');
     const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+    const [editingPhone, setEditingPhone] = useState<string | null>(null);
+    const [editPhoneValue, setEditPhoneValue] = useState('');
+    
+    const queryClient = useQueryClient();
 
     // Récupérer tous les surveillants actifs avec leurs téléphones depuis les soumissions
     const { data: surveillants = [], isLoading, error } = useQuery({
@@ -116,6 +120,45 @@ const ContactsPage: React.FC = () => {
         document.body.removeChild(link);
         
         toast.success(`${filteredSurveillants.length} contacts exportés`);
+    };
+
+    // Mutation pour mettre à jour le téléphone
+    const updatePhoneMutation = useMutation({
+        mutationFn: async ({ surveillantId, telephone }: { surveillantId: string; telephone: string }) => {
+            const { error } = await supabase
+                .from('surveillants')
+                .update({ telephone: telephone.trim() || null })
+                .eq('id', surveillantId);
+            
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['surveillants-contacts'] });
+            toast.success('Téléphone mis à jour');
+            setEditingPhone(null);
+            setEditPhoneValue('');
+        },
+        onError: (error) => {
+            toast.error('Erreur lors de la mise à jour');
+            console.error('Erreur mise à jour téléphone:', error);
+        }
+    });
+
+    // Commencer l'édition d'un téléphone
+    const startEditPhone = (surveillantId: string, currentPhone: string | null) => {
+        setEditingPhone(surveillantId);
+        setEditPhoneValue(currentPhone || '');
+    };
+
+    // Annuler l'édition
+    const cancelEditPhone = () => {
+        setEditingPhone(null);
+        setEditPhoneValue('');
+    };
+
+    // Sauvegarder le téléphone
+    const savePhone = (surveillantId: string) => {
+        updatePhoneMutation.mutate({ surveillantId, telephone: editPhoneValue });
     };
 
     if (isLoading) {
@@ -258,24 +301,69 @@ const ContactsPage: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {surveillant.telephone ? (
+                                            {editingPhone === surveillant.id ? (
                                                 <div className="flex items-center gap-2">
                                                     <Phone className="h-4 w-4 text-gray-400" />
-                                                    <span className="text-sm text-gray-900 dark:text-white">
-                                                        {surveillant.telephone}
-                                                    </span>
+                                                    <Input
+                                                        type="text"
+                                                        value={editPhoneValue}
+                                                        onChange={(e) => setEditPhoneValue(e.target.value)}
+                                                        placeholder="Numéro de téléphone"
+                                                        className="w-40 text-sm"
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                savePhone(surveillant.id);
+                                                            } else if (e.key === 'Escape') {
+                                                                cancelEditPhone();
+                                                            }
+                                                        }}
+                                                        autoFocus
+                                                    />
                                                     <button
-                                                        onClick={() => copyPhone(surveillant.telephone!)}
-                                                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                                        title="Copier le téléphone"
+                                                        onClick={() => savePhone(surveillant.id)}
+                                                        disabled={updatePhoneMutation.isPending}
+                                                        className="p-1 text-green-600 hover:text-green-700 transition-colors"
+                                                        title="Sauvegarder"
                                                     >
-                                                        <Copy className="h-3 w-3" />
+                                                        <Save className="h-3 w-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelEditPhone}
+                                                        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                                        title="Annuler"
+                                                    >
+                                                        <X className="h-3 w-3" />
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <span className="text-sm text-gray-400 dark:text-gray-500">
-                                                    Non renseigné
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="h-4 w-4 text-gray-400" />
+                                                    {surveillant.telephone ? (
+                                                        <>
+                                                            <span className="text-sm text-gray-900 dark:text-white">
+                                                                {surveillant.telephone}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => copyPhone(surveillant.telephone!)}
+                                                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                                                title="Copier le téléphone"
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-400 dark:text-gray-500">
+                                                            Non renseigné
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => startEditPhone(surveillant.id, surveillant.telephone)}
+                                                        className="p-1 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                                        title="Modifier le téléphone"
+                                                    >
+                                                        <Edit2 className="h-3 w-3" />
+                                                    </button>
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
