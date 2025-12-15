@@ -7,6 +7,69 @@ import { supabase } from '../../lib/supabaseClient';
 import { Surveillant, SurveillantType, SurveillantTypeLabels } from '../../types';
 import toast from 'react-hot-toast';
 
+// Type étendu pour inclure les suggestions
+interface SurveillantWithSuggestion extends Surveillant {
+    suggestedPhone?: string | null;
+}
+
+// Dictionnaire des téléphones connus
+const TELEPHONES_CONNUS: Record<string, string> = {
+    'ASSOIGNON_THEO': '+32 471 84 70 75',
+    'ATIK_HICHAM': '0479 02 15 45',
+    'AUQUIERE_MARIE': '0491 07 43 31',
+    'BARBE_ALICE': '0470 32 82 17',
+    'BECKERS_PAULINE': '0474 08 91 40',
+    'BRACONNIER_PAULINE': '0470 34 86 93',
+    'CAPIAU_MADELEINE': '0497 79 28 66',
+    'CHARLIER_MATHILDE': '0496 77 57 30',
+    'CHOME_CELINE': '0491 88 15 21',
+    'CHOTEAU_MATHILDE': '0473 12 07 27',
+    'CHRETIEN_ANTOINE': '+33 6 27 15 87 17',
+    'COLAK_RAMAZAN': '0483 54 90 96',
+    'COMEIN_AUDREY': '0497 41 26 0',
+    'DELOOF_MARINE': '0498 50 69 12',
+    'DEMONTIGNY_MANON': '0478 48 23 84',
+    'DECHENNE_JUHANS': '0472 08 31 10',
+    'DECLERCK_LOUISE': '0476 48 03 14',
+    'DEVIS_JULIE': '0476 48 21 23',
+    'DJURKIN_ANDREJ': '0472 43 42 45',
+    'EVRARD_PERRINE': '0497 23 91 75',
+    'FUCHS_VICTORIA': '+33 6 81 47 52 21',
+    'GHODSI_MARINE': '0472 49 14 58',
+    'HAJJHASSAN_YARA': '0493 02 76 21',
+    'IORDANESCU_ANDRA': '0474 34 92 38',
+    'LAGHOUATI_ADAM': '+33 6 48 14 24 11',
+    'LAMOTTE_ALVY': '0479 86 77 13',
+    'MARCIANO_FLORIAN': '0494 37 92 09',
+    'PIERRE_ELISA': '+32 499 26 49 94',
+    'RUIZ_LUCIE': '+33 6 22 00 49 47',
+    'SCHROEDERCHAIDRON_LENA': '0499 11 55 07',
+    'TONDEUR_VINCIANE': '0485 75 79 64',
+    'VANDEVELDE_JUSTINE': '0476 78 88 39',
+    'VANVARENBERG_KEVIN': '0478 48 71 20',
+    'VERGAUWEN_MARTIAL': '0471 46 18 91',
+    'WANGERMEZ_CAMILLE': '0472 75 37 73'
+};
+
+// Fonction pour nettoyer et normaliser les noms
+const cleanName = (text: string): string => {
+    return text
+        .toUpperCase()
+        .replace(/[ÉÈÊË]/g, 'E')
+        .replace(/[ÀÁÂÃ]/g, 'A')
+        .replace(/[ÔÖÕ]/g, 'O')
+        .replace(/[ÇC]/g, 'C')
+        .replace(/[^A-Z]/g, '');
+};
+
+// Fonction pour trouver un téléphone suggéré
+const getSuggestedPhone = (nom: string, prenom: string): string | null => {
+    const cleanedNom = cleanName(nom);
+    const cleanedPrenom = cleanName(prenom);
+    const key = `${cleanedNom}_${cleanedPrenom}`;
+    return TELEPHONES_CONNUS[key] || null;
+};
+
 const ContactsPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<SurveillantType | 'all'>('all');
@@ -17,7 +80,7 @@ const ContactsPage: React.FC = () => {
     const queryClient = useQueryClient();
 
     // Récupérer tous les surveillants actifs avec leurs téléphones depuis les soumissions
-    const { data: surveillants = [], isLoading, error } = useQuery({
+    const { data: surveillants = [], isLoading, error } = useQuery<SurveillantWithSuggestion[]>({
         queryKey: ['surveillants-contacts'],
         queryFn: async () => {
             // D'abord récupérer les surveillants
@@ -47,13 +110,19 @@ const ContactsPage: React.FC = () => {
                 }
             });
 
-            // Enrichir les surveillants avec les téléphones des soumissions si nécessaire
-            const enrichedSurveillants = surveillantsData?.map(surveillant => ({
-                ...surveillant,
-                telephone: surveillant.telephone || telephoneMap.get(surveillant.email) || null
-            }));
+            // Enrichir les surveillants avec les téléphones des soumissions et suggestions
+            const enrichedSurveillants = surveillantsData?.map(surveillant => {
+                const telephoneFromSubmission = telephoneMap.get(surveillant.email);
+                const suggestedPhone = getSuggestedPhone(surveillant.nom, surveillant.prenom);
+                
+                return {
+                    ...surveillant,
+                    telephone: surveillant.telephone || telephoneFromSubmission || null,
+                    suggestedPhone: !surveillant.telephone && !telephoneFromSubmission ? suggestedPhone : null
+                };
+            });
 
-            return enrichedSurveillants as Surveillant[];
+            return enrichedSurveillants as SurveillantWithSuggestion[];
         }
     });
 
@@ -159,6 +228,11 @@ const ContactsPage: React.FC = () => {
     // Sauvegarder le téléphone
     const savePhone = (surveillantId: string) => {
         updatePhoneMutation.mutate({ surveillantId, telephone: editPhoneValue });
+    };
+
+    // Utiliser le téléphone suggéré
+    const useSuggestedPhone = (surveillantId: string, suggestedPhone: string) => {
+        updatePhoneMutation.mutate({ surveillantId, telephone: suggestedPhone });
     };
 
     if (isLoading) {
@@ -352,12 +426,28 @@ const ContactsPage: React.FC = () => {
                                                             </button>
                                                         </>
                                                     ) : (
-                                                        <span className="text-sm text-gray-400 dark:text-gray-500">
-                                                            Non renseigné
-                                                        </span>
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-sm text-gray-400 dark:text-gray-500">
+                                                                Non renseigné
+                                                            </span>
+                                                            {surveillant.suggestedPhone && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                                                                        Suggéré: {surveillant.suggestedPhone}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => useSuggestedPhone(surveillant.id, surveillant.suggestedPhone!)}
+                                                                        className="text-xs bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded transition-colors"
+                                                                        title="Utiliser ce numéro"
+                                                                    >
+                                                                        Utiliser
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     )}
                                                     <button
-                                                        onClick={() => startEditPhone(surveillant.id, surveillant.telephone)}
+                                                        onClick={() => startEditPhone(surveillant.id, surveillant.telephone || surveillant.suggestedPhone)}
                                                         className="p-1 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                                                         title="Modifier le téléphone"
                                                     >
