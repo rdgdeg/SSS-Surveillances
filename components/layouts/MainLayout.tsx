@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { University, Sun, Moon, Home, BookOpen, Menu, X, Mail } from 'lucide-react';
+import { University, Sun, Moon, Home, BookOpen, Menu, X, Mail, Phone } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../shared/Button';
 import NetworkStatusIndicator from '../shared/NetworkStatusIndicator';
@@ -41,6 +41,12 @@ const MainLayout: React.FC = () => {
                         
                         {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center space-x-2">
+                            <NavLink to="/telephone">
+                                <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                                    <Phone className="mr-2 h-4 w-4" />
+                                    Mettre à jour mon téléphone
+                                </Button>
+                            </NavLink>
                             <NavLink to="/consignes">
                                 <Button variant="outline" size="sm">
                                     <BookOpen className="mr-2 h-4 w-4" />
@@ -86,6 +92,14 @@ const MainLayout: React.FC = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden fixed inset-0 top-16 bg-white dark:bg-gray-800 z-40 overflow-y-auto">
                         <nav className="container mx-auto px-4 py-4 space-y-2">
+                            <NavLink 
+                                to="/telephone" 
+                                onClick={closeMobileMenu}
+                                className="flex items-center px-4 py-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800"
+                            >
+                                <Phone className="mr-3 h-5 w-5" />
+                                <span className="font-medium">Mettre à jour mon téléphone</span>
+                            </NavLink>
                             <NavLink 
                                 to="/consignes" 
                                 onClick={closeMobileMenu}
@@ -135,6 +149,11 @@ const MainLayout: React.FC = () => {
                                 <li>
                                     <NavLink to="/" className="text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                         Accueil
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink to="/telephone" className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors font-medium">
+                                        Mettre à jour mon téléphone
                                     </NavLink>
                                 </li>
                                 <li>
