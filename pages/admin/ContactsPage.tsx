@@ -73,6 +73,7 @@ const getSuggestedPhone = (nom: string, prenom: string): string | null => {
 const ContactsPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<SurveillantType | 'all'>('all');
+    const [phoneFilter, setPhoneFilter] = useState<'all' | 'with' | 'without'>('all');
     const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
     const [editingPhone, setEditingPhone] = useState<string | null>(null);
     const [editPhoneValue, setEditPhoneValue] = useState('');
@@ -137,9 +138,14 @@ const ContactsPage: React.FC = () => {
 
             const matchesType = typeFilter === 'all' || surveillant.type === typeFilter;
 
-            return matchesSearch && matchesType;
+            const hasPhone = surveillant.telephone && surveillant.telephone.trim() !== '';
+            const matchesPhone = phoneFilter === 'all' || 
+                (phoneFilter === 'with' && hasPhone) ||
+                (phoneFilter === 'without' && !hasPhone);
+
+            return matchesSearch && matchesType && matchesPhone;
         });
-    }, [surveillants, searchTerm, typeFilter]);
+    }, [surveillants, searchTerm, typeFilter, phoneFilter]);
 
     // Copier l'email dans le presse-papiers
     const copyEmail = async (email: string) => {
@@ -163,8 +169,28 @@ const ContactsPage: React.FC = () => {
         }
     };
 
+    // Statistiques des téléphones
+    const phoneStats = useMemo(() => {
+        const withPhone = surveillants.filter(s => s.telephone && s.telephone.trim() !== '').length;
+        const withoutPhone = surveillants.length - withPhone;
+        const withSuggestions = surveillants.filter(s => !s.telephone && s.suggestedPhone).length;
+        
+        return { withPhone, withoutPhone, withSuggestions, total: surveillants.length };
+    }, [surveillants]);
+
     // Exporter les contacts en CSV
     const exportContacts = () => {
+        let filename = 'contacts-surveillants';
+        let toastMessage = `${filteredSurveillants.length} contacts exportés`;
+        
+        if (phoneFilter === 'without') {
+            filename += '-sans-telephone';
+            toastMessage = `${filteredSurveillants.length} contacts sans téléphone exportés - parfait pour demander les numéros manquants !`;
+        } else if (phoneFilter === 'with') {
+            filename += '-avec-telephone';
+            toastMessage = `${filteredSurveillants.length} contacts avec téléphone exportés`;
+        }
+        
         const csvContent = [
             ['Nom', 'Prénom', 'Email', 'Téléphone', 'Type', 'Faculté', 'Institut'].join(','),
             ...filteredSurveillants.map(s => [
@@ -182,13 +208,13 @@ const ContactsPage: React.FC = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `contacts-surveillants-${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        toast.success(`${filteredSurveillants.length} contacts exportés`);
+        toast.success(toastMessage);
     };
 
     // Mutation pour mettre à jour le téléphone
@@ -263,17 +289,81 @@ const ContactsPage: React.FC = () => {
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">
                         {filteredSurveillants.length} contact{filteredSurveillants.length > 1 ? 's' : ''} trouvé{filteredSurveillants.length > 1 ? 's' : ''}
+                        {phoneFilter === 'without' && (
+                            <span className="ml-2 text-orange-600 dark:text-orange-400">
+                                • Sans téléphone
+                            </span>
+                        )}
+                        {phoneFilter === 'with' && (
+                            <span className="ml-2 text-green-600 dark:text-green-400">
+                                • Avec téléphone
+                            </span>
+                        )}
                     </p>
                 </div>
                 
-                <Button
-                    onClick={exportContacts}
-                    disabled={filteredSurveillants.length === 0}
-                    className="flex items-center gap-2"
-                >
-                    <Download className="h-4 w-4" />
-                    Exporter CSV
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                        onClick={exportContacts}
+                        disabled={filteredSurveillants.length === 0}
+                        className="flex items-center gap-2"
+                        variant={phoneFilter === 'without' ? 'default' : 'outline'}
+                    >
+                        <Download className="h-4 w-4" />
+                        {phoneFilter === 'without' ? 'Exporter emails sans téléphone' : 'Exporter CSV'}
+                    </Button>
+                </div>
+            </div>
+
+            {/* Statistiques */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <User className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
+                            <p className="text-2xl font-semibold text-gray-900 dark:text-white">{phoneStats.total}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <Phone className="h-8 w-8 text-green-500" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Avec téléphone</p>
+                            <p className="text-2xl font-semibold text-green-600 dark:text-green-400">{phoneStats.withPhone}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <Phone className="h-8 w-8 text-red-500" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sans téléphone</p>
+                            <p className="text-2xl font-semibold text-red-600 dark:text-red-400">{phoneStats.withoutPhone}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <Phone className="h-8 w-8 text-blue-500" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Suggestions</p>
+                            <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">{phoneStats.withSuggestions}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Filtres */}
@@ -304,6 +394,18 @@ const ContactsPage: React.FC = () => {
                                     {label}
                                 </option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div className="sm:w-48">
+                        <select
+                            value={phoneFilter}
+                            onChange={(e) => setPhoneFilter(e.target.value as 'all' | 'with' | 'without')}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="all">Tous les téléphones</option>
+                            <option value="with">Avec téléphone</option>
+                            <option value="without">Sans téléphone</option>
                         </select>
                     </div>
                 </div>
