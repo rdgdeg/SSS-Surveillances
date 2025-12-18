@@ -21,7 +21,7 @@ export default function ExamenSurveillants({ examenId }: Props) {
         .from('examen_auditoires')
         .select('id, auditoire, mode_attribution, surveillants')
         .eq('examen_id', examenId)
-        .order('mode_attribution DESC, auditoire');
+        .order('auditoire');
       
       if (error) throw error;
       
@@ -77,9 +77,15 @@ export default function ExamenSurveillants({ examenId }: Props) {
     );
   }
 
-  // Séparer les auditoires par mode
-  const auditoiresSpecifiques = auditoires?.filter(a => a.mode_attribution !== 'secretariat') || [];
-  const surveillantsSecretariat = auditoires?.find(a => a.mode_attribution === 'secretariat');
+  // Séparer l'auditoire spécial "répartition par le secrétariat" des autres
+  const auditoiresNormaux = auditoires?.filter(a => 
+    !a.auditoire.toLowerCase().includes('répartition') && 
+    !a.auditoire.toLowerCase().includes('secrétariat')
+  ) || [];
+  const auditoireSecretariat = auditoires?.find(a => 
+    a.auditoire.toLowerCase().includes('répartition') || 
+    a.auditoire.toLowerCase().includes('secrétariat')
+  );
 
   return (
     <div className="md:w-64 space-y-2">
@@ -88,15 +94,15 @@ export default function ExamenSurveillants({ examenId }: Props) {
         Surveillants
       </p>
       
-      {/* Surveillants avec auditoires attribués par le secrétariat */}
-      {surveillantsSecretariat && (
+      {/* Auditoire spécial pour répartition par le secrétariat */}
+      {auditoireSecretariat && (
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
           <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mb-1">
-            Auditoires attribués par le secrétariat
+            {auditoireSecretariat.auditoire}
           </p>
           <div className="text-xs text-amber-700 dark:text-amber-300 space-y-0.5">
-            {surveillantsSecretariat.surveillants_noms && surveillantsSecretariat.surveillants_noms.length > 0 ? (
-              surveillantsSecretariat.surveillants_noms.map((nom, idx) => (
+            {auditoireSecretariat.surveillants_noms && auditoireSecretariat.surveillants_noms.length > 0 ? (
+              auditoireSecretariat.surveillants_noms.map((nom, idx) => (
                 <div key={idx} className="flex items-start gap-1">
                   <span className="text-amber-500">•</span>
                   <span>{nom}</span>
@@ -114,8 +120,8 @@ export default function ExamenSurveillants({ examenId }: Props) {
         </div>
       )}
       
-      {/* Auditoires spécifiques */}
-      {auditoiresSpecifiques.map((aud) => (
+      {/* Auditoires normaux */}
+      {auditoiresNormaux.map((aud) => (
         <div key={aud.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 border border-gray-200 dark:border-gray-600">
           <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {aud.auditoire}
