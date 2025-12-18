@@ -14,9 +14,12 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
 import ExamenSurveillants from '../../components/public/ExamenSurveillants';
+import { exportSurveillancesSurveillant } from '../../lib/exportUtils';
+import toast from 'react-hot-toast';
 
 interface Examen {
   id: string;
@@ -66,6 +69,7 @@ export default function ExamSchedulePage() {
   const [surveillantInput, setSurveillantInput] = useState<string>('');
   const [showSurveillantSuggestions, setShowSurveillantSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const itemsPerPage = 20;
   const { data: activeSession } = useActiveSession();
 
@@ -313,6 +317,30 @@ export default function ExamSchedulePage() {
     setCurrentPage(1);
   }, [searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot, selectedSurveillant]);
 
+  // Handle export
+  const handleExportSurveillances = async () => {
+    if (!selectedSurveillant.trim()) {
+      toast.error('Veuillez sélectionner un surveillant pour exporter ses surveillances');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const exportData = await exportSurveillancesSurveillant(
+        selectedSurveillant,
+        examensWithSurveillants || [],
+        consignesSecretariat || []
+      );
+      
+      toast.success(`Export réussi : ${exportData.length} surveillance${exportData.length > 1 ? 's' : ''} exportée${exportData.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Helper function to get consignes for a specific secretariat
   const getConsignesForSecretariat = (secretariatCode: string): ConsigneSecretariat | undefined => {
     if (!consignesSecretariat || !secretariatCode) return undefined;
@@ -523,9 +551,31 @@ export default function ExamSchedulePage() {
               </div>
             </div>
 
-            {/* Results count */}
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {filteredExamens.length} examen{filteredExamens.length !== 1 ? 's' : ''} trouvé{filteredExamens.length !== 1 ? 's' : ''}
+            {/* Export button and Results count */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {filteredExamens.length} examen{filteredExamens.length !== 1 ? 's' : ''} trouvé{filteredExamens.length !== 1 ? 's' : ''}
+              </div>
+              
+              {selectedSurveillant && filteredExamens.length > 0 && (
+                <button
+                  onClick={handleExportSurveillances}
+                  disabled={isExporting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Export en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Exporter mes surveillances
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

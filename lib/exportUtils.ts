@@ -137,3 +137,97 @@ export function formatBooleanForExport(value: boolean | null | undefined): strin
   if (value === null || value === undefined) return '';
   return value ? 'Oui' : 'Non';
 }
+
+/**
+ * Export surveillances for a specific surveillant
+ */
+export async function exportSurveillancesSurveillant(
+  surveillantName: string,
+  examens: any[],
+  consignesSecretariat: any[],
+  baseUrl: string = window.location.origin
+) {
+  // Filter examens for this surveillant
+  const surveillances = examens.filter(examen => 
+    examen.surveillants_noms && 
+    examen.surveillants_noms.some((nom: string) => 
+      nom.toLowerCase().includes(surveillantName.toLowerCase())
+    )
+  );
+
+  if (surveillances.length === 0) {
+    throw new Error(`Aucune surveillance trouvée pour ${surveillantName}`);
+  }
+
+  // Prepare export data
+  const exportData = surveillances.map(examen => {
+    // Find consignes for this secretariat
+    const consignes = consignesSecretariat.find(c => 
+      c.code_secretariat === examen.secretariat
+    );
+
+    // Format consignes
+    let consignesText = '';
+    
+    if (examen.is_mode_secretariat) {
+      consignesText = 'Les consignes détaillées (arrivée, mise en place, auditoires) seront communiquées ultérieurement par le pool, le secrétariat ou le responsable de cours.';
+    } else {
+      const consignesParts = [];
+      
+      // Consignes générales du secrétariat
+      if (consignes) {
+        if (consignes.consignes_arrivee) {
+          consignesParts.push(`Arrivée: ${consignes.consignes_arrivee}`);
+        }
+        if (consignes.consignes_mise_en_place) {
+          consignesParts.push(`Mise en place: ${consignes.consignes_mise_en_place}`);
+        }
+        if (consignes.consignes_generales) {
+          consignesParts.push(`Consignes générales: ${consignes.consignes_generales}`);
+        }
+      }
+      
+      // Consignes spécifiques de l'examen
+      if (examen.utiliser_consignes_specifiques) {
+        if (examen.consignes_specifiques_arrivee) {
+          consignesParts.push(`Arrivée spécifique: ${examen.consignes_specifiques_arrivee}`);
+        }
+        if (examen.consignes_specifiques_mise_en_place) {
+          consignesParts.push(`Mise en place spécifique: ${examen.consignes_specifiques_mise_en_place}`);
+        }
+        if (examen.consignes_specifiques_generales) {
+          consignesParts.push(`Consignes spécifiques: ${examen.consignes_specifiques_generales}`);
+        }
+      } else if (examen.cours?.consignes) {
+        consignesParts.push(`Consignes du cours: ${examen.cours.consignes}`);
+      }
+      
+      consignesText = consignesParts.join(' | ');
+    }
+
+    return {
+      'Date': formatDateForExport(examen.date_examen),
+      'Heure début': examen.heure_debut,
+      'Heure fin': examen.heure_fin,
+      'Code examen': examen.code_examen,
+      'Nom examen': examen.nom_examen,
+      'Auditoires': examen.auditoires || 'À définir',
+      'Secrétariat': examen.secretariat,
+      'Consignes': consignesText,
+      'Lien planning': `${baseUrl}/planning`
+    };
+  });
+
+  // Sort by date and time
+  exportData.sort((a, b) => {
+    const dateA = new Date(`${a.Date.split('-').reverse().join('-')} ${a['Heure début']}`);
+    const dateB = new Date(`${b.Date.split('-').reverse().join('-')} ${b['Heure début']}`);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // Export to Excel
+  const filename = `Surveillances_${surveillantName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}`;
+  exportToXLSX(exportData, filename, 'Mes Surveillances');
+  
+  return exportData;
+}
