@@ -15,7 +15,7 @@ export function useExamenAuditoiresStats(examenIds: string[]) {
 
       const { data, error } = await supabase
         .from('examen_auditoires')
-        .select('examen_id, nb_surveillants_requis, surveillants')
+        .select('examen_id, auditoire, nb_surveillants_requis, surveillants')
         .in('examen_id', examenIds);
 
       if (error) throw error;
@@ -32,8 +32,25 @@ export function useExamenAuditoiresStats(examenIds: string[]) {
           };
         }
         
-        stats[auditoire.examen_id].total_requis += auditoire.nb_surveillants_requis || 0;
-        stats[auditoire.examen_id].total_attribues += (auditoire.surveillants?.length || 0);
+        // Détecter si c'est un auditoire de type "secrétariat"
+        const isSecretariatAuditoire = auditoire.auditoire && (
+          auditoire.auditoire.toLowerCase().includes('répartition') || 
+          auditoire.auditoire.toLowerCase().includes('secrétariat')
+        );
+        
+        if (isSecretariatAuditoire) {
+          // Pour les auditoires secrétariat : si des surveillants sont assignés, 
+          // on considère l'attribution comme complète
+          const surveillantsAssignes = auditoire.surveillants?.length || 0;
+          if (surveillantsAssignes > 0) {
+            stats[auditoire.examen_id].total_requis += surveillantsAssignes;
+            stats[auditoire.examen_id].total_attribues += surveillantsAssignes;
+          }
+        } else {
+          // Pour les auditoires normaux : logique habituelle
+          stats[auditoire.examen_id].total_requis += auditoire.nb_surveillants_requis || 0;
+          stats[auditoire.examen_id].total_attribues += (auditoire.surveillants?.length || 0);
+        }
       });
 
       return stats;
