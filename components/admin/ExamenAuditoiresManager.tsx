@@ -25,11 +25,13 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
     auditoireId: string;
     ancienSurveillant: Surveillant;
   } | null>(null);
+  const [modeAttribution, setModeAttribution] = useState<'auditoire' | 'secretariat'>('auditoire');
   const [newAuditoire, setNewAuditoire] = useState({
     auditoire: '',
     nb_surveillants_requis: 1,
     surveillants: [] as string[],
     remarques: '',
+    mode_attribution: 'auditoire' as 'auditoire' | 'secretariat',
   });
 
   // Fetch surveillants
@@ -53,11 +55,15 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
         .from('examen_auditoires')
         .select('*')
         .eq('examen_id', examenId)
-        .order('auditoire');
+        .order('mode_attribution DESC, auditoire');
       if (error) throw error;
       return data as ExamenAuditoire[];
     },
   });
+
+  // Séparer les auditoires par mode
+  const auditoiresSpecifiques = auditoires?.filter(a => a.mode_attribution !== 'secretariat') || [];
+  const surveillantsSecretariat = auditoires?.find(a => a.mode_attribution === 'secretariat');
 
   // Create auditoire
   const createMutation = useMutation({
@@ -112,11 +118,40 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
   });
 
   const handleAddAuditoire = () => {
-    if (!newAuditoire.auditoire.trim()) {
+    if (newAuditoire.mode_attribution === 'auditoire' && !newAuditoire.auditoire.trim()) {
       toast.error('Veuillez saisir un nom d\'auditoire');
       return;
     }
-    createMutation.mutate(newAuditoire);
+    
+    // Pour le mode secrétariat, utiliser un nom générique
+    const auditoireData = {
+      ...newAuditoire,
+      auditoire: newAuditoire.mode_attribution === 'secretariat' 
+        ? 'Surveillants (auditoires attribués par le secrétariat)'
+        : newAuditoire.auditoire
+    };
+    
+    createMutation.mutate(auditoireData);
+  };
+
+  const handleAddSurveillantSecretariat = () => {
+    // Créer ou mettre à jour l'entrée pour les surveillants du secrétariat
+    if (surveillantsSecretariat) {
+      // Mettre à jour l'existant
+      updateMutation.mutate({
+        id: surveillantsSecretariat.id,
+        data: { nb_surveillants_requis: surveillantsSecretariat.nb_surveillants_requis + 1 }
+      });
+    } else {
+      // Créer une nouvelle entrée
+      createMutation.mutate({
+        auditoire: 'Surveillants (auditoires attribués par le secrétariat)',
+        nb_surveillants_requis: 1,
+        surveillants: [],
+        remarques: '',
+        mode_attribution: 'secretariat'
+      });
+    }
   };
 
   const handleUpdateSurveillants = (auditoireId: string, surveillantIds: string[]) => {
@@ -178,10 +213,166 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Liste des auditoires existants */}
-      {auditoires && auditoires.length > 0 && (
-        <div className="space-y-3">
-          {auditoires.map((auditoire) => (
+      {/* Section: Surveillants sans auditoire spécifique (gérés par le secrétariat) */}
+      {surveillantsSecretariat && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border-2 border-amber-300 dark:border-amber-700">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1">
+              <h4 className="font-medium text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Surveillants sélectionnés - Auditoires attribués par le secrétariat
+              </h4>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                Les surveillants ci-dessous sont sélectionnés pour cet examen, mais leur répartition dans les auditoires sera communiquée par le secrétariat ou le responsable de l'examen.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm('Supprimer cette section ? Tous les surveillants sélectionnés seront retirés.')) {
+                  deleteMutation.mutate(surveillantsSecretariat.id);
+                }
+              }}
+              className="text-red-600 hover:text-red-700 dark:text-red-400"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Surveillants assignés */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-amber-800 dark:text-amber-200">
+              Surveillants sélectionnés ({surveillantsSecretariat.surveillants?.length || 0})
+            </label>
+
+            {surveillantsSecretariat.surveillants && surveillantsSecretariat.surveillants.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded border border-amber-200 dark:border-amber-600 p-2 space-y-1">
+                {surveillantsSecretariat.surveillants.map((survId) => {
+                  const surv = surveillants?.find(s => s.id === survId);
+                  if (!surv) return null;
+                  return (
+                    <div key={survId} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                        ✓ {surv.prenom} {surv.nom}
+                      </span>
+                      <button
+                        onClick={() => handleRemplacer(surveillantsSecretariat.id, survId)}
+                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1"
+                        title="Remplacer ce surveillant"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Remplacer
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Historique des remplacements */}
+            {surveillantsSecretariat.surveillants_remplaces && surveillantsSecretariat.surveillants_remplaces.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-2">
+                  Historique des remplacements
+                </p>
+                <div className="space-y-1">
+                  {surveillantsSecretariat.surveillants_remplaces.map((remp, idx) => {
+                    const ancien = surveillants?.find(s => s.id === remp.ancien_id);
+                    const nouveau = surveillants?.find(s => s.id === remp.nouveau_id);
+                    return (
+                      <div key={idx} className="text-xs bg-gray-100 dark:bg-gray-700 rounded p-2">
+                        <div className="flex items-center gap-2">
+                          <span className="line-through text-red-600 dark:text-red-400">
+                            {ancien ? `${ancien.prenom} ${ancien.nom}` : 'Inconnu'}
+                          </span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-green-600 dark:text-green-400">
+                            {nouveau ? `${nouveau.prenom} ${nouveau.nom}` : 'Inconnu'}
+                          </span>
+                        </div>
+                        {remp.raison && (
+                          <p className="text-gray-500 dark:text-gray-400 mt-1 italic">
+                            {remp.raison}
+                          </p>
+                        )}
+                        <p className="text-gray-400 dark:text-gray-500 mt-1">
+                          {new Date(remp.date).toLocaleDateString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Barre de recherche pour ajouter */}
+            <div className="mt-3">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-2">
+                Ajouter un surveillant
+              </p>
+              <input
+                type="text"
+                placeholder="Rechercher un surveillant..."
+                value={searchTerm[surveillantsSecretariat.id] || ''}
+                onChange={(e) => setSearchTerm({ ...searchTerm, [surveillantsSecretariat.id]: e.target.value })}
+                className="w-full px-3 py-1.5 text-sm border border-amber-300 dark:border-amber-600 rounded focus:ring-2 focus:ring-amber-500 dark:bg-gray-700 dark:text-white"
+              />
+              
+              <div className="max-h-40 overflow-y-auto space-y-1 mt-2">
+                {surveillants
+                  ?.filter((surveillant) => {
+                    const search = (searchTerm[surveillantsSecretariat.id] || '').toLowerCase();
+                    if (!search) return true;
+                    const fullName = `${surveillant.prenom} ${surveillant.nom}`.toLowerCase();
+                    return fullName.includes(search);
+                  })
+                  .sort((a, b) => {
+                    const aSelected = surveillantsSecretariat.surveillants?.includes(a.id);
+                    const bSelected = surveillantsSecretariat.surveillants?.includes(b.id);
+                    if (aSelected && !bSelected) return -1;
+                    if (!aSelected && bSelected) return 1;
+                    return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`);
+                  })
+                  .map((surveillant) => {
+                    const isSelected = surveillantsSecretariat.surveillants?.includes(surveillant.id);
+                    return (
+                      <label
+                        key={surveillant.id}
+                        className={`flex items-center gap-2 p-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded cursor-pointer ${
+                          isSelected ? 'bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-600' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSurveillant(surveillantsSecretariat.id, surveillantsSecretariat.surveillants || [], surveillant.id)}
+                          className="rounded"
+                        />
+                        <span className={`text-sm ${isSelected ? 'font-medium text-amber-800 dark:text-amber-200' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {surveillant.prenom} {surveillant.nom}
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section: Auditoires spécifiques */}
+      {auditoiresSpecifiques.length > 0 && (
+        <div>
+          <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            Auditoires avec attribution directe
+          </h4>
+          <div className="space-y-3">
+            {auditoiresSpecifiques.map((auditoire) => (
             <div
               key={auditoire.id}
               className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
@@ -336,49 +527,121 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 
-      {/* Formulaire d'ajout */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-        <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-3 flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Ajouter un auditoire
-        </h4>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Nom de l'auditoire *
+      {/* Formulaires d'ajout */}
+      <div className="space-y-4">
+        {/* Choix du mode d'attribution */}
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+          <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+            Mode d'attribution des surveillants
+          </h4>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="modeAttribution"
+                value="auditoire"
+                checked={modeAttribution === 'auditoire'}
+                onChange={(e) => {
+                  setModeAttribution(e.target.value as 'auditoire' | 'secretariat');
+                  setNewAuditoire({ ...newAuditoire, mode_attribution: e.target.value as 'auditoire' | 'secretariat' });
+                }}
+                className="text-blue-600"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Attribution directe :</strong> Assigner les surveillants à des auditoires spécifiques
+              </span>
             </label>
-            <input
-              type="text"
-              value={newAuditoire.auditoire}
-              onChange={(e) => setNewAuditoire({ ...newAuditoire, auditoire: e.target.value })}
-              placeholder="Ex: Auditoire A, Salle 101..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Nombre de surveillants requis
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="modeAttribution"
+                value="secretariat"
+                checked={modeAttribution === 'secretariat'}
+                onChange={(e) => {
+                  setModeAttribution(e.target.value as 'auditoire' | 'secretariat');
+                  setNewAuditoire({ ...newAuditoire, mode_attribution: e.target.value as 'auditoire' | 'secretariat' });
+                }}
+                className="text-amber-600"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                <strong>Attribution par le secrétariat :</strong> Sélectionner les surveillants sans auditoire spécifique
+              </span>
             </label>
-            <input
-              type="number"
-              min="1"
-              value={newAuditoire.nb_surveillants_requis}
-              onChange={(e) => setNewAuditoire({ ...newAuditoire, nb_surveillants_requis: parseInt(e.target.value) || 1 })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-            />
           </div>
-          <Button
-            onClick={handleAddAuditoire}
-            size="sm"
-            disabled={createMutation.isPending}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Ajouter
-          </Button>
         </div>
+
+        {/* Formulaire selon le mode choisi */}
+        {modeAttribution === 'auditoire' ? (
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-3 flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Ajouter un auditoire spécifique
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nom de l'auditoire *
+                </label>
+                <input
+                  type="text"
+                  value={newAuditoire.auditoire}
+                  onChange={(e) => setNewAuditoire({ ...newAuditoire, auditoire: e.target.value })}
+                  placeholder="Ex: Auditoire A, Salle 101..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nombre de surveillants requis
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newAuditoire.nb_surveillants_requis}
+                  onChange={(e) => setNewAuditoire({ ...newAuditoire, nb_surveillants_requis: parseInt(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <Button
+                onClick={handleAddAuditoire}
+                size="sm"
+                disabled={createMutation.isPending}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Ajouter l'auditoire
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+            <h4 className="font-medium text-amber-900 dark:text-amber-200 mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Sélection de surveillants (auditoires par le secrétariat)
+            </h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+              Les surveillants seront sélectionnés ici, mais leur répartition dans les auditoires sera communiquée par le secrétariat ou le responsable de l'examen.
+            </p>
+            {!surveillantsSecretariat ? (
+              <Button
+                onClick={handleAddSurveillantSecretariat}
+                size="sm"
+                disabled={createMutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Activer ce mode pour cet examen
+              </Button>
+            ) : (
+              <p className="text-sm text-amber-600 dark:text-amber-400 italic">
+                ✓ Mode activé - Vous pouvez maintenant sélectionner les surveillants ci-dessus
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal de remplacement */}

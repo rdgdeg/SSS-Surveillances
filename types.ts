@@ -53,6 +53,7 @@ export interface ExamenAuditoire {
   surveillants: string[];
   surveillants_remplaces?: SurveillantRemplacement[];
   remarques: string | null;
+  mode_attribution?: 'auditoire' | 'secretariat';
 }
 
 export interface Surveillant {
