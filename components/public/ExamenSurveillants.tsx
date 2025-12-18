@@ -87,6 +87,11 @@ export default function ExamenSurveillants({ examenId }: Props) {
     a.auditoire.toLowerCase().includes('secrétariat')
   );
 
+  // Si l'auditoire secrétariat a des surveillants assignés, on n'affiche QUE celui-ci
+  const hasSecretariatSurveillants = auditoireSecretariat && 
+    auditoireSecretariat.surveillants_noms && 
+    auditoireSecretariat.surveillants_noms.length > 0;
+
   return (
     <div className="md:w-64 space-y-2">
       <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
@@ -120,8 +125,8 @@ export default function ExamenSurveillants({ examenId }: Props) {
         </div>
       )}
       
-      {/* Auditoires normaux */}
-      {auditoiresNormaux.map((aud) => (
+      {/* Auditoires normaux - seulement si pas de surveillants dans le mode secrétariat */}
+      {!hasSecretariatSurveillants && auditoiresNormaux.map((aud) => (
         <div key={aud.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 border border-gray-200 dark:border-gray-600">
           <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {aud.auditoire}

@@ -69,6 +69,11 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
     a.auditoire.toLowerCase().includes('secrétariat')
   );
 
+  // Si l'auditoire secrétariat a des surveillants assignés, on privilégie ce mode
+  const hasSecretariatSurveillants = auditoireSecretariat && 
+    auditoireSecretariat.surveillants && 
+    auditoireSecretariat.surveillants.length > 0;
+
   // Create auditoire
   const createMutation = useMutation({
     mutationFn: async (data: typeof newAuditoire) => {
@@ -313,8 +318,8 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
         </div>
       )}
 
-      {/* Auditoires normaux */}
-      {auditoiresNormaux.length > 0 && (
+      {/* Auditoires normaux - seulement si pas de surveillants dans le mode secrétariat */}
+      {!hasSecretariatSurveillants && auditoiresNormaux.length > 0 && (
         <div className="space-y-3">
           {auditoiresNormaux.map((auditoire) => (
             <div
@@ -429,10 +434,11 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
         </div>
       )}
 
-      {/* Formulaires d'ajout */}
-      <div className="space-y-4">
-        {/* Ajouter un auditoire normal */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+      {/* Formulaires d'ajout - seulement si pas en mode secrétariat avec surveillants */}
+      {!hasSecretariatSurveillants && (
+        <div className="space-y-4">
+          {/* Ajouter un auditoire normal */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
           <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-3 flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Ajouter un auditoire
@@ -494,7 +500,25 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
             </Button>
           </div>
         )}
-      </div>
+        </div>
+      )}
+
+      {/* Message informatif en mode secrétariat */}
+      {hasSecretariatSurveillants && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+          <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2 flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Mode répartition par le secrétariat activé
+          </h4>
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            Des surveillants sont sélectionnés pour une répartition par le secrétariat. 
+            Les auditoires spécifiques sont masqués pour éviter la confusion.
+          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+            Pour revenir au mode auditoires spécifiques, supprimez d'abord tous les surveillants de la section ci-dessus.
+          </p>
+        </div>
+      )}
 
       {/* Modal de remplacement */}
       {remplacementModal && (
