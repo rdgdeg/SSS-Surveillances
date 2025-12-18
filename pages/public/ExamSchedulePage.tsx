@@ -31,6 +31,7 @@ interface Examen {
   consignes_specifiques_arrivee?: string;
   consignes_specifiques_mise_en_place?: string;
   consignes_specifiques_generales?: string;
+  is_mode_secretariat?: boolean;
   cours: {
     code: string;
     intitule_complet: string;
@@ -128,6 +129,35 @@ export default function ExamSchedulePage() {
         } catch (consignesError) {
           // Columns don't exist yet, that's ok - consignes will just not be available
           console.log('Consignes spécifiques columns not yet available');
+        }
+
+        // Récupérer les informations sur les auditoires pour détecter le mode secrétariat
+        try {
+          const { data: auditoiresData } = await supabase
+            .from('examen_auditoires')
+            .select('examen_id, auditoire, surveillants')
+            .in('examen_id', data.map((exam: any) => exam.id));
+
+          if (auditoiresData) {
+            // Détecter les examens en mode secrétariat
+            const secretariatExams = new Set();
+            auditoiresData.forEach((aud: any) => {
+              const isSecretariat = aud.auditoire && (
+                aud.auditoire.toLowerCase().includes('répartition') || 
+                aud.auditoire.toLowerCase().includes('secrétariat')
+              );
+              if (isSecretariat && aud.surveillants && aud.surveillants.length > 0) {
+                secretariatExams.add(aud.examen_id);
+              }
+            });
+
+            // Marquer les examens en mode secrétariat
+            data.forEach((exam: any) => {
+              exam.is_mode_secretariat = secretariatExams.has(exam.id);
+            });
+          }
+        } catch (auditoiresError) {
+          console.log('Erreur lors de la récupération des auditoires:', auditoiresError);
         }
       }
       
@@ -602,8 +632,22 @@ export default function ExamSchedulePage() {
                             )}
                           </div>
 
-                          {/* Consignes générales du secrétariat (toujours affichées si disponibles) */}
-                          {consignes && (
+                          {/* Consignes - Mode secrétariat ou consignes générales */}
+                          {examen.is_mode_secretariat ? (
+                            <div className="mt-4 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 text-xs">
+                                  <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                    Consignes spéciales - Répartition par le secrétariat
+                                  </p>
+                                  <p className="text-amber-700 dark:text-amber-300">
+                                    Les consignes détaillées (arrivée, mise en place, auditoires) seront communiquées ultérieurement par le pool, le secrétariat ou le responsable de cours.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : consignes && (
                             <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -631,8 +675,8 @@ export default function ExamSchedulePage() {
                             </div>
                           )}
 
-                          {/* Consignes spécifiques (si activées) ou consignes du cours */}
-                          {(examen.utiliser_consignes_specifiques || examen.cours?.consignes) && (
+                          {/* Consignes spécifiques (si activées) ou consignes du cours - sauf en mode secrétariat */}
+                          {!examen.is_mode_secretariat && (examen.utiliser_consignes_specifiques || examen.cours?.consignes) && (
                             <div className="mt-2 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />

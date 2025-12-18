@@ -11,6 +11,11 @@ interface Auditoire {
   auditoire: string;
   surveillants_noms: string[];
   mode_attribution?: 'auditoire' | 'secretariat';
+  remplacements?: Array<{
+    nom: string;
+    isRemplacement: boolean;
+    ancienNom?: string;
+  }>;
 }
 
 export default function ExamenSurveillants({ examenId }: Props) {
@@ -19,31 +24,83 @@ export default function ExamenSurveillants({ examenId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('examen_auditoires')
-        .select('id, auditoire, mode_attribution, surveillants')
+        .select('id, auditoire, mode_attribution, surveillants, surveillants_remplaces')
         .eq('examen_id', examenId)
         .order('auditoire');
       
       if (error) throw error;
       
-      // Récupérer les noms des surveillants
+      // Récupérer les noms des surveillants avec gestion des remplacements
       const auditoiresWithNames = await Promise.all(
         data.map(async (aud) => {
           if (!aud.surveillants || aud.surveillants.length === 0) {
-            return { ...aud, surveillants_noms: [] };
+            return { ...aud, surveillants_noms: [], remplacements: [] };
+          }
+          
+          // Récupérer tous les IDs (actuels + remplacés)
+          const allIds = [...aud.surveillants];
+          if (aud.surveillants_remplaces) {
+            aud.surveillants_remplaces.forEach((remp: any) => {
+              if (!allIds.includes(remp.ancien_id)) allIds.push(remp.ancien_id);
+            });
           }
           
           const { data: surveillants, error: survError } = await supabase
             .from('surveillants')
             .select('id, nom, prenom, type')
-            .in('id', aud.surveillants);
+            .in('id', allIds);
           
           if (survError) throw survError;
           
-          const noms = surveillants.map(s => 
-            s.type === 'jobiste' ? `${s.prenom} ${s.nom} (Jobiste)` : `${s.prenom} ${s.nom}`
+          // Créer un map des surveillants
+          const surveillantsMap = new Map(
+            surveillants.map(s => [s.id, s])
           );
           
-          return { ...aud, surveillants_noms: noms };
+          // Traiter les noms avec remplacements
+          const nomsAvecRemplacements: Array<{
+            nom: string;
+            isRemplacement: boolean;
+            ancienNom?: string;
+          }> = [];
+          
+          aud.surveillants.forEach((survId: string) => {
+            const surveillant = surveillantsMap.get(survId);
+            if (!surveillant) return;
+            
+            const nomComplet = surveillant.type === 'jobiste' 
+              ? `${surveillant.prenom} ${surveillant.nom} (Jobiste)` 
+              : `${surveillant.prenom} ${surveillant.nom}`;
+            
+            // Vérifier s'il y a un remplacement pour ce surveillant
+            const remplacement = aud.surveillants_remplaces?.find((r: any) => r.nouveau_id === survId);
+            
+            if (remplacement) {
+              const ancienSurveillant = surveillantsMap.get(remplacement.ancien_id);
+              const ancienNom = ancienSurveillant 
+                ? (ancienSurveillant.type === 'jobiste' 
+                    ? `${ancienSurveillant.prenom} ${ancienSurveillant.nom} (Jobiste)` 
+                    : `${ancienSurveillant.prenom} ${ancienSurveillant.nom}`)
+                : 'Surveillant inconnu';
+              
+              nomsAvecRemplacements.push({
+                nom: nomComplet,
+                isRemplacement: true,
+                ancienNom
+              });
+            } else {
+              nomsAvecRemplacements.push({
+                nom: nomComplet,
+                isRemplacement: false
+              });
+            }
+          });
+          
+          return { 
+            ...aud, 
+            surveillants_noms: nomsAvecRemplacements.map(n => n.nom),
+            remplacements: nomsAvecRemplacements
+          };
         })
       );
       
@@ -106,11 +163,20 @@ export default function ExamenSurveillants({ examenId }: Props) {
             {auditoireSecretariat.auditoire}
           </p>
           <div className="text-xs text-amber-700 dark:text-amber-300 space-y-0.5">
-            {auditoireSecretariat.surveillants_noms && auditoireSecretariat.surveillants_noms.length > 0 ? (
-              auditoireSecretariat.surveillants_noms.map((nom, idx) => (
+            {auditoireSecretariat.remplacements && auditoireSecretariat.remplacements.length > 0 ? (
+              auditoireSecretariat.remplacements.map((remp, idx) => (
                 <div key={idx} className="flex items-start gap-1">
                   <span className="text-amber-500">•</span>
-                  <span>{nom}</span>
+                  <div className="flex flex-col">
+                    {remp.isRemplacement && remp.ancienNom && (
+                      <span className="line-through text-red-600 dark:text-red-400 text-xs">
+                        {remp.ancienNom}
+                      </span>
+                    )}
+                    <span className={remp.isRemplacement ? 'text-green-600 dark:text-green-400 font-medium' : ''}>
+                      {remp.nom}
+                    </span>
+                  </div>
                 </div>
               ))
             ) : (
@@ -132,11 +198,20 @@ export default function ExamenSurveillants({ examenId }: Props) {
             {aud.auditoire}
           </p>
           <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-            {aud.surveillants_noms && aud.surveillants_noms.length > 0 ? (
-              aud.surveillants_noms.map((nom, idx) => (
+            {aud.remplacements && aud.remplacements.length > 0 ? (
+              aud.remplacements.map((remp, idx) => (
                 <div key={idx} className="flex items-start gap-1">
                   <span className="text-gray-400">•</span>
-                  <span>{nom}</span>
+                  <div className="flex flex-col">
+                    {remp.isRemplacement && remp.ancienNom && (
+                      <span className="line-through text-red-600 dark:text-red-400 text-xs">
+                        {remp.ancienNom}
+                      </span>
+                    )}
+                    <span className={remp.isRemplacement ? 'text-green-600 dark:text-green-400 font-medium' : ''}>
+                      {remp.nom}
+                    </span>
+                  </div>
                 </div>
               ))
             ) : (
