@@ -1,17 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { University, Sun, Moon, Home, BookOpen, Menu, X, Mail, Phone } from 'lucide-react';
+import { University, Sun, Moon, Home, BookOpen, Menu, X, Mail, Phone, Edit3 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../shared/Button';
 import NetworkStatusIndicator from '../shared/NetworkStatusIndicator';
 import OfflineQueueIndicator from '../shared/OfflineQueueIndicator';
 import ContactModal from '../shared/ContactModal';
+import DemandeModificationModal from '../shared/DemandeModificationModal';
 
 const MainLayout: React.FC = () => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+    const [isDemandeModalOpen, setIsDemandeModalOpen] = useState(false);
 
     // Empêcher le scroll quand le menu mobile est ouvert
     useEffect(() => {
@@ -41,6 +43,15 @@ const MainLayout: React.FC = () => {
                         
                         {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center space-x-2">
+                            <Button 
+                                onClick={() => setIsDemandeModalOpen(true)}
+                                variant="default" 
+                                size="sm" 
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                                <Edit3 className="mr-2 h-4 w-4" />
+                                Demande de modification
+                            </Button>
                             <NavLink to="/telephone">
                                 <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                                     <Phone className="mr-2 h-4 w-4" />
@@ -92,6 +103,16 @@ const MainLayout: React.FC = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden fixed inset-0 top-16 bg-white dark:bg-gray-800 z-40 overflow-y-auto">
                         <nav className="container mx-auto px-4 py-4 space-y-2">
+                            <button
+                                onClick={() => {
+                                    setIsDemandeModalOpen(true);
+                                    closeMobileMenu();
+                                }}
+                                className="w-full flex items-center px-4 py-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors border border-orange-200 dark:border-orange-800"
+                            >
+                                <Edit3 className="mr-3 h-5 w-5" />
+                                <span className="font-medium">Demande de modification</span>
+                            </button>
                             <NavLink 
                                 to="/telephone" 
                                 onClick={closeMobileMenu}
@@ -203,6 +224,12 @@ const MainLayout: React.FC = () => {
             <ContactModal 
                 isOpen={isContactModalOpen} 
                 onClose={() => setIsContactModalOpen(false)} 
+            />
+            
+            {/* Modal de demande de modification */}
+            <DemandeModificationModal 
+                isOpen={isDemandeModalOpen} 
+                onClose={() => setIsDemandeModalOpen(false)} 
             />
         </div>
     );
