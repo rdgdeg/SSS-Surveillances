@@ -7,32 +7,32 @@ SELECT
     COUNT(*) as count
 FROM examen_auditoires;
 
--- 2. Vérifier la structure du champ surveillants
+-- 2. Vérifier la structure du champ surveillants (UUID array)
 SELECT 
     'Auditoires avec surveillants' as info,
     COUNT(*) as count
 FROM examen_auditoires 
 WHERE surveillants IS NOT NULL 
-AND jsonb_array_length(surveillants) > 0;
+AND array_length(surveillants, 1) > 0;
 
 -- 3. Examiner quelques exemples de données
 SELECT 
     id,
     auditoire,
     surveillants,
-    jsonb_array_length(surveillants) as nb_surveillants
+    array_length(surveillants, 1) as nb_surveillants
 FROM examen_auditoires 
 WHERE surveillants IS NOT NULL 
-AND jsonb_array_length(surveillants) > 0
+AND array_length(surveillants, 1) > 0
 LIMIT 5;
 
--- 4. Vérifier le format des surveillants (email vs ID)
+-- 4. Vérifier le format des surveillants (UUIDs)
 SELECT 
     surveillants,
-    jsonb_array_elements_text(surveillants) as surveillant_value
+    unnest(surveillants) as surveillant_uuid
 FROM examen_auditoires 
 WHERE surveillants IS NOT NULL 
-AND jsonb_array_length(surveillants) > 0
+AND array_length(surveillants, 1) > 0
 LIMIT 10;
 
 -- 5. Vérifier les sessions actives

@@ -94,16 +94,16 @@ export default function RapportSurveillancesPage() {
       // Récupérer les informations des surveillants
       const { data: surveillantsInfo, error: surveillantsError } = await supabase
         .from('surveillants')
-        .select('nom, prenom, email, telephone, type');
+        .select('id, nom, prenom, email, telephone, type');
 
       if (surveillantsError) throw surveillantsError;
 
       console.log('Debug - Surveillants récupérés:', surveillantsInfo?.length || 0);
       console.log('Debug - Premier surveillant:', surveillantsInfo?.[0]);
 
-      // Créer un map des surveillants pour un accès rapide
+      // Créer un map des surveillants pour un accès rapide par ID
       const surveillantsMap = new Map(
-        surveillantsInfo.map(s => [s.email, s])
+        surveillantsInfo.map(s => [s.id, s])
       );
 
       // Compter les surveillances par surveillant
@@ -112,9 +112,12 @@ export default function RapportSurveillancesPage() {
       auditoires?.forEach(auditoire => {
         console.log('Debug - Auditoire:', auditoire.auditoire, 'Surveillants:', auditoire.surveillants);
         if (auditoire.surveillants && Array.isArray(auditoire.surveillants)) {
-          auditoire.surveillants.forEach((email: string) => {
-            const surveillantInfo = surveillantsMap.get(email);
+          auditoire.surveillants.forEach((surveillantId: string) => {
+            console.log('Debug - Recherche surveillant ID:', surveillantId);
+            const surveillantInfo = surveillantsMap.get(surveillantId);
             if (surveillantInfo) {
+              console.log('Debug - Surveillant trouvé:', surveillantInfo.nom, surveillantInfo.prenom);
+              const email = surveillantInfo.email;
               if (!surveillanceCount.has(email)) {
                 surveillanceCount.set(email, {
                   nom: surveillantInfo.nom,
@@ -137,6 +140,8 @@ export default function RapportSurveillancesPage() {
                 heure_fin: (auditoire.examens as any)?.heure_fin || '',
                 auditoire: auditoire.auditoire
               });
+            } else {
+              console.log('Debug - Surveillant non trouvé pour ID:', surveillantId);
             }
           });
         }
