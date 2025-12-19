@@ -375,26 +375,6 @@ export default function ExamSchedulePage() {
     );
   }
 
-  // Vérifier si le planning est visible pour cette session
-  if (activeSession.planning_visible === false) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-md text-center">
-          <div className="flex flex-col items-center gap-4 text-blue-800 dark:text-blue-200">
-            <Info className="h-12 w-12" />
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Planning temporairement indisponible</h2>
-              <p className="text-sm">
-                Le planning des examens n'est pas encore accessible pour cette session. 
-                Il sera publié prochainement.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
       <div className="max-w-6xl mx-auto">
