@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ExamenWithStatus, ExamenFilters } from '../../types';
 import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
@@ -69,13 +69,43 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     use_manual_counts: false,
   });
 
-  // Utiliser le terme debounced pour les requêtes API
-  const debouncedFilters = { ...filters, search: debouncedTerm };
-  const { examens, loading, error, total, refetch } = useExamens(sessionId, debouncedFilters, page, pageSize);
+  // Utiliser le terme debounced pour les requêtes API, mais exclure le filtre d'attribution qui sera appliqué côté client
+  const { attributionStatus, ...backendFilters } = filters;
+  const debouncedFilters = { ...backendFilters, search: debouncedTerm };
+  const { examens: allExamens, loading, error, total: totalBeforeAttributionFilter, refetch } = useExamens(sessionId, debouncedFilters, page, pageSize);
   
   // Récupérer les stats d'attribution pour tous les examens affichés
-  const examenIds = examens.map(e => e.id);
+  const examenIds = allExamens.map(e => e.id);
   const { data: auditoiresStats } = useExamenAuditoiresStats(examenIds);
+
+  // Appliquer le filtre d'attribution côté client
+  const examens = useMemo(() => {
+    if (!attributionStatus || attributionStatus === 'all') {
+      return allExamens;
+    }
+
+    return allExamens.filter(examen => {
+      const stats = auditoiresStats?.[examen.id];
+      if (!stats) return attributionStatus === 'none';
+
+      const requis = stats.total_requis;
+      const attribues = stats.total_attribues;
+
+      switch (attributionStatus) {
+        case 'none':
+          return requis === 0;
+        case 'partial':
+          return requis > 0 && attribues > 0 && attribues < requis;
+        case 'complete':
+          return requis > 0 && attribues >= requis;
+        default:
+          return true;
+      }
+    });
+  }, [allExamens, auditoiresStats, attributionStatus]);
+
+  // Calculer le total après filtrage d'attribution
+  const total = attributionStatus && attributionStatus !== 'all' ? examens.length : totalBeforeAttributionFilter;
 
   // Handle inline edit start
   const handleStartEdit = (examenId: string, field: string, currentValue: string) => {
@@ -391,7 +421,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
 
       {/* Filters */}
       <div className="bg-white shadow-sm rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -516,6 +546,26 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
               <option value="all">Tous</option>
               <option value="yes">Oui</option>
               <option value="no">Non</option>
+            </select>
+          </div>
+
+          {/* Attribution Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Statut d'attribution
+            </label>
+            <select
+              value={filters.attributionStatus || 'all'}
+              onChange={(e) => {
+                setFilters({ ...filters, attributionStatus: e.target.value as any });
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Tous</option>
+              <option value="none">Non défini (gris)</option>
+              <option value="partial">Partiel (orange)</option>
+              <option value="complete">Complet (vert)</option>
             </select>
           </div>
 

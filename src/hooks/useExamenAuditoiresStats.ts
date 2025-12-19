@@ -39,12 +39,18 @@ export function useExamenAuditoiresStats(examenIds: string[]) {
         );
         
         if (isSecretariatAuditoire) {
-          // Pour les auditoires secrétariat : si des surveillants sont assignés, 
-          // on considère l'attribution comme complète
+          // Pour les auditoires secrétariat : on considère l'attribution comme complète
+          // dès qu'il y a des surveillants assignés, ou comme "prête" s'il n'y en a pas encore
           const surveillantsAssignes = auditoire.surveillants?.length || 0;
           if (surveillantsAssignes > 0) {
+            // Si des surveillants sont assignés, l'attribution est complète
             stats[auditoire.examen_id].total_requis += surveillantsAssignes;
             stats[auditoire.examen_id].total_attribues += surveillantsAssignes;
+          } else {
+            // Si aucun surveillant n'est encore assigné, on considère qu'il faut 1 surveillant
+            // et qu'il est déjà "attribué" (vert) car la répartition sera faite par le secrétariat
+            stats[auditoire.examen_id].total_requis += 1;
+            stats[auditoire.examen_id].total_attribues += 1;
           }
         } else {
           // Pour les auditoires normaux : logique habituelle

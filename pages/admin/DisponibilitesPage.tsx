@@ -21,6 +21,7 @@ import { exportToXLSX } from '../../lib/exportUtils';
 import { ShareLinkModal } from '../../components/admin/ShareLinkModal';
 import { Share2 } from 'lucide-react';
 import { LockSubmissionsControl } from '../../components/admin/LockSubmissionsControl';
+import { PlanningVisibilityControl } from '../../components/admin/PlanningVisibilityControl';
 
 interface DisponibilitesData {
     creneaux: Creneau[];
@@ -655,23 +656,31 @@ const DisponibilitesPage: React.FC = () => {
                 />
             )}
             
-            {/* Contrôle de verrouillage des disponibilités */}
-            <LockSubmissionsControl 
-                session={activeSession} 
-                onUpdate={() => {
-                    refetch();
-                    // Recharger la session
-                    supabase
-                        .from('sessions')
-                        .select('*')
-                        .eq('is_active', true)
-                        .limit(1)
-                        .single()
-                        .then(({ data }) => {
-                            if (data) setActiveSession(data);
-                        });
-                }} 
-            />
+            {/* Contrôles de session */}
+            <div className="space-y-4">
+                {/* Contrôle de visibilité du planning */}
+                {activeSession && (
+                    <PlanningVisibilityControl session={activeSession} />
+                )}
+                
+                {/* Contrôle de verrouillage des disponibilités */}
+                <LockSubmissionsControl 
+                    session={activeSession} 
+                    onUpdate={() => {
+                        refetch();
+                        // Recharger la session
+                        supabase
+                            .from('sessions')
+                            .select('*')
+                            .eq('is_active', true)
+                            .limit(1)
+                            .single()
+                            .then(({ data }) => {
+                                if (data) setActiveSession(data);
+                            });
+                    }} 
+                />
+            </div>
             
             {/* Tableau de bord de capacité */}
             <CapacityDashboard stats={capacityStats} isLoading={isLoading} />

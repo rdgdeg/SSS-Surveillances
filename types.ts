@@ -7,6 +7,7 @@ export interface Session {
   is_active: boolean;
   lock_submissions?: boolean; // Si true, empêche les modifications de disponibilités
   lock_message?: string; // Message personnalisé affiché quand verrouillé
+  planning_visible?: boolean; // Si true, le planning public est accessible
   created_at?: string;
 }
 
@@ -529,6 +530,7 @@ export interface ExamenFilters {
   responseStatus?: 'all' | 'declared' | 'pending';
   hasCoursLinked?: boolean;
   hasSupervisorRequirement?: boolean;
+  attributionStatus?: 'all' | 'none' | 'partial' | 'complete';
 }
 
 export interface ExamenDashboardStats {
