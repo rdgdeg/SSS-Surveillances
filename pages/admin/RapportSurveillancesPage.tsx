@@ -88,12 +88,18 @@ export default function RapportSurveillancesPage() {
 
       if (auditoiresError) throw auditoiresError;
 
+      console.log('Debug - Auditoires récupérés:', auditoires?.length || 0);
+      console.log('Debug - Premier auditoire:', auditoires?.[0]);
+
       // Récupérer les informations des surveillants
       const { data: surveillantsInfo, error: surveillantsError } = await supabase
         .from('surveillants')
         .select('nom, prenom, email, telephone, type');
 
       if (surveillantsError) throw surveillantsError;
+
+      console.log('Debug - Surveillants récupérés:', surveillantsInfo?.length || 0);
+      console.log('Debug - Premier surveillant:', surveillantsInfo?.[0]);
 
       // Créer un map des surveillants pour un accès rapide
       const surveillantsMap = new Map(
@@ -104,6 +110,7 @@ export default function RapportSurveillancesPage() {
       const surveillanceCount = new Map<string, SurveillantSurveillance>();
 
       auditoires?.forEach(auditoire => {
+        console.log('Debug - Auditoire:', auditoire.auditoire, 'Surveillants:', auditoire.surveillants);
         if (auditoire.surveillants && Array.isArray(auditoire.surveillants)) {
           auditoire.surveillants.forEach((email: string) => {
             const surveillantInfo = surveillantsMap.get(email);
@@ -134,6 +141,9 @@ export default function RapportSurveillancesPage() {
           });
         }
       });
+
+      console.log('Debug - Nombre de surveillants trouvés:', surveillanceCount.size);
+      console.log('Debug - Surveillants:', Array.from(surveillanceCount.keys()));
 
       return Array.from(surveillanceCount.values());
     },
