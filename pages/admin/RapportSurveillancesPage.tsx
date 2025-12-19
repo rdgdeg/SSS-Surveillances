@@ -48,9 +48,8 @@ interface SurveillanceStats {
 
 const SurveillantTypeLabels = {
   'assistant': 'Assistant',
-  'doctorant': 'Doctorant',
-  'externe': 'Externe',
-  'etudiant': 'Étudiant',
+  'pat': 'PAT',
+  'jobiste': 'Jobiste',
   'autre': 'Autre'
 };
 
@@ -91,8 +90,8 @@ export default function RapportSurveillancesPage() {
 
       // Récupérer les informations des surveillants
       const { data: surveillantsInfo, error: surveillantsError } = await supabase
-        .from('view_surveillants_with_type')
-        .select('nom, prenom, email, telephone, type_surveillant');
+        .from('surveillants')
+        .select('nom, prenom, email, telephone, type');
 
       if (surveillantsError) throw surveillantsError;
 
@@ -115,7 +114,7 @@ export default function RapportSurveillancesPage() {
                   prenom: surveillantInfo.prenom,
                   email: surveillantInfo.email,
                   telephone: surveillantInfo.telephone,
-                  type_surveillant: surveillantInfo.type_surveillant,
+                  type_surveillant: surveillantInfo.type,
                   nb_surveillances: 0,
                   examens: []
                 });
