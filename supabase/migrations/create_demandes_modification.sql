@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS demandes_modification (
     surveillance_reprise_heure TIME,
     
     -- Description de la demande
-    description TEXT NOT NULL,
+    description TEXT,
     
     -- Informations du demandeur
     nom_demandeur TEXT NOT NULL,
@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS demandes_modification (
     -- Statut de la demande
     statut TEXT DEFAULT 'en_attente' CHECK (statut IN ('en_attente', 'en_cours', 'traitee', 'refusee')),
     reponse_admin TEXT,
+    lu BOOLEAN DEFAULT FALSE,
     
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -48,6 +49,10 @@ CREATE POLICY "Les admins peuvent voir toutes les demandes" ON demandes_modifica
 -- Politique pour permettre aux admins de modifier les demandes
 CREATE POLICY "Les admins peuvent modifier les demandes" ON demandes_modification
     FOR UPDATE USING (true);
+
+-- Politique pour permettre aux admins de supprimer les demandes
+CREATE POLICY "Les admins peuvent supprimer les demandes" ON demandes_modification
+    FOR DELETE USING (true);
 
 -- Fonction pour mettre à jour automatiquement updated_at
 CREATE OR REPLACE FUNCTION update_demandes_modification_updated_at()

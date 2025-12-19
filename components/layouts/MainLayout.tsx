@@ -43,15 +43,6 @@ const MainLayout: React.FC = () => {
                         
                         {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center space-x-2">
-                            <Button 
-                                onClick={() => setIsDemandeModalOpen(true)}
-                                variant="default" 
-                                size="sm" 
-                                className="bg-orange-600 hover:bg-orange-700 text-white"
-                            >
-                                <Edit3 className="mr-2 h-4 w-4" />
-                                Demande de modification
-                            </Button>
                             <NavLink to="/telephone">
                                 <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                                     <Phone className="mr-2 h-4 w-4" />
@@ -103,16 +94,6 @@ const MainLayout: React.FC = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden fixed inset-0 top-16 bg-white dark:bg-gray-800 z-40 overflow-y-auto">
                         <nav className="container mx-auto px-4 py-4 space-y-2">
-                            <button
-                                onClick={() => {
-                                    setIsDemandeModalOpen(true);
-                                    closeMobileMenu();
-                                }}
-                                className="w-full flex items-center px-4 py-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors border border-orange-200 dark:border-orange-800"
-                            >
-                                <Edit3 className="mr-3 h-5 w-5" />
-                                <span className="font-medium">Demande de modification</span>
-                            </button>
                             <NavLink 
                                 to="/telephone" 
                                 onClick={closeMobileMenu}
@@ -173,6 +154,11 @@ const MainLayout: React.FC = () => {
                                     </NavLink>
                                 </li>
                                 <li>
+                                    <NavLink to="/mes-surveillances" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors font-medium">
+                                        Mes Surveillances
+                                    </NavLink>
+                                </li>
+                                <li>
                                     <NavLink to="/telephone" className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors font-medium">
                                         Mettre à jour mon téléphone
                                     </NavLink>
@@ -198,14 +184,25 @@ const MainLayout: React.FC = () => {
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                 En cas de problème ou de question, n'hésitez pas à nous contacter.
                             </p>
-                            <Button 
-                                onClick={() => setIsContactModalOpen(true)}
-                                size="sm"
-                                className="w-full md:w-auto"
-                            >
-                                <Mail className="mr-2 h-4 w-4" />
-                                Nous contacter
-                            </Button>
+                            <div className="space-y-2">
+                                <Button 
+                                    onClick={() => setIsContactModalOpen(true)}
+                                    size="sm"
+                                    className="w-full md:w-auto"
+                                >
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Nous contacter
+                                </Button>
+                                <Button 
+                                    onClick={() => setIsDemandeModalOpen(true)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full md:w-auto border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                                >
+                                    <Edit3 className="mr-2 h-4 w-4" />
+                                    Demande de modification
+                                </Button>
+                            </div>
                         </div>
                     </div>
 

@@ -14,12 +14,13 @@ CREATE TABLE demandes_modification (
     surveillant_remplacant TEXT,
     surveillance_reprise_date DATE,
     surveillance_reprise_heure TIME,
-    description TEXT NOT NULL,
+    description TEXT,
     nom_demandeur TEXT NOT NULL,
     email_demandeur TEXT,
     telephone_demandeur TEXT,
     statut TEXT DEFAULT 'en_attente' CHECK (statut IN ('en_attente', 'en_cours', 'traitee', 'refusee')),
     reponse_admin TEXT,
+    lu BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     traite_at TIMESTAMP WITH TIME ZONE
@@ -42,6 +43,9 @@ CREATE POLICY "Les admins peuvent voir toutes les demandes" ON demandes_modifica
 
 CREATE POLICY "Les admins peuvent modifier les demandes" ON demandes_modification
     FOR UPDATE USING (true);
+
+CREATE POLICY "Les admins peuvent supprimer les demandes" ON demandes_modification
+    FOR DELETE USING (true);
 
 -- 6. Créer la fonction de mise à jour
 CREATE OR REPLACE FUNCTION update_demandes_modification_updated_at()

@@ -82,7 +82,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
         try {
             // Validation
             if (!formData.nomExamen || !formData.dateExamen || !formData.heureExamen || 
-                !formData.description || !formData.nomDemandeur) {
+                !formData.nomDemandeur) {
                 throw new Error('Veuillez remplir tous les champs obligatoires');
             }
 
@@ -280,7 +280,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
                         {/* Description */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Description de votre demande *
+                                Description de votre demande
                             </label>
                             <textarea
                                 name="description"
@@ -288,8 +288,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
                                 onChange={handleInputChange}
                                 rows={4}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100"
-                                placeholder="Décrivez votre demande en détail..."
-                                required
+                                placeholder="Décrivez votre demande en détail (optionnel)..."
                             />
                         </div>
 

@@ -49,6 +49,7 @@ const TeacherPresencePage = lazy(() => import('./pages/public/TeacherPresencePag
 const SharedDisponibilitesPage = lazy(() => import('./pages/public/SharedDisponibilitesPage'));
 const ExamSchedulePage = lazy(() => import('./pages/public/ExamSchedulePage'));
 const UpdatePhonePage = lazy(() => import('./pages/public/UpdatePhonePage'));
+const MesSurveillancesPage = lazy(() => import('./pages/public/MesSurveillancesPage'));
 
 
 const AppToaster = () => {
@@ -99,6 +100,7 @@ const AppContent: React.FC = () => {
                             <Route path="enseignant/presence" element={<TeacherPresencePage />} />
                             <Route path="planning" element={<ExamSchedulePage />} />
                             <Route path="telephone" element={<UpdatePhonePage />} />
+                            <Route path="mes-surveillances" element={<MesSurveillancesPage />} />
                         </Route>
                         <Route path="/shared/disponibilites/:shareToken" element={<SharedDisponibilitesPage />} />
                         <Route path="/login" element={<LoginPage />} />

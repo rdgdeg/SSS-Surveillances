@@ -18,7 +18,9 @@ import {
   Download
 } from 'lucide-react';
 import ExamenSurveillants from '../../components/public/ExamenSurveillants';
+import CalendarExportButton from '../../components/shared/CalendarExportButton';
 import { exportSurveillancesSurveillant } from '../../lib/exportUtils';
+import { generateMultipleEventsICS, downloadICSFile, surveillanceToCalendarEvent } from '../../lib/calendarUtils';
 import toast from 'react-hot-toast';
 
 interface Examen {
@@ -341,6 +343,44 @@ export default function ExamSchedulePage() {
     }
   };
 
+  // Handle calendar export
+  const handleExportCalendar = () => {
+    if (!selectedSurveillant.trim()) {
+      toast.error('Veuillez sélectionner un surveillant pour exporter ses surveillances vers l\'agenda');
+      return;
+    }
+
+    // Filtrer les examens pour le surveillant sélectionné
+    const surveillantExamens = examensWithSurveillants?.filter(examen => 
+      (examen.surveillants_noms || []).some(nom => 
+        nom.toLowerCase().includes(selectedSurveillant.toLowerCase())
+      )
+    ) || [];
+
+    if (surveillantExamens.length === 0) {
+      toast.error('Aucune surveillance trouvée pour ce surveillant');
+      return;
+    }
+
+    // Convertir en événements de calendrier
+    const events = surveillantExamens.map(examen => surveillanceToCalendarEvent({
+      nom_examen: examen.nom_examen,
+      date_examen: examen.date_examen,
+      heure_debut: examen.heure_debut,
+      heure_fin: examen.heure_fin,
+      auditoire: examen.auditoires,
+      type_examen: 'Surveillance d\'examen',
+      faculte: examen.secretariat
+    }));
+
+    // Générer et télécharger le fichier ICS
+    const icsContent = generateMultipleEventsICS(events);
+    const filename = `surveillances-${selectedSurveillant.replace(/\s+/g, '-').toLowerCase()}.ics`;
+    downloadICSFile(icsContent, filename);
+    
+    toast.success(`${events.length} surveillance${events.length > 1 ? 's' : ''} exportée${events.length > 1 ? 's' : ''} vers l'agenda`);
+  };
+
   // Helper function to get consignes for a specific secretariat
   const getConsignesForSecretariat = (secretariatCode: string): ConsigneSecretariat | undefined => {
     if (!consignesSecretariat || !secretariatCode) return undefined;
@@ -558,23 +598,32 @@ export default function ExamSchedulePage() {
               </div>
               
               {selectedSurveillant && filteredExamens.length > 0 && (
-                <button
-                  onClick={handleExportSurveillances}
-                  disabled={isExporting}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors text-sm font-medium"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Export en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      Exporter mes surveillances
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleExportCalendar}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Ajouter à l'agenda
+                  </button>
+                  <button
+                    onClick={handleExportSurveillances}
+                    disabled={isExporting}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Export en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Exporter mes surveillances
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -768,8 +817,25 @@ export default function ExamSchedulePage() {
                           )}
                         </div>
 
-                        {/* Right: Surveillants */}
-                        <ExamenSurveillants examenId={examen.id} />
+                        {/* Right: Surveillants and Actions */}
+                        <div className="flex flex-col gap-3">
+                          <ExamenSurveillants examenId={examen.id} />
+                          <div className="flex justify-end">
+                            <CalendarExportButton
+                              surveillance={{
+                                nom_examen: examen.nom_examen,
+                                date_examen: examen.date_examen,
+                                heure_debut: examen.heure_debut,
+                                heure_fin: examen.heure_fin,
+                                auditoire: examen.auditoires,
+                                type_examen: 'Surveillance d\'examen',
+                                faculte: examen.secretariat
+                              }}
+                              variant="dropdown"
+                              size="sm"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
