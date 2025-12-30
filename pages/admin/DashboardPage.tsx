@@ -1,12 +1,15 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/shared/Card';
-import { Users, FileText, CheckCircle, BarChart2, Loader2, Calendar, Clock, AlertTriangle, TrendingUp, BookOpen, UserCheck } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
 import { Button } from '../../components/shared/Button';
+import { Users, FileText, CheckCircle, BarChart2, Loader2, Calendar, Clock, AlertTriangle, TrendingUp, BookOpen, UserCheck, History } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 import { getDashboardStats } from '../../lib/api';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
+import { useRecentChanges } from '../../hooks/useVersioning';
+import { formatUtils } from '../../lib/versioningService';
+import VersioningButton from '../../components/shared/VersioningButton';
 
 interface DashboardStats {
     totalSurveillants: number;

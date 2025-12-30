@@ -42,6 +42,7 @@ const AidePage = lazy(() => import('./pages/admin/AidePage'));
 const UsersManagementPage = lazy(() => import('./pages/admin/UsersManagementPage'));
 const ConsignesSecretariatPage = lazy(() => import('./pages/admin/ConsignesSecretariatPage'));
 const DemandesModificationPage = lazy(() => import('./pages/admin/DemandesModificationPage'));
+const VersioningPage = lazy(() => import('./pages/admin/VersioningPage'));
 
 // Lazy load public pages
 const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
@@ -49,7 +50,6 @@ const TeacherPresencePage = lazy(() => import('./pages/public/TeacherPresencePag
 const SharedDisponibilitesPage = lazy(() => import('./pages/public/SharedDisponibilitesPage'));
 const ExamSchedulePage = lazy(() => import('./pages/public/ExamSchedulePage'));
 const UpdatePhonePage = lazy(() => import('./pages/public/UpdatePhonePage'));
-const MesSurveillancesPage = lazy(() => import('./pages/public/MesSurveillancesPage'));
 
 
 const AppToaster = () => {
@@ -100,7 +100,6 @@ const AppContent: React.FC = () => {
                             <Route path="enseignant/presence" element={<TeacherPresencePage />} />
                             <Route path="planning" element={<ExamSchedulePage />} />
                             <Route path="telephone" element={<UpdatePhonePage />} />
-                            <Route path="mes-surveillances" element={<MesSurveillancesPage />} />
                         </Route>
                         <Route path="/shared/disponibilites/:shareToken" element={<SharedDisponibilitesPage />} />
                         <Route path="/login" element={<LoginPage />} />
@@ -130,6 +129,7 @@ const AppContent: React.FC = () => {
                             <Route path="rapports" element={<AdminOnlyRoute><RapportsPage /></AdminOnlyRoute>} />
                             <Route path="rapport-surveillances" element={<AdminOnlyRoute><RapportSurveillancesPage /></AdminOnlyRoute>} />
                             <Route path="analyse-examens" element={<AdminOnlyRoute><AnalyseExamensPage /></AdminOnlyRoute>} />
+                            <Route path="versioning" element={<AdminOnlyRoute><VersioningPage /></AdminOnlyRoute>} />
                             <Route path="aide" element={<AidePage />} />
                         </Route>
                     </Routes>

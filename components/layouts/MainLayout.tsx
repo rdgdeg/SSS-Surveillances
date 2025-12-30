@@ -154,11 +154,6 @@ const MainLayout: React.FC = () => {
                                     </NavLink>
                                 </li>
                                 <li>
-                                    <NavLink to="/mes-surveillances" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors font-medium">
-                                        Mes Surveillances
-                                    </NavLink>
-                                </li>
-                                <li>
                                     <NavLink to="/telephone" className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors font-medium">
                                         Mettre à jour mon téléphone
                                     </NavLink>

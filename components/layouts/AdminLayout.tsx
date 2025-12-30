@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone, Edit3 } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone, Edit3, GitBranch } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../lib/routePreloader';
@@ -56,6 +56,7 @@ const AdminLayout: React.FC = () => {
         { to: 'rapport-surveillances', label: 'Rapport Surveillances', icon: Users, category: 'rapports', adminOnly: true },
         { to: 'messages', label: 'Messages', icon: MessageSquare, category: null, adminOnly: true },
         { to: 'aide', label: 'Aide', icon: HelpCircle, category: null, adminOnly: false },
+        { to: 'versioning', label: 'Versioning', icon: GitBranch, category: null, adminOnly: true },
     ];
     
     // Filtrer les liens selon les permissions
