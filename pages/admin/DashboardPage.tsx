@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/shared/Card';
 import { Button } from '../../components/shared/Button';
-import { Users, FileText, CheckCircle, BarChart2, Loader2, Calendar, Clock, AlertTriangle, TrendingUp, BookOpen, UserCheck, History, MessageSquare, Bell, Edit3, Mail, MailOpen, ExternalLink, RefreshCw } from 'lucide-react';
+import { Users, FileText, CheckCircle, BarChart2, Loader2, Calendar, Clock, AlertTriangle, TrendingUp, BookOpen, UserCheck, History, MessageSquare, Bell, Edit3, Mail, MailOpen, ExternalLink, RefreshCw, Eye, Filter } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { getDashboardStats } from '../../lib/api';
 import { useDataFetching } from '../../hooks/useDataFetching';
@@ -10,6 +10,7 @@ import { useActiveSession } from '../../src/hooks/useActiveSession';
 import { useRecentChanges } from '../../hooks/useVersioning';
 import { formatUtils } from '../../lib/versioningService';
 import VersioningButton from '../../components/shared/VersioningButton';
+import DemandeDetailModal from '../../components/admin/DemandeDetailModal';
 import { supabase } from '../../lib/supabaseClient';
 
 interface DashboardStats {
@@ -24,11 +25,21 @@ interface DemandeModification {
     id: string;
     nom_examen: string;
     date_examen: string;
+    heure_examen: string;
     type_demande: 'modification' | 'permutation' | 'message';
+    surveillant_remplacant?: string;
+    surveillance_reprise_date?: string;
+    surveillance_reprise_heure?: string;
+    description: string;
     nom_demandeur: string;
+    email_demandeur?: string;
+    telephone_demandeur?: string;
     statut: 'en_attente' | 'en_cours' | 'traitee' | 'refusee';
+    reponse_admin?: string;
     lu: boolean;
     created_at: string;
+    updated_at: string;
+    traite_at?: string;
 }
 
 interface RecentActivity {
@@ -52,10 +63,14 @@ const DashboardPage: React.FC = () => {
     const { data: stats, isLoading } = useDataFetching(getDashboardStats, initialStats);
     const { data: activeSession } = useActiveSession();
     const [demandes, setDemandes] = useState<DemandeModification[]>([]);
+    const [allDemandes, setAllDemandes] = useState<DemandeModification[]>([]);
     const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(true);
+    const [selectedDemande, setSelectedDemande] = useState<DemandeModification | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [messageFilter, setMessageFilter] = useState<'all' | 'unread' | 'pending'>('unread');
 
-    // Charger les demandes de modification non lues
+    // Charger les demandes de modification
     useEffect(() => {
         loadDemandes();
         loadRecentActivity();
@@ -63,15 +78,25 @@ const DashboardPage: React.FC = () => {
 
     const loadDemandes = async () => {
         try {
-            const { data, error } = await supabase
+            // Charger toutes les demandes
+            const { data: allData, error: allError } = await supabase
+                .from('demandes_modification')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (allError) throw allError;
+            setAllDemandes(allData || []);
+
+            // Charger les demandes non lues pour les alertes
+            const { data: unreadData, error: unreadError } = await supabase
                 .from('demandes_modification')
                 .select('*')
                 .eq('lu', false)
                 .order('created_at', { ascending: false })
                 .limit(5);
 
-            if (error) throw error;
-            setDemandes(data || []);
+            if (unreadError) throw unreadError;
+            setDemandes(unreadData || []);
         } catch (error) {
             console.error('Erreur lors du chargement des demandes:', error);
         }
@@ -148,6 +173,21 @@ const DashboardPage: React.FC = () => {
         );
     };
 
+    const getTypeBadge = (type: string) => {
+        const badges = {
+            modification: { color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', text: 'Modification' },
+            permutation: { color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300', text: 'Permutation' },
+            message: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300', text: 'Message' }
+        };
+        
+        const badge = badges[type as keyof typeof badges];
+        return (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
+                {badge.text}
+            </span>
+        );
+    };
+
     const getActivityIcon = (type: string) => {
         switch (type) {
             case 'demande': return Edit3;
@@ -156,6 +196,32 @@ const DashboardPage: React.FC = () => {
             default: return Bell;
         }
     };
+
+    const handleDemandeClick = (demande: DemandeModification) => {
+        setSelectedDemande(demande);
+        setIsModalOpen(true);
+    };
+
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setSelectedDemande(null);
+        // Recharger les données après fermeture du modal
+        loadDemandes();
+        loadRecentActivity();
+    };
+
+    const getFilteredMessages = () => {
+        switch (messageFilter) {
+            case 'unread':
+                return allDemandes.filter(d => !d.lu);
+            case 'pending':
+                return allDemandes.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours');
+            default:
+                return allDemandes;
+        }
+    };
+
+    const filteredMessages = getFilteredMessages();
 
     if (isLoading) {
         return (
@@ -298,13 +364,110 @@ const DashboardPage: React.FC = () => {
                 </Card>
             </div>
 
-            {/* Activité récente et accès rapides */}
+            {/* Activité récente et messages */}
             <div className="grid gap-6 lg:grid-cols-2">
+                {/* Messages et demandes */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2">
+                                <MessageSquare className="h-5 w-5 text-indigo-600" />
+                                Messages et demandes
+                                {allDemandes.filter(d => !d.lu).length > 0 && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                                        {allDemandes.filter(d => !d.lu).length} non lu{allDemandes.filter(d => !d.lu).length > 1 ? 's' : ''}
+                                    </span>
+                                )}
+                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={messageFilter}
+                                    onChange={(e) => setMessageFilter(e.target.value as any)}
+                                    className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                                >
+                                    <option value="unread">Non lus</option>
+                                    <option value="pending">En attente</option>
+                                    <option value="all">Tous</option>
+                                </select>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingMessages ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+                            </div>
+                        ) : filteredMessages.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                <MessageSquare className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                <p className="text-sm">
+                                    {messageFilter === 'unread' ? 'Aucun message non lu' : 
+                                     messageFilter === 'pending' ? 'Aucune demande en attente' : 
+                                     'Aucun message'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-80 overflow-y-auto">
+                                {filteredMessages.slice(0, 10).map((demande) => (
+                                    <div 
+                                        key={demande.id} 
+                                        onClick={() => handleDemandeClick(demande)}
+                                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                                            !demande.lu 
+                                                ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' 
+                                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                        }`}
+                                    >
+                                        <div className="flex-shrink-0">
+                                            {!demande.lu ? (
+                                                <MailOpen className="h-4 w-4 text-blue-600 mt-0.5" />
+                                            ) : (
+                                                <Mail className="h-4 w-4 text-gray-500 mt-0.5" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                                    {demande.nom_examen}
+                                                </div>
+                                                {getStatusBadge(demande.statut)}
+                                            </div>
+                                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                {demande.nom_demandeur} - {getTypeBadge(demande.type_demande)}
+                                            </div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-500">
+                                                {new Date(demande.created_at).toLocaleDateString('fr-FR', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </div>
+                                        </div>
+                                        <div className="flex-shrink-0">
+                                            <Eye className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                    </div>
+                                ))}
+                                {filteredMessages.length > 10 && (
+                                    <div className="text-center pt-2">
+                                        <NavLink to="/admin/demandes-modification">
+                                            <Button variant="outline" size="sm">
+                                                Voir tous les messages ({filteredMessages.length})
+                                            </Button>
+                                        </NavLink>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 {/* Activité récente */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Bell className="h-5 w-5 text-indigo-600" />
+                            <Bell className="h-5 w-5 text-green-600" />
                             Activité récente
                         </CardTitle>
                     </CardHeader>
@@ -319,7 +482,7 @@ const DashboardPage: React.FC = () => {
                                 <p className="text-sm">Aucune activité récente</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-3 max-h-80 overflow-y-auto">
                                 {recentActivity.map((activity) => {
                                     const Icon = getActivityIcon(activity.type);
                                     return (
@@ -351,60 +514,68 @@ const DashboardPage: React.FC = () => {
                         )}
                     </CardContent>
                 </Card>
-
-                {/* Accès rapides */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5 text-green-600" />
-                            Actions rapides
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-3">
-                            <NavLink to="/admin/disponibilites" className="block">
-                                <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                    <BarChart2 className="h-5 w-5 text-blue-600" />
-                                    <div>
-                                        <div className="font-medium text-sm">Tableau croisé</div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">Analyser les disponibilités</div>
-                                    </div>
-                                </div>
-                            </NavLink>
-                            
-                            <NavLink to="/admin/suivi-soumissions" className="block">
-                                <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                    <MessageSquare className="h-5 w-5 text-orange-600" />
-                                    <div>
-                                        <div className="font-medium text-sm">Relances</div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">Gérer les relances automatiques</div>
-                                    </div>
-                                </div>
-                            </NavLink>
-                            
-                            <NavLink to="/admin/examens" className="block">
-                                <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                    <Calendar className="h-5 w-5 text-green-600" />
-                                    <div>
-                                        <div className="font-medium text-sm">Examens</div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">Gérer les examens</div>
-                                    </div>
-                                </div>
-                            </NavLink>
-                            
-                            <NavLink to="/admin/statistiques" className="block">
-                                <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                    <BarChart2 className="h-5 w-5 text-purple-600" />
-                                    <div>
-                                        <div className="font-medium text-sm">Statistiques</div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">Rapports détaillés</div>
-                                    </div>
-                                </div>
-                            </NavLink>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
+
+            {/* Actions rapides */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        Actions rapides
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                        <NavLink to="/admin/disponibilites" className="block">
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <BarChart2 className="h-5 w-5 text-blue-600" />
+                                <div>
+                                    <div className="font-medium text-sm">Tableau croisé</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">Analyser les disponibilités</div>
+                                </div>
+                            </div>
+                        </NavLink>
+                        
+                        <NavLink to="/admin/suivi-soumissions" className="block">
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <MessageSquare className="h-5 w-5 text-orange-600" />
+                                <div>
+                                    <div className="font-medium text-sm">Relances</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">Gérer les relances automatiques</div>
+                                </div>
+                            </div>
+                        </NavLink>
+                        
+                        <NavLink to="/admin/examens" className="block">
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <Calendar className="h-5 w-5 text-green-600" />
+                                <div>
+                                    <div className="font-medium text-sm">Examens</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">Gérer les examens</div>
+                                </div>
+                            </div>
+                        </NavLink>
+                        
+                        <NavLink to="/admin/statistiques" className="block">
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <BarChart2 className="h-5 w-5 text-purple-600" />
+                                <div>
+                                    <div className="font-medium text-sm">Statistiques</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">Rapports détaillés</div>
+                                </div>
+                            </div>
+                        </NavLink>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Modal de détail des demandes */}
+            <DemandeDetailModal
+                isOpen={isModalOpen}
+                onClose={handleModalClose}
+                demande={selectedDemande}
+                onUpdate={handleModalClose}
+            />
         </div>
     );
 }
