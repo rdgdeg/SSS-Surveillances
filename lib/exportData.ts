@@ -251,6 +251,175 @@ export async function exportCreneaux(sessionId: string) {
 }
 
 /**
+ * Export planning complet avec attributions (sécurité)
+ */
+export async function exportPlanningComplet(sessionId: string, sessionName: string) {
+  // Get examens with all related data
+  const { data: examens, error: examensError } = await supabase
+    .from('examens')
+    .select(`
+      *,
+      cours:cours_id (code, intitule_complet, consignes),
+      examen_auditoires (
+        auditoire,
+        nb_surveillants_requis,
+        surveillants,
+        surveillants_remplaces,
+        remarques,
+        mode_attribution
+      )
+    `)
+    .eq('session_id', sessionId)
+    .order('date_examen, heure_debut');
+
+  if (examensError) throw examensError;
+
+  // Get consignes secrétariat
+  const { data: consignesSecretariat } = await supabase
+    .from('consignes_secretariat')
+    .select('*');
+
+  // Get session info
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
+
+  const timestamp = new Date();
+  const dateStr = timestamp.toLocaleDateString('fr-FR');
+  const timeStr = timestamp.toLocaleTimeString('fr-FR');
+
+  // Prepare planning data
+  const planningData = examens?.map(examen => {
+    const consignes = consignesSecretariat?.find(c => 
+      c.code_secretariat === examen.secretariat
+    );
+
+    // Compile all auditoires and surveillants
+    const auditoires = examen.examen_auditoires?.map((aud: any) => {
+      const surveillantsActuels = aud.surveillants || [];
+      const remplacements = aud.surveillants_remplaces || [];
+      
+      // Apply replacements
+      let surveillantsFinals = [...surveillantsActuels];
+      remplacements.forEach((remplacement: any) => {
+        const index = surveillantsFinals.findIndex(s => s === remplacement.ancien_id);
+        if (index !== -1) {
+          surveillantsFinals[index] = remplacement.nouveau_id;
+        }
+      });
+
+      return {
+        auditoire: aud.auditoire,
+        surveillants: surveillantsFinals,
+        nb_requis: aud.nb_surveillants_requis,
+        mode: aud.mode_attribution || 'auditoire',
+        remarques: aud.remarques
+      };
+    }) || [];
+
+    // Format consignes
+    let consignesText = '';
+    if (examen.is_mode_secretariat) {
+      consignesText = 'Mode secrétariat - Consignes communiquées par le secrétariat';
+    } else {
+      const consignesParts = [];
+      
+      if (consignes) {
+        if (consignes.consignes_arrivee) {
+          consignesParts.push(`Arrivée: ${consignes.consignes_arrivee}`);
+        }
+        if (consignes.consignes_mise_en_place) {
+          consignesParts.push(`Mise en place: ${consignes.consignes_mise_en_place}`);
+        }
+        if (consignes.consignes_generales) {
+          consignesParts.push(`Générales: ${consignes.consignes_generales}`);
+        }
+      }
+      
+      if (examen.utiliser_consignes_specifiques) {
+        if (examen.consignes_specifiques_arrivee) {
+          consignesParts.push(`Arrivée spéc.: ${examen.consignes_specifiques_arrivee}`);
+        }
+        if (examen.consignes_specifiques_mise_en_place) {
+          consignesParts.push(`Mise en place spéc.: ${examen.consignes_specifiques_mise_en_place}`);
+        }
+        if (examen.consignes_specifiques_generales) {
+          consignesParts.push(`Générales spéc.: ${examen.consignes_specifiques_generales}`);
+        }
+      } else if (examen.cours?.consignes) {
+        consignesParts.push(`Cours: ${examen.cours.consignes}`);
+      }
+      
+      consignesText = consignesParts.join(' | ');
+    }
+
+    return {
+      'Date': formatDateForExport(examen.date_examen),
+      'Heure début': examen.heure_debut || '',
+      'Heure fin': examen.heure_fin || '',
+      'Durée (min)': examen.duree_minutes || '',
+      'Code examen': examen.code_examen,
+      'Nom examen': examen.nom_examen,
+      'Code cours': examen.cours?.code || '',
+      'Intitulé cours': examen.cours?.intitule_complet || '',
+      'Enseignants': Array.isArray(examen.enseignants) ? examen.enseignants.join(', ') : (examen.enseignants || ''),
+      'Secrétariat': examen.secretariat || '',
+      'Auditoires': auditoires.map(a => a.auditoire).join(', ') || examen.auditoires || '',
+      'Surveillants total': auditoires.reduce((sum, a) => sum + (a.surveillants?.length || 0), 0),
+      'Surveillants requis': auditoires.reduce((sum, a) => sum + (a.nb_requis || 0), 0) || examen.nb_surveillants_requis || 0,
+      'Détail surveillants': auditoires.map(a => 
+        `${a.auditoire}: ${(a.surveillants || []).join(', ')} (${a.surveillants?.length || 0}/${a.nb_requis || 0})`
+      ).join(' | '),
+      'Mode attribution': auditoires.length > 0 ? auditoires[0].mode : 'non défini',
+      'Consignes': consignesText,
+      'Remarques auditoires': auditoires.map(a => a.remarques).filter(Boolean).join(' | '),
+      'Validé': formatBooleanForExport(examen.valide),
+      'Créé par': examen.cree_par_email || '',
+      'Saisie manuelle': formatBooleanForExport(examen.saisie_manuelle),
+    };
+  }) || [];
+
+  // Get surveillants data for reference
+  const surveillantsData = await exportSurveillants();
+
+  // Get disponibilités summary
+  const disponibilitesData = await exportDisponibilites(sessionId);
+
+  // Get créneaux data
+  const creneauxData = await exportCreneaux(sessionId);
+
+  // Create metadata sheet
+  const metadataData = [{
+    'Session': sessionName,
+    'Période': session?.period || '',
+    'Année': session?.year || '',
+    'Date export': dateStr,
+    'Heure export': timeStr,
+    'Exporté par': 'Système de gestion des surveillances',
+    'Nombre examens': planningData.length,
+    'Nombre surveillants': surveillantsData.length,
+    'Nombre créneaux': creneauxData.length,
+    'Nombre soumissions': disponibilitesData.length,
+    'Statut session': session?.is_active ? 'Active' : 'Inactive',
+    'Soumissions verrouillées': formatBooleanForExport(session?.lock_submissions),
+    'Planning visible': formatBooleanForExport(session?.planning_visible),
+  }];
+
+  return {
+    filename: `Planning_Complet_${sessionName.replace(/\s+/g, '_')}_${timestamp.toISOString().split('T')[0]}_${timestamp.toTimeString().split(' ')[0].replace(/:/g, 'h')}`,
+    sheets: [
+      { name: 'Métadonnées', data: metadataData },
+      { name: 'Planning Examens', data: planningData },
+      { name: 'Surveillants', data: surveillantsData },
+      { name: 'Créneaux', data: creneauxData },
+      { name: 'Disponibilités', data: disponibilitesData.slice(0, 1000) }, // Limit for Excel
+    ]
+  };
+}
+
+/**
  * Export complete session data (multi-sheet)
  */
 export async function exportSessionComplete(sessionId: string, sessionName: string) {

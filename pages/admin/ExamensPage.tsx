@@ -6,6 +6,7 @@ import { ExamList } from '../../components/admin/ExamList';
 import { ExamDashboard } from '../../components/admin/ExamDashboard';
 import { ExamenCoursLinkManager } from '../../components/admin/ExamenCoursLinkManager';
 import { ExamOrphanAlert } from '../../components/admin/ExamOrphanAlert';
+import PlanningSecurityExportButton from '../../components/shared/PlanningSecurityExportButton';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
 import { RefreshCw } from 'lucide-react';
 
@@ -66,13 +67,20 @@ function ExamensPage() {
               Session: {activeSession.name} ({activeSession.year})
             </p>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Rafraîchir
-          </button>
+          <div className="flex items-center gap-3">
+            <PlanningSecurityExportButton
+              sessionId={activeSession.id}
+              sessionName={activeSession.name}
+              size="sm"
+            />
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Rafraîchir
+            </button>
+          </div>
         </div>
 
         {/* Orphan Alert */}

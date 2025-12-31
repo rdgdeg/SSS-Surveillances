@@ -11,6 +11,7 @@ import { useRecentChanges } from '../../hooks/useVersioning';
 import { formatUtils } from '../../lib/versioningService';
 import VersioningButton from '../../components/shared/VersioningButton';
 import DemandeDetailModal from '../../components/admin/DemandeDetailModal';
+import PlanningSecurityExportButton from '../../components/shared/PlanningSecurityExportButton';
 import { supabase } from '../../lib/supabaseClient';
 
 interface DashboardStats {
@@ -566,6 +567,23 @@ const DashboardPage: React.FC = () => {
                             </div>
                         </NavLink>
                     </div>
+                    
+                    {/* Export de sécurité */}
+                    {activeSession && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100">Export de sécurité</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">Sauvegarde complète du planning avec horodatage</div>
+                                </div>
+                                <PlanningSecurityExportButton
+                                    sessionId={activeSession.id}
+                                    sessionName={activeSession.name}
+                                    size="sm"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

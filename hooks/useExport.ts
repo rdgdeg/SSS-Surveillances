@@ -7,7 +7,8 @@ import {
   exportCours,
   exportPresencesEnseignants,
   exportCreneaux,
-  exportSessionComplete
+  exportSessionComplete,
+  exportPlanningComplet
 } from '../lib/exportData';
 import toast from 'react-hot-toast';
 
@@ -85,5 +86,7 @@ export function useExport() {
       handleExport(() => exportCreneaux(sessionId), 'creneaux', format, 'Créneaux'),
     exportSessionComplete: (sessionId: string, sessionName: string) =>
       handleMultiSheetExport(() => exportSessionComplete(sessionId, sessionName)),
+    exportPlanningComplet: (sessionId: string, sessionName: string) =>
+      handleMultiSheetExport(() => exportPlanningComplet(sessionId, sessionName)),
   };
 }
