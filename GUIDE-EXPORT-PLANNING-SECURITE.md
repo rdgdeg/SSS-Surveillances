@@ -17,16 +17,24 @@ L'export de sécurité du planning permet de créer une sauvegarde complète et 
 #### Feuille "Métadonnées"
 - Informations de la session (nom, période, année)
 - Date et heure d'export précises
-- Statistiques générales (nombre d'examens, surveillants, etc.)
+- Statistiques générales (nombre d'examens, surveillants, attributions, etc.)
 - Statut de la session (active, verrouillée, etc.)
 
 #### Feuille "Planning Examens"
 - **Informations temporelles** : Date, heure début/fin, durée
 - **Détails examen** : Code, nom, cours associé, enseignants
-- **Attribution surveillants** : Détail par auditoire avec nombres requis/attribués
+- **Attribution résumée** : Nombres requis/attribués par auditoire
 - **Consignes complètes** : Secrétariat + spécifiques + cours
 - **Mode d'attribution** : Auditoire ou secrétariat
 - **Statut validation** et informations de création
+
+#### Feuille "Attributions Surveillants" ⭐ **NOUVEAU**
+- **Une ligne par surveillant attribué** avec tous les détails personnels
+- **Informations complètes** : Nom, prénom, email, téléphone, faculté, type
+- **Détails d'attribution** : Examen, auditoire, position dans l'auditoire
+- **Gestion des remplacements** : Qui remplace qui, date, raison
+- **Statuts** : Actif/inactif, dispensé, mode d'attribution
+- **Indicateurs visuels** : Attributions manquantes marquées "NON ATTRIBUÉ"
 
 #### Feuille "Surveillants"
 - Liste complète des surveillants avec toutes leurs informations

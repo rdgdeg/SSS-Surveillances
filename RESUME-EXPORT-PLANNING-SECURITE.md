@@ -41,26 +41,34 @@ Planning_Complet_[SessionName]_[YYYY-MM-DD]_[HHhMMhSS].xlsx
 **1. Métadonnées**
 - Informations de session (nom, période, année)
 - Date et heure d'export précises
-- Statistiques (nb examens, surveillants, créneaux, soumissions)
+- Statistiques (nb examens, surveillants, créneaux, soumissions, attributions)
 - Statuts (session active, soumissions verrouillées, planning visible)
 
-**2. Planning Examens** (Feuille principale)
+**2. Planning Examens** (Vue d'ensemble)
 - Informations temporelles complètes
 - Détails des examens et cours associés
-- Attribution détaillée des surveillants par auditoire
+- Attribution résumée des surveillants par auditoire
 - Consignes compilées (secrétariat + spécifiques + cours)
 - Mode d'attribution et statuts de validation
 
-**3. Surveillants**
+**3. Attributions Surveillants** ⭐ **NOUVEAU** (Vue détaillée)
+- **Une ligne par surveillant attribué** avec informations complètes
+- Nom, prénom, email, téléphone, faculté, type de surveillant
+- Détails d'attribution : examen, auditoire, position
+- **Gestion des remplacements** : remplaçant/remplacé, date, raison
+- Statuts : actif/inactif, dispensé, mode d'attribution
+- **Attributions manquantes** marquées "NON ATTRIBUÉ"
+
+**4. Surveillants**
 - Liste complète avec toutes les informations
 - Types, affectations, quotas, statuts
 - Données de contact (téléphone)
 
-**4. Créneaux**
+**5. Créneaux**
 - Tous les créneaux de surveillance
 - Dates, heures, types, capacités
 
-**5. Disponibilités**
+**6. Disponibilités**
 - Soumissions de disponibilités (limitées à 1000)
 - Historique des modifications
 
@@ -102,9 +110,32 @@ Planning_Complet_[SessionName]_[YYYY-MM-DD]_[HHhMMhSS].xlsx
   'Code examen': examen.code_examen,
   'Surveillants total': auditoires.reduce((sum, a) => sum + (a.surveillants?.length || 0), 0),
   'Détail surveillants': auditoires.map(a => 
-    `${a.auditoire}: ${(a.surveillants || []).join(', ')} (${a.surveillants?.length || 0}/${a.nb_requis || 0})`
+    `${a.auditoire}: ${(a.surveillants || []).map(id => {
+      const s = surveillantsMap.get(id);
+      return s ? `${s.prenom} ${s.nom}` : id;
+    }).join(', ')} (${a.surveillants?.length || 0}/${a.nb_requis || 0})`
   ).join(' | '),
   'Consignes': consignesText,
+  // ... autres champs
+}
+```
+
+#### Attributions Détaillées ⭐ **NOUVEAU**
+```typescript
+{
+  'Date examen': formatDateForExport(examen.date_examen),
+  'Code examen': examen.code_examen,
+  'Auditoire': aud.auditoire,
+  'Position': index + 1,
+  'Nom surveillant': surveillant?.nom || 'INCONNU',
+  'Prénom surveillant': surveillant?.prenom || '',
+  'Email surveillant': surveillant?.email || '',
+  'Type surveillant': surveillant?.type || '',
+  'Téléphone': surveillant?.telephone || '',
+  'Est remplaçant': formatBooleanForExport(wasReplaced),
+  'Remplace': originalSurveillant ? `${originalSurveillant.prenom} ${originalSurveillant.nom}` : '',
+  'Date remplacement': replacedSurveillant ? formatDateTimeForExport(replacedSurveillant.date) : '',
+  'Raison remplacement': replacedSurveillant?.raison || '',
   // ... autres champs
 }
 ```
@@ -116,6 +147,8 @@ Planning_Complet_[SessionName]_[YYYY-MM-DD]_[HHhMMhSS].xlsx
   'Date export': dateStr,
   'Heure export': timeStr,
   'Nombre examens': planningData.length,
+  'Nombre attributions': attributionsData.filter(a => a['Surveillant ID']).length,
+  'Attributions manquantes': attributionsData.filter(a => !a['Surveillant ID']).length,
   'Statut session': session?.is_active ? 'Active' : 'Inactive',
   // ... autres métadonnées
 }

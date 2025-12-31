@@ -14,19 +14,21 @@ Planning_Complet_[Session]_[Date]_[Heure].xlsx
 
 ## 📊 Contenu de l'Export
 
-### 5 Feuilles Excel
+### 6 Feuilles Excel
 - **Métadonnées** : Infos session + horodatage
-- **Planning Examens** : Planning complet avec attributions
+- **Planning Examens** : Planning complet avec attributions résumées
+- **Attributions Surveillants** ⭐ : Détail ligne par ligne des attributions
 - **Surveillants** : Liste complète des surveillants
 - **Créneaux** : Tous les créneaux de surveillance
 - **Disponibilités** : Soumissions (max 1000)
 
 ### Données Clés
-- ✅ **Attributions complètes** par auditoire
+- ✅ **Attributions détaillées** ligne par ligne avec noms complets
+- ✅ **Remplacements** : Qui remplace qui, quand et pourquoi
 - ✅ **Consignes détaillées** (secrétariat + spécifiques)
-- ✅ **Remplacements** appliqués automatiquement
 - ✅ **Horodatage précis** (date + heure d'export)
 - ✅ **Métadonnées** de session complètes
+- ✅ **Attributions manquantes** clairement identifiées
 
 ## 🛡️ Cas d'Usage Urgents
 
@@ -48,8 +50,10 @@ Planning_Complet_[Session]_[Date]_[Heure].xlsx
 ### Travail Hors Ligne
 ```bash
 1. Export préventif avant déconnexion
-2. Consultation complète du planning
-3. Préparation des communications
+2. Consulter feuille "Attributions Surveillants"
+3. Voir ligne par ligne qui surveille quoi
+4. Utiliser noms complets pour communication
+5. Identifier attributions manquantes
 ```
 
 ## ⚡ Bonnes Pratiques

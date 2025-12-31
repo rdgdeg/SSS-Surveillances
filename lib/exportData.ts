@@ -279,6 +279,15 @@ export async function exportPlanningComplet(sessionId: string, sessionName: stri
     .from('consignes_secretariat')
     .select('*');
 
+  // Get all surveillants data for reference
+  const { data: surveillantsData } = await supabase
+    .from('surveillants')
+    .select('*')
+    .order('nom, prenom');
+
+  // Create a map for quick surveillant lookup
+  const surveillantsMap = new Map(surveillantsData?.map(s => [s.id, s]) || []);
+
   // Get session info
   const { data: session } = await supabase
     .from('sessions')
@@ -290,7 +299,95 @@ export async function exportPlanningComplet(sessionId: string, sessionName: stri
   const dateStr = timestamp.toLocaleDateString('fr-FR');
   const timeStr = timestamp.toLocaleTimeString('fr-FR');
 
-  // Prepare planning data
+  // Prepare attributions data (new detailed sheet)
+  const attributionsData: any[] = [];
+  
+  examens?.forEach(examen => {
+    examen.examen_auditoires?.forEach((aud: any) => {
+      const surveillantsActuels = aud.surveillants || [];
+      const remplacements = aud.surveillants_remplaces || [];
+      
+      // Apply replacements to get final surveillants
+      let surveillantsFinals = [...surveillantsActuels];
+      remplacements.forEach((remplacement: any) => {
+        const index = surveillantsFinals.findIndex(s => s === remplacement.ancien_id);
+        if (index !== -1) {
+          surveillantsFinals[index] = remplacement.nouveau_id;
+        }
+      });
+
+      // Add one row per surveillant assigned
+      surveillantsFinals.forEach((surveillantId: string, index: number) => {
+        const surveillant = surveillantsMap.get(surveillantId);
+        const wasReplaced = remplacements.some((r: any) => r.nouveau_id === surveillantId);
+        const replacedSurveillant = wasReplaced ? 
+          remplacements.find((r: any) => r.nouveau_id === surveillantId) : null;
+        const originalSurveillant = replacedSurveillant ? 
+          surveillantsMap.get(replacedSurveillant.ancien_id) : null;
+
+        attributionsData.push({
+          'Date examen': formatDateForExport(examen.date_examen),
+          'Heure début': examen.heure_debut || '',
+          'Heure fin': examen.heure_fin || '',
+          'Code examen': examen.code_examen,
+          'Nom examen': examen.nom_examen,
+          'Auditoire': aud.auditoire,
+          'Position': index + 1,
+          'Surveillant ID': surveillantId,
+          'Nom surveillant': surveillant?.nom || 'INCONNU',
+          'Prénom surveillant': surveillant?.prenom || '',
+          'Email surveillant': surveillant?.email || '',
+          'Type surveillant': surveillant?.type || '',
+          'Téléphone': surveillant?.telephone || '',
+          'Faculté': surveillant?.affectation_faculte || '',
+          'Statut': surveillant?.is_active ? 'Actif' : 'Inactif',
+          'Dispensé': formatBooleanForExport(surveillant?.dispense_surveillance),
+          'Est remplaçant': formatBooleanForExport(wasReplaced),
+          'Remplace': originalSurveillant ? `${originalSurveillant.prenom} ${originalSurveillant.nom}` : '',
+          'Date remplacement': replacedSurveillant ? formatDateTimeForExport(replacedSurveillant.date) : '',
+          'Raison remplacement': replacedSurveillant?.raison || '',
+          'Mode attribution': aud.mode_attribution || 'auditoire',
+          'Nb requis auditoire': aud.nb_surveillants_requis || 0,
+          'Nb attribués auditoire': surveillantsFinals.length,
+          'Remarques auditoire': aud.remarques || '',
+          'Secrétariat': examen.secretariat || '',
+        });
+      });
+
+      // If no surveillants assigned, add a row to show the requirement
+      if (surveillantsFinals.length === 0 && aud.nb_surveillants_requis > 0) {
+        attributionsData.push({
+          'Date examen': formatDateForExport(examen.date_examen),
+          'Heure début': examen.heure_debut || '',
+          'Heure fin': examen.heure_fin || '',
+          'Code examen': examen.code_examen,
+          'Nom examen': examen.nom_examen,
+          'Auditoire': aud.auditoire,
+          'Position': 0,
+          'Surveillant ID': '',
+          'Nom surveillant': '*** NON ATTRIBUÉ ***',
+          'Prénom surveillant': '',
+          'Email surveillant': '',
+          'Type surveillant': '',
+          'Téléphone': '',
+          'Faculté': '',
+          'Statut': '',
+          'Dispensé': '',
+          'Est remplaçant': '',
+          'Remplace': '',
+          'Date remplacement': '',
+          'Raison remplacement': '',
+          'Mode attribution': aud.mode_attribution || 'auditoire',
+          'Nb requis auditoire': aud.nb_surveillants_requis || 0,
+          'Nb attribués auditoire': 0,
+          'Remarques auditoire': aud.remarques || '',
+          'Secrétariat': examen.secretariat || '',
+        });
+      }
+    });
+  });
+
+  // Prepare planning data (existing logic)
   const planningData = examens?.map(examen => {
     const consignes = consignesSecretariat?.find(c => 
       c.code_secretariat === examen.secretariat
@@ -370,7 +467,10 @@ export async function exportPlanningComplet(sessionId: string, sessionName: stri
       'Surveillants total': auditoires.reduce((sum, a) => sum + (a.surveillants?.length || 0), 0),
       'Surveillants requis': auditoires.reduce((sum, a) => sum + (a.nb_requis || 0), 0) || examen.nb_surveillants_requis || 0,
       'Détail surveillants': auditoires.map(a => 
-        `${a.auditoire}: ${(a.surveillants || []).join(', ')} (${a.surveillants?.length || 0}/${a.nb_requis || 0})`
+        `${a.auditoire}: ${(a.surveillants || []).map(id => {
+          const s = surveillantsMap.get(id);
+          return s ? `${s.prenom} ${s.nom}` : id;
+        }).join(', ')} (${a.surveillants?.length || 0}/${a.nb_requis || 0})`
       ).join(' | '),
       'Mode attribution': auditoires.length > 0 ? auditoires[0].mode : 'non défini',
       'Consignes': consignesText,
@@ -382,7 +482,7 @@ export async function exportPlanningComplet(sessionId: string, sessionName: stri
   }) || [];
 
   // Get surveillants data for reference
-  const surveillantsData = await exportSurveillants();
+  const surveillantsExportData = await exportSurveillants();
 
   // Get disponibilités summary
   const disponibilitesData = await exportDisponibilites(sessionId);
@@ -399,9 +499,11 @@ export async function exportPlanningComplet(sessionId: string, sessionName: stri
     'Heure export': timeStr,
     'Exporté par': 'Système de gestion des surveillances',
     'Nombre examens': planningData.length,
-    'Nombre surveillants': surveillantsData.length,
+    'Nombre surveillants': surveillantsExportData.length,
     'Nombre créneaux': creneauxData.length,
     'Nombre soumissions': disponibilitesData.length,
+    'Nombre attributions': attributionsData.filter(a => a['Surveillant ID']).length,
+    'Attributions manquantes': attributionsData.filter(a => !a['Surveillant ID']).length,
     'Statut session': session?.is_active ? 'Active' : 'Inactive',
     'Soumissions verrouillées': formatBooleanForExport(session?.lock_submissions),
     'Planning visible': formatBooleanForExport(session?.planning_visible),
@@ -412,7 +514,8 @@ export async function exportPlanningComplet(sessionId: string, sessionName: stri
     sheets: [
       { name: 'Métadonnées', data: metadataData },
       { name: 'Planning Examens', data: planningData },
-      { name: 'Surveillants', data: surveillantsData },
+      { name: 'Attributions Surveillants', data: attributionsData },
+      { name: 'Surveillants', data: surveillantsExportData },
       { name: 'Créneaux', data: creneauxData },
       { name: 'Disponibilités', data: disponibilitesData.slice(0, 1000) }, // Limit for Excel
     ]
