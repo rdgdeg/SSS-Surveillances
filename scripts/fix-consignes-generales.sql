@@ -57,12 +57,26 @@ SELECT
 FROM consignes_secretariat 
 ORDER BY code_secretariat;
 
--- 5. Tester l'héritage des consignes pour un examen
+-- 5. Tester l'héritage des consignes pour un examen (si la fonction existe)
 DO $test_heritage$
 DECLARE
     v_examen_id UUID;
     v_consignes RECORD;
+    v_function_exists BOOLEAN;
 BEGIN
+    -- Vérifier si la fonction existe
+    SELECT EXISTS (
+        SELECT 1 FROM pg_proc p 
+        JOIN pg_namespace n ON p.pronamespace = n.oid 
+        WHERE n.nspname = 'public' AND p.proname = 'get_consignes_examen'
+    ) INTO v_function_exists;
+    
+    IF NOT v_function_exists THEN
+        RAISE NOTICE 'La fonction get_consignes_examen n''existe pas encore.';
+        RAISE NOTICE 'Exécutez d''abord: scripts/install-consignes-heritage-complet.sql';
+        RETURN;
+    END IF;
+    
     -- Prendre le premier examen disponible
     SELECT id INTO v_examen_id FROM examens LIMIT 1;
     
