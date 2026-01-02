@@ -56,9 +56,7 @@ interface ConsigneSecretariat {
   id: string;
   code_secretariat: string;
   nom_secretariat: string;
-  consignes_arrivee: string;
-  consignes_mise_en_place: string;
-  consignes_generales: string;
+  consignes: string;
   heure_arrivee_suggeree: string;
 }
 
@@ -746,7 +744,7 @@ export default function ExamSchedulePage() {
                                 </div>
                               </div>
                             </div>
-                          ) : consignes && (
+                          ) : consignes && consignes.consignes && (
                             <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -754,21 +752,9 @@ export default function ExamSchedulePage() {
                                   <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
                                     Consignes générales - {consignes.nom_secretariat}
                                   </p>
-                                  {consignes.consignes_arrivee && (
-                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                      <strong>Arrivée :</strong> {consignes.consignes_arrivee}
-                                    </p>
-                                  )}
-                                  {consignes.consignes_mise_en_place && (
-                                    <p className="text-blue-700 dark:text-blue-300 mb-1">
-                                      <strong>Mise en place :</strong> {consignes.consignes_mise_en_place}
-                                    </p>
-                                  )}
-                                  {consignes.consignes_generales && (
-                                    <p className="text-blue-700 dark:text-blue-300">
-                                      <strong>Consignes générales :</strong> {consignes.consignes_generales}
-                                    </p>
-                                  )}
+                                  <div className="text-blue-700 dark:text-blue-300 whitespace-pre-line">
+                                    {consignes.consignes}
+                                  </div>
                                 </div>
                               </div>
                             </div>

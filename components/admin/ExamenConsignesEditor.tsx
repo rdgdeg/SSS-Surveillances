@@ -15,9 +15,7 @@ import { supabase } from '../../lib/supabaseClient';
 import toast from 'react-hot-toast';
 
 interface ConsignesData {
-  consignes_arrivee: string;
-  consignes_mise_en_place: string;
-  consignes_generales: string;
+  consignes: string;
   heure_arrivee_suggeree: string;
   source_consignes: 'secretariat' | 'specifique';
 }
@@ -45,9 +43,7 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
   const [utiliserSpecifiques, setUtiliserSpecifiques] = useState(false);
   
   const [formData, setFormData] = useState({
-    consignes_arrivee: '',
-    consignes_mise_en_place: '',
-    consignes_generales: ''
+    consignes: ''
   });
 
   useEffect(() => {
@@ -90,16 +86,26 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
       const utiliseSpecifiques = examenData?.utiliser_consignes_specifiques || false;
       setUtiliserSpecifiques(utiliseSpecifiques);
 
+      // Construire les consignes spécifiques unifiées si elles existent
+      let consignesSpecifiquesUnifiees = '';
+      if (utiliseSpecifiques) {
+        const parts = [];
+        if (examenData?.consignes_specifiques_arrivee?.trim()) {
+          parts.push(examenData.consignes_specifiques_arrivee.trim());
+        }
+        if (examenData?.consignes_specifiques_mise_en_place?.trim()) {
+          parts.push(examenData.consignes_specifiques_mise_en_place.trim());
+        }
+        if (examenData?.consignes_specifiques_generales?.trim()) {
+          parts.push(examenData.consignes_specifiques_generales.trim());
+        }
+        consignesSpecifiquesUnifiees = parts.join('\n\n');
+      }
+
       const consignesEffectives = {
-        consignes_arrivee: utiliseSpecifiques && examenData?.consignes_specifiques_arrivee
-          ? examenData.consignes_specifiques_arrivee
-          : secretariatData?.consignes_arrivee || '',
-        consignes_mise_en_place: utiliseSpecifiques && examenData?.consignes_specifiques_mise_en_place
-          ? examenData.consignes_specifiques_mise_en_place
-          : secretariatData?.consignes_mise_en_place || '',
-        consignes_generales: utiliseSpecifiques && examenData?.consignes_specifiques_generales
-          ? examenData.consignes_specifiques_generales
-          : secretariatData?.consignes_generales || '',
+        consignes: utiliseSpecifiques && consignesSpecifiquesUnifiees
+          ? consignesSpecifiquesUnifiees
+          : secretariatData?.consignes || '',
         heure_arrivee_suggeree: secretariatData?.heure_arrivee_suggeree || '',
         source_consignes: utiliseSpecifiques ? 'specifique' : 'secretariat'
       };
@@ -107,9 +113,7 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
       setConsignes(consignesEffectives);
       
       setFormData({
-        consignes_arrivee: consignesEffectives.consignes_arrivee,
-        consignes_mise_en_place: consignesEffectives.consignes_mise_en_place,
-        consignes_generales: consignesEffectives.consignes_generales
+        consignes: consignesEffectives.consignes
       });
 
     } catch (error) {
@@ -124,13 +128,21 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
     try {
       setSaving(true);
       
-      // Initialiser les consignes spécifiques avec celles du secrétariat
+      // Initialiser les consignes spécifiques avec celles du secrétariat (format unifié)
+      const consignesUnifiees = consignesSecretariat?.consignes || '';
+      
+      // Diviser les consignes unifiées en parties pour maintenir la compatibilité
+      const parts = consignesUnifiees.split('\n\n');
+      const consignes_arrivee = parts[0] || '';
+      const consignes_mise_en_place = parts[1] || '';
+      const consignes_generales = parts[2] || '';
+
       const { error } = await supabase
         .from('examens')
         .update({
-          consignes_specifiques_arrivee: consignesSecretariat?.consignes_arrivee || '',
-          consignes_specifiques_mise_en_place: consignesSecretariat?.consignes_mise_en_place || '',
-          consignes_specifiques_generales: consignesSecretariat?.consignes_generales || '',
+          consignes_specifiques_arrivee: consignes_arrivee,
+          consignes_specifiques_mise_en_place: consignes_mise_en_place,
+          consignes_specifiques_generales: consignes_generales,
           utiliser_consignes_specifiques: true,
           updated_at: new Date().toISOString()
         })
@@ -180,12 +192,18 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
     try {
       setSaving(true);
       
+      // Diviser les consignes unifiées en parties pour maintenir la compatibilité
+      const parts = formData.consignes.split('\n\n');
+      const consignes_arrivee = parts[0] || '';
+      const consignes_mise_en_place = parts[1] || '';
+      const consignes_generales = parts[2] || '';
+      
       const { error } = await supabase
         .from('examens')
         .update({
-          consignes_specifiques_arrivee: formData.consignes_arrivee,
-          consignes_specifiques_mise_en_place: formData.consignes_mise_en_place,
-          consignes_specifiques_generales: formData.consignes_generales,
+          consignes_specifiques_arrivee: consignes_arrivee,
+          consignes_specifiques_mise_en_place: consignes_mise_en_place,
+          consignes_specifiques_generales: consignes_generales,
           utiliser_consignes_specifiques: true,
           updated_at: new Date().toISOString()
         })
@@ -261,74 +279,34 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Consignes d'arrivée
+              Consignes pour les surveillants
               {utiliserSpecifiques && editing && (
                 <span className="text-xs text-gray-500 ml-2">(Personnalisées)</span>
               )}
             </label>
             {editing && utiliserSpecifiques ? (
               <textarea
-                value={formData.consignes_arrivee}
-                onChange={(e) => setFormData({ ...formData, consignes_arrivee: e.target.value })}
-                rows={3}
+                value={formData.consignes}
+                onChange={(e) => setFormData({ ...formData, consignes: e.target.value })}
+                rows={8}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Consignes d'arrivée pour cet examen..."
-              />
-            ) : (
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <p className="text-sm text-gray-700">
-                  {consignes?.consignes_arrivee || 'Aucune consigne d\'arrivée définie'}
-                </p>
-              </div>
-            )}
-          </div>
+                placeholder="Exemple:
+Veuillez vous présenter à 08h15 à l'accueil de la faculté.
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Consignes de mise en place
-              {utiliserSpecifiques && editing && (
-                <span className="text-xs text-gray-500 ml-2">(Personnalisées)</span>
-              )}
-            </label>
-            {editing && utiliserSpecifiques ? (
-              <textarea
-                value={formData.consignes_mise_en_place}
-                onChange={(e) => setFormData({ ...formData, consignes_mise_en_place: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Consignes de mise en place pour cet examen..."
-              />
-            ) : (
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <p className="text-sm text-gray-700">
-                  {consignes?.consignes_mise_en_place || 'Aucune consigne de mise en place définie'}
-                </p>
-              </div>
-            )}
-          </div>
+Vérifiez la présence du matériel nécessaire et l'accès aux salles.
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Consignes générales
-              {utiliserSpecifiques && editing && (
-                <span className="text-xs text-gray-500 ml-2">(Personnalisées)</span>
-              )}
-            </label>
-            {editing && utiliserSpecifiques ? (
-              <textarea
-                value={formData.consignes_generales}
-                onChange={(e) => setFormData({ ...formData, consignes_generales: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Consignes générales pour cet examen..."
+Respectez les protocoles spécifiques à cette faculté et les consignes de sécurité."
               />
             ) : (
               <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <p className="text-sm text-gray-700">
-                  {consignes?.consignes_generales || 'Aucune consigne générale définie'}
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {consignes?.consignes || 'Aucune consigne définie'}
                 </p>
               </div>
             )}
+            <p className="text-xs text-gray-500 mt-1">
+              Utilisez des sauts de ligne pour séparer les différentes consignes (arrivée, mise en place, consignes générales).
+            </p>
           </div>
         </div>
 
@@ -369,9 +347,7 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
                       onClick={() => {
                         setEditing(false);
                         setFormData({
-                          consignes_arrivee: consignes?.consignes_arrivee || '',
-                          consignes_mise_en_place: consignes?.consignes_mise_en_place || '',
-                          consignes_generales: consignes?.consignes_generales || ''
+                          consignes: consignes?.consignes || ''
                         });
                       }}
                       disabled={saving}

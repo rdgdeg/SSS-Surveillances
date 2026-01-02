@@ -11,9 +11,7 @@ interface ConsigneSecretariat {
   id: string;
   code_secretariat: string;
   nom_secretariat: string;
-  consignes_arrivee: string | null;
-  consignes_mise_en_place: string | null;
-  consignes_generales: string | null;
+  consignes: string | null;
   heure_arrivee_suggeree: string | null;
   is_active: boolean;
 }
@@ -142,41 +140,23 @@ export default function ConsignesSecretariatPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Consignes d'arrivée
+                        Consignes pour les surveillants
                       </label>
                       <textarea
-                        value={formData.consignes_arrivee || ''}
-                        onChange={(e) => setFormData({ ...formData, consignes_arrivee: e.target.value })}
-                        rows={3}
+                        value={formData.consignes || ''}
+                        onChange={(e) => setFormData({ ...formData, consignes: e.target.value })}
+                        rows={8}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Ex: Veuillez vous présenter à l'accueil de la faculté..."
-                      />
-                    </div>
+                        placeholder="Exemple:
+Veuillez vous présenter à 08h15 à l'accueil de la faculté.
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Consignes de mise en place
-                      </label>
-                      <textarea
-                        value={formData.consignes_mise_en_place || ''}
-                        onChange={(e) => setFormData({ ...formData, consignes_mise_en_place: e.target.value })}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Ex: Disposer les tables en rangées espacées..."
-                      />
-                    </div>
+Vérifiez la présence du matériel nécessaire et l'accès aux salles.
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Consignes générales
-                      </label>
-                      <textarea
-                        value={formData.consignes_generales || ''}
-                        onChange={(e) => setFormData({ ...formData, consignes_generales: e.target.value })}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Ex: Merci de respecter les consignes de sécurité..."
+Respectez les protocoles spécifiques à cette faculté et les consignes de sécurité."
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Utilisez des sauts de ligne pour séparer les différentes consignes (arrivée, mise en place, consignes générales).
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -202,37 +182,16 @@ export default function ConsignesSecretariatPage() {
                   </div>
                 ) : (
                   <div className="space-y-3 text-sm">
-                    {consigne.consignes_arrivee && (
+                    {consigne.consignes ? (
                       <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                          Consignes d'arrivée :
+                        <span className="font-medium text-gray-700 dark:text-gray-300 block mb-2">
+                          Consignes pour les surveillants :
                         </span>
-                        <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
-                          {consigne.consignes_arrivee}
+                        <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                          {consigne.consignes}
                         </p>
                       </div>
-                    )}
-                    {consigne.consignes_mise_en_place && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                          Consignes de mise en place :
-                        </span>
-                        <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
-                          {consigne.consignes_mise_en_place}
-                        </p>
-                      </div>
-                    )}
-                    {consigne.consignes_generales && (
-                      <div>
-                        <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                          Consignes générales :
-                        </span>
-                        <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
-                          {consigne.consignes_generales}
-                        </p>
-                      </div>
-                    )}
-                    {!consigne.consignes_arrivee && !consigne.consignes_mise_en_place && !consigne.consignes_generales && (
+                    ) : (
                       <div className="text-gray-500 dark:text-gray-400 italic">
                         Aucune consigne définie
                       </div>
