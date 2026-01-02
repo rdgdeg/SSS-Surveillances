@@ -94,10 +94,86 @@ export async function getVersionSummary(): Promise<VersionSummary[]> {
 }
 
 /**
- * Récupère les changements récents
+ * Récupère les changements récents avec détails enrichis
  */
-export async function getRecentChanges(days: number = 7): Promise<RecentChange[]> {
+export async function getDetailedRecentChanges(days: number = 7): Promise<any[]> {
   try {
+    const { data, error } = await supabase
+      .from('recent_changes_detailed')
+      .select('*')
+      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching detailed recent changes:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère l'historique détaillé d'un enregistrement
+ */
+export async function getDetailedVersionHistory(
+  tableName: string,
+  recordId?: string,
+  limit: number = 50
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase.rpc('get_detailed_version_history', {
+      p_table_name: tableName,
+      p_record_id: recordId || null,
+      p_limit: limit
+    });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching detailed version history:', error);
+    throw error;
+  }
+}
+
+/**
+ * Analyse les patterns de modification
+ */
+export async function analyzeModificationPatterns(
+  tableName?: string,
+  days: number = 30
+): Promise<any[]> {
+  try {
+    const { data, error } = await supabase.rpc('analyze_modification_patterns', {
+      p_table_name: tableName || null,
+      p_days: days
+    });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error analyzing modification patterns:', error);
+    throw error;
+  }
+}
+
+/**
+ * Récupère les statistiques détaillées par table
+ */
+export async function getDetailedVersionStatistics(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('version_statistics_detailed')
+      .select('*')
+      .order('total_versions', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching detailed version statistics:', error);
+    throw error;
+  }
+}
     const { data, error } = await supabase
       .from('recent_changes')
       .select('*')

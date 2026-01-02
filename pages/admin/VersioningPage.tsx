@@ -16,7 +16,9 @@ import {
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-  Trash2
+  Trash2,
+  Eye,
+  TrendingUp
 } from 'lucide-react';
 import { 
   VersionSummary,
@@ -27,9 +29,11 @@ import {
   updateVersioningConfig,
   cleanupOldVersions,
   exportVersionHistory,
+  getDetailedVersionStatistics,
   formatUtils
 } from '../../lib/versioningService';
 import VersionHistoryPanel from '../../components/admin/VersionHistoryPanel';
+import DetailedVersionPanel from '../../components/admin/DetailedVersionPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -46,6 +50,7 @@ const VersioningPage: React.FC = () => {
   const [userFilter, setUserFilter] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
 
   useEffect(() => {
     loadData();
@@ -161,6 +166,22 @@ const VersioningPage: React.FC = () => {
         </h1>
         <div className="flex items-center gap-2">
           <Button
+            variant={viewMode === 'summary' ? 'default' : 'outline'}
+            onClick={() => setViewMode('summary')}
+            className="flex items-center gap-2"
+          >
+            <Database className="h-4 w-4" />
+            Vue résumé
+          </Button>
+          <Button
+            variant={viewMode === 'detailed' ? 'default' : 'outline'}
+            onClick={() => setViewMode('detailed')}
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            Vue détaillée
+          </Button>
+          <Button
             variant="outline"
             onClick={() => setShowConfig(!showConfig)}
             className="flex items-center gap-2"
@@ -192,8 +213,16 @@ const VersioningPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Résumé des versions par table */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Vue conditionnelle selon le mode */}
+      {viewMode === 'detailed' ? (
+        <DetailedVersionPanel 
+          showAnalytics={true}
+          className="mt-6"
+        />
+      ) : (
+        <>
+          {/* Résumé des versions par table */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {summary.map((table) => (
           <Card key={table.table_name} className="cursor-pointer hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
