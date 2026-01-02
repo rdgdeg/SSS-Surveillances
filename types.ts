@@ -368,6 +368,11 @@ export interface Examen {
   nb_enseignants_presents_manuel: number | null; // Saisie manuelle
   nb_accompagnants_manuel: number | null; // Saisie manuelle
   use_manual_counts: boolean; // Utiliser les valeurs manuelles
+  // Champs pour les consignes spécifiques
+  consignes_specifiques_arrivee: string | null;
+  consignes_specifiques_mise_en_place: string | null;
+  consignes_specifiques_generales: string | null;
+  utiliser_consignes_specifiques: boolean;
   saisie_manuelle: boolean;
   cree_par_email: string | null;
   valide: boolean;
@@ -520,6 +525,7 @@ export interface ExamenFormData {
   nb_enseignants_presents_manuel?: number | null;
   nb_accompagnants_manuel?: number | null;
   use_manual_counts?: boolean;
+  consignes_generales?: string;
 }
 
 export interface ExamenFilters {

@@ -314,6 +314,9 @@ export async function createExamen(
       nb_enseignants_presents_manuel: data.nb_enseignants_presents_manuel || null,
       nb_accompagnants_manuel: data.nb_accompagnants_manuel || null,
       use_manual_counts: data.use_manual_counts || false,
+      // Support des consignes spécifiques
+      consignes_specifiques_generales: data.consignes_generales || null,
+      utiliser_consignes_specifiques: data.consignes_generales ? true : false,
       saisie_manuelle: false,
       valide: true
     };
@@ -394,6 +397,11 @@ export async function updateExamen(
     }
     if (updates.use_manual_counts !== undefined) {
       updateData.use_manual_counts = updates.use_manual_counts;
+    }
+    // Support des consignes spécifiques
+    if (updates.consignes_generales !== undefined) {
+      updateData.consignes_specifiques_generales = updates.consignes_generales;
+      updateData.utiliser_consignes_specifiques = updates.consignes_generales ? true : false;
     }
 
     const { data: examen, error } = await supabase

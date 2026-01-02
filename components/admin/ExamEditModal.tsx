@@ -24,7 +24,8 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
     auditoires: '',
     enseignants: [],
     secretariat: '',
-    nb_surveillants_requis: null
+    nb_surveillants_requis: null,
+    consignes_generales: ''
   });
 
   const [cours, setCours] = useState<Cours[]>([]);
@@ -64,7 +65,8 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
         auditoires: examen.auditoires || '',
         enseignants: examen.enseignants || [],
         secretariat: examen.secretariat || '',
-        nb_surveillants_requis: examen.nb_surveillants_requis
+        nb_surveillants_requis: examen.nb_surveillants_requis,
+        consignes_generales: examen.consignes_specifiques_generales || ''
       });
       if (examen.cours) {
         setCoursSearch(`${examen.cours.code} - ${examen.cours.intitule_complet}`);
@@ -82,7 +84,8 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
         auditoires: '',
         enseignants: [],
         secretariat: '',
-        nb_surveillants_requis: null
+        nb_surveillants_requis: null,
+        consignes_generales: ''
       });
       setCoursSearch('');
     }
@@ -403,6 +406,23 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
                 {errors.nb_surveillants_requis && (
                   <p className="mt-1 text-sm text-red-600">{errors.nb_surveillants_requis}</p>
                 )}
+              </div>
+
+              {/* Consignes générales */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Consignes générales
+                </label>
+                <textarea
+                  value={formData.consignes_generales || ''}
+                  onChange={(e) => setFormData({ ...formData, consignes_generales: e.target.value })}
+                  rows={3}
+                  placeholder="Consignes générales pour cet examen (optionnel - hérite du secrétariat si vide)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Si vide, les consignes du secrétariat {formData.secretariat} seront utilisées
+                </p>
               </div>
 
               {/* Teachers */}
