@@ -17,6 +17,7 @@ interface FormData {
     heureExamen: string;
     typeDemande: TypeDemande;
     surveillantRemplacant: string;
+    surveillanceRepriseCodeExamen: string;
     surveillanceRepriseDate: string;
     surveillanceRepriseHeure: string;
     description: string;
@@ -33,6 +34,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
         heureExamen: '',
         typeDemande: 'modification',
         surveillantRemplacant: '',
+        surveillanceRepriseCodeExamen: '',
         surveillanceRepriseDate: '',
         surveillanceRepriseHeure: '',
         description: '',
@@ -61,6 +63,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
             heureExamen: '',
             typeDemande: 'modification',
             surveillantRemplacant: '',
+            surveillanceRepriseCodeExamen: '',
             surveillanceRepriseDate: '',
             surveillanceRepriseHeure: '',
             description: '',
@@ -90,8 +93,9 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
             }
 
             if (formData.typeDemande === 'permutation') {
-                if (!formData.surveillantRemplacant || !formData.surveillanceRepriseDate || !formData.surveillanceRepriseHeure) {
-                    throw new Error('Pour une permutation, veuillez indiquer qui reprend la surveillance et quand');
+                if (!formData.surveillantRemplacant || !formData.surveillanceRepriseCodeExamen || 
+                    !formData.surveillanceRepriseDate || !formData.surveillanceRepriseHeure) {
+                    throw new Error('Pour une permutation, veuillez indiquer qui reprend la surveillance, le code de l\'examen à reprendre, et quand');
                 }
             }
 
@@ -107,6 +111,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
                 email_demandeur: formData.emailDemandeur || null,
                 telephone_demandeur: formData.telephoneDemandeur || null,
                 surveillant_remplacant: formData.typeDemande === 'permutation' ? formData.surveillantRemplacant : null,
+                surveillance_reprise_code_examen: formData.typeDemande === 'permutation' ? formData.surveillanceRepriseCodeExamen : null,
                 surveillance_reprise_date: formData.typeDemande === 'permutation' ? formData.surveillanceRepriseDate : null,
                 surveillance_reprise_heure: formData.typeDemande === 'permutation' ? formData.surveillanceRepriseHeure : null
             };
@@ -268,6 +273,23 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100"
                                         placeholder="Nom et prénom du surveillant"
                                     />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Code de l'examen que vous reprenez *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="surveillanceRepriseCodeExamen"
+                                        value={formData.surveillanceRepriseCodeExamen}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                                        placeholder="Ex: WFARM1300, WSBIM1207"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Code officiel de l'examen que vous surveillerez en échange
+                                    </p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
