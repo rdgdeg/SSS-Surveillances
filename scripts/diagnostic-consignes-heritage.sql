@@ -48,13 +48,33 @@ SELECT
 FROM consignes_secretariat 
 ORDER BY code_secretariat;
 
--- 5. Vérifier les examens avec consignes spécifiques
-SELECT 
-    'EXAMENS AVEC CONSIGNES SPÉCIFIQUES' as section,
-    COUNT(*) as total_examens,
-    COUNT(CASE WHEN utiliser_consignes_specifiques = true THEN 1 END) as avec_consignes_specifiques,
-    COUNT(CASE WHEN consignes_specifiques_generales IS NOT NULL THEN 1 END) as avec_consignes_generales_specifiques
-FROM examens;
+-- 5. Vérifier les examens avec consignes spécifiques (si les colonnes existent)
+DO $check_examens$
+DECLARE
+    v_column_exists BOOLEAN;
+    v_count INTEGER;
+BEGIN
+    -- Vérifier si la colonne utiliser_consignes_specifiques existe
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'examens' AND column_name = 'utiliser_consignes_specifiques'
+    ) INTO v_column_exists;
+    
+    IF v_column_exists THEN
+        -- Les colonnes existent, faire les statistiques
+        SELECT COUNT(*) INTO v_count FROM examens;
+        RAISE NOTICE 'EXAMENS AVEC CONSIGNES SPÉCIFIQUES: % examens au total', v_count;
+        
+        SELECT COUNT(*) INTO v_count FROM examens WHERE utiliser_consignes_specifiques = true;
+        RAISE NOTICE '  - Avec consignes spécifiques: %', v_count;
+        
+        SELECT COUNT(*) INTO v_count FROM examens WHERE consignes_specifiques_generales IS NOT NULL;
+        RAISE NOTICE '  - Avec consignes générales spécifiques: %', v_count;
+    ELSE
+        RAISE NOTICE 'EXAMENS AVEC CONSIGNES SPÉCIFIQUES: Colonnes non installées';
+        RAISE NOTICE '  - Le système d''héritage n''est pas encore installé';
+    END IF;
+END $check_examens$;
 
 -- 6. Diagnostic complet
 DO $diagnostic$
