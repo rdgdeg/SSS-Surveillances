@@ -34,6 +34,7 @@ import {
 } from '../../lib/versioningService';
 import VersionHistoryPanel from '../../components/admin/VersionHistoryPanel';
 import DetailedVersionPanel from '../../components/admin/DetailedVersionPanel';
+import EnhancedVersioningPanel from '../../components/admin/EnhancedVersioningPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -179,7 +180,7 @@ const VersioningPage: React.FC = () => {
             className="flex items-center gap-2"
           >
             <Eye className="h-4 w-4" />
-            Vue détaillée
+            Vue complète
           </Button>
           <Button
             variant="outline"
@@ -215,10 +216,7 @@ const VersioningPage: React.FC = () => {
 
       {/* Vue conditionnelle selon le mode */}
       {viewMode === 'detailed' ? (
-        <DetailedVersionPanel 
-          showAnalytics={true}
-          className="mt-6"
-        />
+        <EnhancedVersioningPanel />
       ) : (
         <>
           {/* Résumé des versions par table */}
