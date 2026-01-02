@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ExamenWithStatus, ExamenFormData, Cours } from '../../types';
 import { getCours } from '../../lib/coursApi';
 import { createExamen, updateExamen } from '../../lib/examenManagementApi';
+import SecretariatSelect from '../shared/SecretariatSelect';
 
 interface ExamEditModalProps {
   examen: ExamenWithStatus | null;
@@ -369,13 +370,17 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Secrétariat
                   </label>
-                  <input
-                    type="text"
+                  <SecretariatSelect
                     value={formData.secretariat}
-                    onChange={(e) => setFormData({ ...formData, secretariat: e.target.value })}
-                    placeholder="MED, FARM..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(value) => setFormData({ ...formData, secretariat: value })}
+                    placeholder="Sélectionner un secrétariat"
+                    className="w-full"
                   />
+                  {(formData.code_examen.includes('SBIM') || formData.code_examen.includes('FARM')) && formData.secretariat !== 'FASB' && (
+                    <p className="mt-1 text-sm text-blue-600">
+                      💡 Les examens SBIM/FARM sont automatiquement assignés à FASB
+                    </p>
+                  )}
                 </div>
               </div>
 
