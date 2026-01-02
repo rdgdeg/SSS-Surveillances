@@ -11,6 +11,7 @@ interface DemandeModificationModalProps {
 type TypeDemande = 'modification' | 'permutation' | 'message';
 
 interface FormData {
+    codeExamen: string;
     nomExamen: string;
     dateExamen: string;
     heureExamen: string;
@@ -26,6 +27,7 @@ interface FormData {
 
 const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState<FormData>({
+        codeExamen: '',
         nomExamen: '',
         dateExamen: '',
         heureExamen: '',
@@ -53,6 +55,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
 
     const resetForm = () => {
         setFormData({
+            codeExamen: '',
             nomExamen: '',
             dateExamen: '',
             heureExamen: '',
@@ -81,8 +84,8 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
 
         try {
             // Validation
-            if (!formData.nomExamen || !formData.dateExamen || !formData.heureExamen || 
-                !formData.nomDemandeur) {
+            if (!formData.codeExamen || !formData.nomExamen || !formData.dateExamen || 
+                !formData.heureExamen || !formData.nomDemandeur) {
                 throw new Error('Veuillez remplir tous les champs obligatoires');
             }
 
@@ -94,6 +97,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
 
             // Préparer les données pour l'insertion
             const demandeData = {
+                code_examen: formData.codeExamen,
                 nom_examen: formData.nomExamen,
                 date_examen: formData.dateExamen,
                 heure_examen: formData.heureExamen,
@@ -166,6 +170,24 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
                             
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Code de l'examen *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="codeExamen"
+                                    value={formData.codeExamen}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100"
+                                    placeholder="Ex: WFARM1300, WSBIM1207"
+                                    required
+                                />
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Code officiel de l'examen (obligatoire pour identifier précisément l'examen)
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Nom de l'examen *
                                 </label>
                                 <input
@@ -174,7 +196,7 @@ const DemandeModificationModal: React.FC<DemandeModificationModalProps> = ({ isO
                                     value={formData.nomExamen}
                                     onChange={handleInputChange}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100"
-                                    placeholder="Ex: WFARM1300 - Chimie générale"
+                                    placeholder="Ex: Chimie générale"
                                     required
                                 />
                             </div>

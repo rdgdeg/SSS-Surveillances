@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AdminUser } from '../lib/auth';
+import { VersioningContext } from '../lib/versioningContext';
 
 interface AuthContextType {
   user: AdminUser | null;
@@ -18,7 +19,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedUser = localStorage.getItem('admin_user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        
+        // Configurer le contexte de versioning
+        const displayName = userData.nom && userData.prenom 
+          ? `${userData.prenom} ${userData.nom}`
+          : userData.username || userData.email || 'Admin';
+        
+        VersioningContext.setCurrentUser(userData.id || userData.username, displayName);
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('admin_user');
@@ -29,11 +38,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (user: AdminUser) => {
     setUser(user);
     localStorage.setItem('admin_user', JSON.stringify(user));
+    
+    // Configurer le contexte de versioning
+    const displayName = user.nom && user.prenom 
+      ? `${user.prenom} ${user.nom}`
+      : user.username || user.email || 'Admin';
+    
+    VersioningContext.setCurrentUser(user.id || user.username, displayName);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('admin_user');
+    VersioningContext.clearCurrentUser();
   };
 
   return (
