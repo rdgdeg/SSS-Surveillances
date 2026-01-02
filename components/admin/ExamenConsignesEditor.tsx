@@ -58,25 +58,22 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
     try {
       setLoading(true);
       
-      // Charger les consignes effectives de l'examen
-      const { data: consignesData, error: consignesError } = await supabase
-        .rpc('get_consignes_examen', { p_examen_id: examenId });
+      // Charger l'examen avec ses consignes spécifiques
+      const { data: examenData, error: examenError } = await supabase
+        .from('examens')
+        .select(`
+          id,
+          utiliser_consignes_specifiques,
+          consignes_specifiques_arrivee,
+          consignes_specifiques_mise_en_place,
+          consignes_specifiques_generales
+        `)
+        .eq('id', examenId)
+        .single();
 
-      if (consignesError) throw consignesError;
+      if (examenError) throw examenError;
 
-      if (consignesData && consignesData.length > 0) {
-        const consignesEffectives = consignesData[0];
-        setConsignes(consignesEffectives);
-        setUtiliserSpecifiques(consignesEffectives.source_consignes === 'specifique');
-        
-        setFormData({
-          consignes_arrivee: consignesEffectives.consignes_arrivee || '',
-          consignes_mise_en_place: consignesEffectives.consignes_mise_en_place || '',
-          consignes_generales: consignesEffectives.consignes_generales || ''
-        });
-      }
-
-      // Charger les consignes du secrétariat pour référence
+      // Charger les consignes du secrétariat
       const { data: secretariatData, error: secretariatError } = await supabase
         .from('consignes_secretariat')
         .select('*')
@@ -88,6 +85,32 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
       }
 
       setConsignesSecretariat(secretariatData);
+
+      // Calculer les consignes effectives
+      const utiliseSpecifiques = examenData?.utiliser_consignes_specifiques || false;
+      setUtiliserSpecifiques(utiliseSpecifiques);
+
+      const consignesEffectives = {
+        consignes_arrivee: utiliseSpecifiques && examenData?.consignes_specifiques_arrivee
+          ? examenData.consignes_specifiques_arrivee
+          : secretariatData?.consignes_arrivee || '',
+        consignes_mise_en_place: utiliseSpecifiques && examenData?.consignes_specifiques_mise_en_place
+          ? examenData.consignes_specifiques_mise_en_place
+          : secretariatData?.consignes_mise_en_place || '',
+        consignes_generales: utiliseSpecifiques && examenData?.consignes_specifiques_generales
+          ? examenData.consignes_specifiques_generales
+          : secretariatData?.consignes_generales || '',
+        heure_arrivee_suggeree: secretariatData?.heure_arrivee_suggeree || '',
+        source_consignes: utiliseSpecifiques ? 'specifique' : 'secretariat'
+      };
+
+      setConsignes(consignesEffectives);
+      
+      setFormData({
+        consignes_arrivee: consignesEffectives.consignes_arrivee,
+        consignes_mise_en_place: consignesEffectives.consignes_mise_en_place,
+        consignes_generales: consignesEffectives.consignes_generales
+      });
 
     } catch (error) {
       console.error('Error loading consignes:', error);
@@ -101,8 +124,17 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
     try {
       setSaving(true);
       
+      // Initialiser les consignes spécifiques avec celles du secrétariat
       const { error } = await supabase
-        .rpc('initialiser_consignes_specifiques', { p_examen_id: examenId });
+        .from('examens')
+        .update({
+          consignes_specifiques_arrivee: consignesSecretariat?.consignes_arrivee || '',
+          consignes_specifiques_mise_en_place: consignesSecretariat?.consignes_mise_en_place || '',
+          consignes_specifiques_generales: consignesSecretariat?.consignes_generales || '',
+          utiliser_consignes_specifiques: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', examenId);
 
       if (error) throw error;
 
@@ -123,7 +155,12 @@ const ExamenConsignesEditor: React.FC<ExamenConsignesEditorProps> = ({
       setSaving(true);
       
       const { error } = await supabase
-        .rpc('utiliser_consignes_secretariat', { p_examen_id: examenId });
+        .from('examens')
+        .update({
+          utiliser_consignes_specifiques: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', examenId);
 
       if (error) throw error;
 
