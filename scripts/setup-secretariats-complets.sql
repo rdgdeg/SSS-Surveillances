@@ -10,51 +10,45 @@ SELECT
 FROM consignes_secretariat 
 ORDER BY code_secretariat;
 
--- 2. Insérer ou mettre à jour tous les secrétariats requis
+-- 2. Insérer ou mettre à jour tous les secrétariats requis (SANS consignes générales fixes)
 INSERT INTO consignes_secretariat (
     code_secretariat, 
     nom_secretariat, 
     consignes_arrivee, 
     consignes_mise_en_place,
-    consignes_generales,
     heure_arrivee_suggeree,
     is_active
 ) VALUES
     ('BAC11', 'BAC 11', 
      'Veuillez vous présenter à l''accueil du BAC 11.', 
      'Suivez les instructions du responsable de surveillance.',
-     'Respectez les consignes générales de surveillance.',
      '08:15', true),
     
     ('DENT', 'Faculté de Médecine Dentaire', 
      'Veuillez vous présenter à l''accueil de la Faculté de Médecine Dentaire.', 
      'Vérifiez l''installation des postes et le matériel spécialisé.',
-     'Attention aux équipements dentaires et aux consignes d''hygiène.',
      '08:15', true),
     
     ('FASB', 'Faculté de Pharmacie et Sciences Biomédicales', 
      'Veuillez vous présenter à l''accueil de la Faculté de Pharmacie et Sciences Biomédicales.', 
      'Contrôlez les équipements de laboratoire et les consignes de sécurité.',
-     'Respectez les protocoles de sécurité des laboratoires.',
      '08:15', true),
     
     ('FSP', 'Faculté de Santé Publique', 
      'Veuillez vous présenter à l''accueil de la Faculté de Santé Publique.', 
      'Vérifiez la configuration des salles et l''accès aux ressources.',
-     'Suivez les consignes spécifiques aux examens de santé publique.',
      '08:15', true),
     
     ('MED', 'Faculté de Médecine', 
      'Veuillez vous présenter à l''accueil de la Faculté de Médecine.', 
      'Contrôlez l''accès aux salles et le matériel médical si nécessaire.',
-     'Respectez les consignes médicales et d''hygiène.',
      '08:15', true)
 
 ON CONFLICT (code_secretariat) DO UPDATE SET
     nom_secretariat = EXCLUDED.nom_secretariat,
     consignes_arrivee = COALESCE(EXCLUDED.consignes_arrivee, consignes_secretariat.consignes_arrivee),
     consignes_mise_en_place = COALESCE(EXCLUDED.consignes_mise_en_place, consignes_secretariat.consignes_mise_en_place),
-    consignes_generales = COALESCE(EXCLUDED.consignes_generales, consignes_secretariat.consignes_generales),
+    -- NE PAS écraser les consignes_generales existantes
     heure_arrivee_suggeree = COALESCE(EXCLUDED.heure_arrivee_suggeree, consignes_secretariat.heure_arrivee_suggeree),
     is_active = EXCLUDED.is_active,
     updated_at = NOW();
