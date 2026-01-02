@@ -174,20 +174,6 @@ export async function getDetailedVersionStatistics(): Promise<any[]> {
     throw error;
   }
 }
-    const { data, error } = await supabase
-      .from('recent_changes')
-      .select('*')
-      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching recent changes:', error);
-    throw error;
-  }
-}
 
 /**
  * Restaure un enregistrement à une version antérieure

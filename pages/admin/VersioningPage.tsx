@@ -24,7 +24,7 @@ import {
   VersionSummary,
   RecentChange,
   getVersionSummary,
-  getRecentChanges,
+  getDetailedRecentChanges,
   getVersioningMetadata,
   updateVersioningConfig,
   cleanupOldVersions,
@@ -62,7 +62,7 @@ const VersioningPage: React.FC = () => {
       setLoading(true);
       const [summaryData, changesData, metadataData] = await Promise.all([
         getVersionSummary(),
-        getRecentChanges(parseInt(dateFilter)),
+        getDetailedRecentChanges(parseInt(dateFilter)),
         getVersioningMetadata()
       ]);
       
@@ -221,7 +221,7 @@ const VersioningPage: React.FC = () => {
         <>
           {/* Résumé des versions par table */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {summary.map((table) => (
+            {summary.map((table) => (
           <Card key={table.table_name} className="cursor-pointer hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
@@ -482,6 +482,8 @@ const VersioningPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </div>
   );
