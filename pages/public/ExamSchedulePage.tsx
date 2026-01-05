@@ -803,31 +803,6 @@ export default function ExamSchedulePage() {
                               </div>
                             </div>
                           ) : null}
-                                  <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-                                    Consignes spécifiques du cours {examen.cours.code}
-                                  </p>
-                                  <p className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
-                                    {examen.cours.consignes}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ) : consignes && consignes.consignes ? (
-                            // Consignes du secrétariat (priorité par défaut)
-                            <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                              <div className="flex items-start gap-2">
-                                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 text-xs">
-                                  <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                                    Consignes générales - {consignes.nom_secretariat}
-                                  </p>
-                                  <div className="text-blue-700 dark:text-blue-300 whitespace-pre-line">
-                                    {consignes.consignes}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ) : null}
                         </div>
 
                         {/* Right: Surveillants and Actions */}
