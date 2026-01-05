@@ -5,13 +5,14 @@ import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { AttributionStatusBadge } from '../shared/AttributionStatusBadge';
 import { Pagination } from '../shared/Pagination';
 import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
-import { Plus, Edit2, Trash2, X, Save, Users, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Users, FileText, Mail } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
 import { useAuth } from '../../contexts/AuthContext';
 import ExamenAuditoiresModal from './ExamenAuditoiresModal';
 import ExamenConsignesModal from './ExamenConsignesModal';
+import ExamenSurveillantEmailsModal from './ExamenSurveillantEmailsModal';
 import { useExamenAuditoiresStats } from '../../src/hooks/useExamenAuditoiresStats';
 
 interface ExamListProps {
@@ -52,6 +53,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   const [selectedExam, setSelectedExam] = useState<ExamenWithStatus | null>(null);
   const [showAuditoiresModal, setShowAuditoiresModal] = useState<{ id: string; nom: string } | null>(null);
   const [showConsignesModal, setShowConsignesModal] = useState<ExamenWithStatus | null>(null);
+  const [showEmailsModal, setShowEmailsModal] = useState<{ id: string; nom: string } | null>(null);
   const [formData, setFormData] = useState<ExamFormData>({
     cours_id: null,
     code_examen: '',
@@ -662,14 +664,24 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                             </svg>
                           )}
                         </div>
-                        <button
-                          onClick={() => setShowAuditoiresModal({ id: examen.id, nom: examen.nom_examen })}
-                          className="flex items-center gap-1 px-3 py-1 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
-                          title="Gérer les auditoires et surveillants"
-                        >
-                          <Users className="h-4 w-4" />
-                          Gérer
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setShowAuditoiresModal({ id: examen.id, nom: examen.nom_examen })}
+                            className="flex items-center gap-1 px-3 py-1 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                            title="Gérer les auditoires et surveillants"
+                          >
+                            <Users className="h-4 w-4" />
+                            Gérer
+                          </button>
+                          <button
+                            onClick={() => setShowEmailsModal({ id: examen.id, nom: examen.nom_examen })}
+                            className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                            title="Copier les emails des surveillants"
+                          >
+                            <Mail className="h-4 w-4" />
+                            Emails
+                          </button>
+                        </div>
                       </div>
                     </td>
 
@@ -1263,6 +1275,15 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
           examenId={showAuditoiresModal.id}
           examenNom={showAuditoiresModal.nom}
           onClose={() => setShowAuditoiresModal(null)}
+        />
+      )}
+
+      {/* Modal Emails Surveillants */}
+      {showEmailsModal && (
+        <ExamenSurveillantEmailsModal
+          examenId={showEmailsModal.id}
+          examenNom={showEmailsModal.nom}
+          onClose={() => setShowEmailsModal(null)}
         />
       )}
 
