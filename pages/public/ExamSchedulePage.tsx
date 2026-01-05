@@ -729,8 +729,51 @@ export default function ExamSchedulePage() {
                             )}
                           </div>
 
-                          {/* Consignes - Mode secrétariat ou consignes générales */}
-                          {examen.is_mode_secretariat ? (
+                          {/* Consignes avec priorité: spécifiques examen > cours > secrétariat > mode secrétariat */}
+                          {examen.utiliser_consignes_specifiques ? (
+                            // Consignes spécifiques de l'examen (priorité maximale)
+                            <div className="mt-4 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 text-xs">
+                                  <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                    Consignes spécifiques pour cet examen
+                                  </p>
+                                  {examen.consignes_specifiques_arrivee && (
+                                    <p className="text-amber-700 dark:text-amber-300 mb-1">
+                                      <strong>Arrivée :</strong> {examen.consignes_specifiques_arrivee}
+                                    </p>
+                                  )}
+                                  {examen.consignes_specifiques_mise_en_place && (
+                                    <p className="text-amber-700 dark:text-amber-300 mb-1">
+                                      <strong>Mise en place :</strong> {examen.consignes_specifiques_mise_en_place}
+                                    </p>
+                                  )}
+                                  {examen.consignes_specifiques_generales && (
+                                    <p className="text-amber-700 dark:text-amber-300">
+                                      <strong>Consignes :</strong> {examen.consignes_specifiques_generales}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ) : examen.cours?.consignes ? (
+                            // Consignes du cours (priorité élevée - remplace même le mode secrétariat)
+                            <div className="mt-4 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 text-xs">
+                                  <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                    Consignes spécifiques du cours {examen.cours.code}
+                                  </p>
+                                  <p className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
+                                    {examen.cours.consignes}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : examen.is_mode_secretariat ? (
+                            // Mode secrétariat : message spécial (priorité basse)
                             <div className="mt-4 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
@@ -744,7 +787,8 @@ export default function ExamSchedulePage() {
                                 </div>
                               </div>
                             </div>
-                          ) : consignes && consignes.consignes && (
+                          ) : consignes && consignes.consignes ? (
+                            // Consignes du secrétariat (priorité par défaut)
                             <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                               <div className="flex items-start gap-2">
                                 <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -758,49 +802,32 @@ export default function ExamSchedulePage() {
                                 </div>
                               </div>
                             </div>
-                          )}
-
-                          {/* Consignes spécifiques (si activées) ou consignes du cours - sauf en mode secrétariat */}
-                          {!examen.is_mode_secretariat && (examen.utiliser_consignes_specifiques || examen.cours?.consignes) && (
-                            <div className="mt-2 ml-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                              <div className="flex items-start gap-2">
-                                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 text-xs">
-                                  {examen.utiliser_consignes_specifiques ? (
-                                    <>
-                                      <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-                                        Consignes spécifiques pour cet examen
-                                      </p>
-                                      {examen.consignes_specifiques_arrivee && (
-                                        <p className="text-amber-700 dark:text-amber-300 mb-1">
-                                          <strong>Arrivée :</strong> {examen.consignes_specifiques_arrivee}
-                                        </p>
-                                      )}
-                                      {examen.consignes_specifiques_mise_en_place && (
-                                        <p className="text-amber-700 dark:text-amber-300 mb-1">
-                                          <strong>Mise en place :</strong> {examen.consignes_specifiques_mise_en_place}
-                                        </p>
-                                      )}
-                                      {examen.consignes_specifiques_generales && (
-                                        <p className="text-amber-700 dark:text-amber-300">
-                                          <strong>Consignes :</strong> {examen.consignes_specifiques_generales}
-                                        </p>
-                                      )}
-                                    </>
-                                  ) : examen.cours?.consignes && (
-                                    <>
-                                      <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-                                        Consignes spécifiques du cours {examen.cours.code}
-                                      </p>
-                                      <p className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
-                                        {examen.cours.consignes}
-                                      </p>
-                                    </>
-                                  )}
+                          ) : null}
+                                  <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                                    Consignes spécifiques du cours {examen.cours.code}
+                                  </p>
+                                  <p className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
+                                    {examen.cours.consignes}
+                                  </p>
                                 </div>
                               </div>
                             </div>
-                          )}
+                          ) : consignes && consignes.consignes ? (
+                            // Consignes du secrétariat (priorité par défaut)
+                            <div className="mt-4 ml-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 text-xs">
+                                  <p className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                                    Consignes générales - {consignes.nom_secretariat}
+                                  </p>
+                                  <div className="text-blue-700 dark:text-blue-300 whitespace-pre-line">
+                                    {consignes.consignes}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
 
                         {/* Right: Surveillants and Actions */}

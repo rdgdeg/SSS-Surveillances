@@ -166,16 +166,36 @@ export async function exportSurveillancesSurveillant(
       c.code_secretariat === examen.secretariat
     );
 
-    // Format consignes
+    // Format consignes avec priorité: spécifiques examen > cours > secrétariat > mode secrétariat
     let consignesText = '';
     
-    if (examen.is_mode_secretariat) {
-      consignesText = 'Les consignes détaillées (arrivée, mise en place, auditoires) seront communiquées ultérieurement par le pool, le secrétariat ou le responsable de cours.';
-    } else {
+    if (examen.utiliser_consignes_specifiques) {
+      // Consignes spécifiques de l'examen (priorité maximale)
       const consignesParts = [];
-      
-      // Consignes générales du secrétariat
-      if (consignes) {
+      if (examen.consignes_specifiques_arrivee) {
+        consignesParts.push(`Arrivée: ${examen.consignes_specifiques_arrivee}`);
+      }
+      if (examen.consignes_specifiques_mise_en_place) {
+        consignesParts.push(`Mise en place: ${examen.consignes_specifiques_mise_en_place}`);
+      }
+      if (examen.consignes_specifiques_generales) {
+        consignesParts.push(`Consignes: ${examen.consignes_specifiques_generales}`);
+      }
+      consignesText = consignesParts.join(' | ');
+    } else if (examen.cours?.consignes) {
+      // Consignes du cours (priorité élevée - remplace même le mode secrétariat)
+      consignesText = `Consignes du cours: ${examen.cours.consignes}`;
+    } else if (examen.is_mode_secretariat) {
+      // Mode secrétariat : message spécial (priorité basse)
+      consignesText = 'Les consignes détaillées (arrivée, mise en place, auditoires) seront communiquées ultérieurement par le pool, le secrétariat ou le responsable de cours.';
+    } else if (consignes) {
+      // Consignes du secrétariat (priorité par défaut)
+      const consignesParts = [];
+      if (consignes.consignes) {
+        // Nouveau format unifié
+        consignesParts.push(consignes.consignes);
+      } else {
+        // Ancien format séparé (pour compatibilité)
         if (consignes.consignes_arrivee) {
           consignesParts.push(`Arrivée: ${consignes.consignes_arrivee}`);
         }
@@ -186,22 +206,6 @@ export async function exportSurveillancesSurveillant(
           consignesParts.push(`Consignes générales: ${consignes.consignes_generales}`);
         }
       }
-      
-      // Consignes spécifiques de l'examen
-      if (examen.utiliser_consignes_specifiques) {
-        if (examen.consignes_specifiques_arrivee) {
-          consignesParts.push(`Arrivée spécifique: ${examen.consignes_specifiques_arrivee}`);
-        }
-        if (examen.consignes_specifiques_mise_en_place) {
-          consignesParts.push(`Mise en place spécifique: ${examen.consignes_specifiques_mise_en_place}`);
-        }
-        if (examen.consignes_specifiques_generales) {
-          consignesParts.push(`Consignes spécifiques: ${examen.consignes_specifiques_generales}`);
-        }
-      } else if (examen.cours?.consignes) {
-        consignesParts.push(`Consignes du cours: ${examen.cours.consignes}`);
-      }
-      
       consignesText = consignesParts.join(' | ');
     }
 
