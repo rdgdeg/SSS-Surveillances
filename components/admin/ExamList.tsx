@@ -129,6 +129,13 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
         value = editValue ? parseInt(editValue, 10) : null;
       }
       
+      // Pour le secrétariat, garder la valeur string même si vide
+      if (field === 'secretariat') {
+        value = editValue; // Ne pas convertir en null si vide
+      }
+      
+      console.log('Saving edit:', { examenId, field, editValue, value });
+      
       await updateExamen(
         examenId, 
         { [field]: value } as any,
@@ -800,7 +807,11 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                       {editingField?.examenId === examen.id && editingField?.field === 'secretariat' ? (
                         <select
                           value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
+                          onChange={(e) => {
+                            setEditValue(e.target.value);
+                            // Sauvegarder immédiatement quand une option est sélectionnée
+                            setTimeout(() => handleSaveEdit(examen.id, 'secretariat'), 100);
+                          }}
                           onBlur={() => handleSaveEdit(examen.id, 'secretariat')}
                           onKeyDown={(e) => handleKeyPress(e, examen.id, 'secretariat')}
                           className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
