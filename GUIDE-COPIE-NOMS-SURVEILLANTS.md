@@ -16,8 +16,13 @@ Dans la modal "Emails des surveillants", vous pouvez maintenant copier :
 
 ### **Section Noms et Prénoms**
 - **Bouton** : "Copier tous les noms"
-- **Format** : `Prénom Nom; Prénom Nom; ...`
-- **Exemple** : `Jean Dupont; Marie Martin; Pierre Durand`
+- **Format** : Un nom par ligne (retour à la ligne)
+- **Exemple** : 
+```
+Jean Dupont
+Marie Martin
+Pierre Durand
+```
 
 ### **Section Emails** (existante)
 - **Bouton** : "Copier tous les emails"
@@ -60,9 +65,10 @@ Dans la modal "Emails des surveillants", vous pouvez maintenant copier :
 - ❌ Surveillants remplacés (anciens)
 
 ### **Tri et format :**
-- **Noms** : Triés par ordre alphabétique
-- **Emails** : Triés par ordre alphabétique
-- **Séparateur** : Point-virgule + espace ("; ")
+- **Noms** : Triés par ordre alphabétique, un par ligne
+- **Emails** : Triés par ordre alphabétique, séparés par ";"
+- **Séparateur noms** : Retour à la ligne (\n)
+- **Séparateur emails** : Point-virgule + espace ("; ")
 
 ## 📱 Utilisation pratique
 
@@ -87,12 +93,18 @@ Examens → [Sélectionner examen] → Bouton "Emails"
 
 ## 🎯 Exemples concrets
 
-### **Feuille de présence Excel**
+### **Feuille de présence Word/Excel**
 ```
-Nom et Prénom          | Signature | Heure d'arrivée
-Jean Dupont           |           |
-Marie Martin          |           |
-Pierre Durand         |           |
+Surveillants présents :
+
+Jean Dupont
+Marie Martin  
+Pierre Durand
+
+Signatures :
+_________________
+_________________
+_________________
 ```
 
 ### **Email groupé Outlook**
@@ -134,10 +146,12 @@ Surveillants présents pour l'examen WMED1234 :
 
 ### **Format de sortie**
 ```javascript
-// Noms
-"Jean Dupont; Marie Martin; Pierre Durand"
+// Noms (un par ligne)
+`Jean Dupont
+Marie Martin
+Pierre Durand`
 
-// Emails  
+// Emails (séparés par ;)
 "jean.dupont@univ.be; marie.martin@univ.be; pierre.durand@univ.be"
 ```
 

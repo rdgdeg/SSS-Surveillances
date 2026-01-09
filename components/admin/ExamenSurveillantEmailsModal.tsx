@@ -95,9 +95,9 @@ export default function ExamenSurveillantEmailsModal({ examenId, examenNom, onCl
   const emails = surveillantsActifs.map(s => s.email).sort();
   const emailsString = emails.join('; ');
 
-  // Générer la liste des noms et prénoms
+  // Générer la liste des noms et prénoms (un par ligne)
   const names = surveillantsActifs.map(s => `${s.prenom} ${s.nom}`).sort();
-  const namesString = names.join('; ');
+  const namesString = names.join('\n');
 
   const handleCopyEmails = async () => {
     try {
@@ -225,7 +225,7 @@ export default function ExamenSurveillantEmailsModal({ examenId, examenNom, onCl
               </div>
               
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Format : noms et prénoms séparés par des points-virgules
+                Format : un nom par ligne, prêt à coller dans vos documents
               </p>
             </div>
           )}
@@ -278,9 +278,9 @@ export default function ExamenSurveillantEmailsModal({ examenId, examenNom, onCl
             </h4>
             <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
               <li>• <strong>Emails :</strong> Cliquez sur "Copier tous les emails" et collez dans votre client email</li>
-              <li>• <strong>Noms :</strong> Cliquez sur "Copier tous les noms" pour les listes de présence ou documents</li>
+              <li>• <strong>Noms :</strong> Cliquez sur "Copier tous les noms" pour les listes (un nom par ligne)</li>
               <li>• Utilisez le champ "À" ou "Cci" pour un envoi groupé d'emails</li>
-              <li>• Les noms peuvent servir pour créer des listes de surveillants ou des feuilles de présence</li>
+              <li>• Les noms sont parfaits pour créer des feuilles de présence ou des listes Word/Excel</li>
             </ul>
           </div>
         </div>
