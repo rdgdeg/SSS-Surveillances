@@ -16,6 +16,7 @@ interface SurveillantWithEmail {
   nom: string;
   prenom: string;
   email: string;
+  type?: string;
 }
 
 interface ExamenAuditoire {
@@ -53,7 +54,7 @@ export default function ExamenSurveillantEmailsModal({ examenId, examenNom, onCl
     queryFn: async () => {
       const { data, error } = await supabase
         .from('surveillants')
-        .select('id, nom, prenom, email')
+        .select('id, nom, prenom, email, type')
         .eq('is_active', true)
         .order('nom');
       if (error) throw error;
@@ -96,7 +97,10 @@ export default function ExamenSurveillantEmailsModal({ examenId, examenNom, onCl
   const emailsString = emails.join('; ');
 
   // Générer la liste des noms et prénoms (un par ligne)
-  const names = surveillantsActifs.map(s => `${s.prenom} ${s.nom}`).sort();
+  const names = surveillantsActifs.map(s => {
+    const nomComplet = `${s.prenom} ${s.nom}`;
+    return s.type === 'jobiste' ? `${nomComplet} (Jobiste)` : nomComplet;
+  }).sort();
   const namesString = names.join('\n');
 
   const handleCopyEmails = async () => {
@@ -173,6 +177,9 @@ export default function ExamenSurveillantEmailsModal({ examenId, examenNom, onCl
                     <div key={surveillant.id} className="flex items-center justify-between text-sm">
                       <span className="text-gray-900 dark:text-white">
                         {surveillant.prenom} {surveillant.nom}
+                        {surveillant.type === 'jobiste' && (
+                          <span className="text-blue-600 dark:text-blue-400 ml-1">(Jobiste)</span>
+                        )}
                       </span>
                       <span className="text-gray-600 dark:text-gray-400 font-mono">
                         {surveillant.email}

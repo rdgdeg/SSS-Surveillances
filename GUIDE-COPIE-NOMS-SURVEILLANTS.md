@@ -17,11 +17,13 @@ Dans la modal "Emails des surveillants", vous pouvez maintenant copier :
 ### **Section Noms et Prénoms**
 - **Bouton** : "Copier tous les noms"
 - **Format** : Un nom par ligne (retour à la ligne)
+- **Jobistes** : Indication "(Jobiste)" ajoutée automatiquement
 - **Exemple** : 
 ```
 Jean Dupont
-Marie Martin
+Marie Martin (Jobiste)
 Pierre Durand
+Sophie Laurent (Jobiste)
 ```
 
 ### **Section Emails** (existante)
@@ -98,10 +100,12 @@ Examens → [Sélectionner examen] → Bouton "Emails"
 Surveillants présents :
 
 Jean Dupont
-Marie Martin  
-Pierre Durand
+Marie Martin (Jobiste)
+Pierre Durand  
+Sophie Laurent (Jobiste)
 
 Signatures :
+_________________
 _________________
 _________________
 _________________
@@ -146,13 +150,14 @@ Surveillants présents pour l'examen WMED1234 :
 
 ### **Format de sortie**
 ```javascript
-// Noms (un par ligne)
+// Noms (un par ligne avec indication jobiste)
 `Jean Dupont
-Marie Martin
-Pierre Durand`
+Marie Martin (Jobiste)
+Pierre Durand
+Sophie Laurent (Jobiste)`
 
 // Emails (séparés par ;)
-"jean.dupont@univ.be; marie.martin@univ.be; pierre.durand@univ.be"
+"jean.dupont@univ.be; marie.martin@univ.be; pierre.durand@univ.be; sophie.laurent@univ.be"
 ```
 
 ## 📋 Checklist d'utilisation

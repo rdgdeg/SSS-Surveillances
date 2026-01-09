@@ -1,14 +1,14 @@
 # Exemple - Format Noms par Ligne
 
-## 🎯 Nouveau format (un nom par ligne)
+## 🎯 Nouveau format (un nom par ligne avec indication jobiste)
 
 Quand vous cliquez sur "Copier tous les noms", vous obtenez :
 
 ```
 Jean Dupont
-Marie Martin
+Marie Martin (Jobiste)
 Pierre Durand
-Sophie Laurent
+Sophie Laurent (Jobiste)
 ```
 
 ## 📋 Utilisation pratique
@@ -33,9 +33,9 @@ Date : 15 janvier 2025
 Surveillants assignés :
 
 Jean Dupont          ☐ Présent    Signature : ________________
-Marie Martin         ☐ Présent    Signature : ________________  
+Marie Martin (Jobiste) ☐ Présent    Signature : ________________  
 Pierre Durand        ☐ Présent    Signature : ________________
-Sophie Laurent       ☐ Présent    Signature : ________________
+Sophie Laurent (Jobiste) ☐ Présent    Signature : ________________
 
 Responsable : ________________    Date : ________________
 ```
@@ -47,6 +47,14 @@ Responsable : ________________    Date : ________________
 - **📋 Feuilles présence** : Format standard pour les documents officiels
 - **🏷️ Badges** : Un nom par badge, facile à traiter
 - **📄 Rapports** : Format professionnel pour les comptes-rendus
+- **👥 Identification jobistes** : Distinction claire entre types de surveillants
+
+## 🎯 Avantages identification jobistes
+
+- **📋 Gestion administrative** : Distinction claire pour les formalités
+- **💰 Paie** : Identification rapide pour les calculs de rémunération
+- **📊 Statistiques** : Suivi des types de surveillants par examen
+- **📝 Rapports** : Information complète pour les comptes-rendus
 
 ## 🔄 Comparaison formats
 
@@ -56,13 +64,14 @@ Jean Dupont; Marie Martin; Pierre Durand
 ```
 → Tout sur une ligne, difficile à lire
 
-### **Nouveau format (ligne par ligne) :**
+### **Nouveau format (ligne par ligne avec jobistes) :**
 ```
 Jean Dupont
-Marie Martin
+Marie Martin (Jobiste)
 Pierre Durand
+Sophie Laurent (Jobiste)
 ```
-→ Lisible, prêt pour documents
+→ Lisible, prêt pour documents, avec identification des jobistes
 
 ## 💡 Cas d'usage typiques
 
