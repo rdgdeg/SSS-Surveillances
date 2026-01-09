@@ -45,10 +45,12 @@ export default function ExamenCoursLinksPage() {
   const [saving, setSaving] = useState(false);
 
   // Fetch examens with cours data
-  const { data: examensData, isLoading, refetch } = useQuery({
+  const { data: examensData, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['examens-cours-links', activeSession?.id],
     queryFn: async () => {
       if (!activeSession?.id) return [];
+
+      console.log('Fetching examens for session:', activeSession.id);
 
       const { data: examens, error } = await supabase
         .from('examens')
@@ -57,22 +59,47 @@ export default function ExamenCoursLinksPage() {
           code_examen,
           nom_examen,
           enseignants,
-          cours_id,
-          cours:cours_id (
-            id,
-            code,
-            intitule_complet,
-            enseignants
-          )
+          cours_id
         `)
         .eq('session_id', activeSession.id)
         .order('code_examen');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching examens:', error);
+        throw error;
+      }
+
+      console.log('Examens fetched:', examens?.length || 0);
+
+      if (!examens || examens.length === 0) {
+        return [];
+      }
+
+      // Fetch cours data separately to avoid join issues
+      const coursIds = examens.map(e => e.cours_id).filter(Boolean);
+      let coursData: any[] = [];
+      
+      if (coursIds.length > 0) {
+        const { data: cours, error: coursError } = await supabase
+          .from('cours')
+          .select('id, code, intitule_complet, enseignants')
+          .in('id', coursIds);
+
+        if (coursError) {
+          console.error('Error fetching cours:', coursError);
+        } else {
+          coursData = cours || [];
+        }
+      }
+
+      console.log('Cours fetched:', coursData.length);
+
+      // Create a map for quick cours lookup
+      const coursMap = new Map(coursData.map(c => [c.id, c]));
 
       return examens.map((examen): ExamenCoursLink => {
         const extractedCode = extractCourseCode(examen.code_examen);
-        const cours = examen.cours as any;
+        const cours = examen.cours_id ? coursMap.get(examen.cours_id) : null;
         
         let status: ExamenCoursLink['status'] = 'orphan';
         let confidence: ExamenCoursLink['confidence'] = 'none';
@@ -219,7 +246,7 @@ export default function ExamenCoursLinksPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-gray-600">Chargement de la session...</p>
         </div>
       </div>
     );
@@ -230,6 +257,32 @@ export default function ExamenCoursLinksPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Aucune session active</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Chargement des données...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Erreur lors du chargement: {queryError.message}</p>
+          <button 
+            onClick={() => refetch()} 
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );
@@ -412,10 +465,28 @@ export default function ExamenCoursLinksPage() {
                       Chargement...
                     </td>
                   </tr>
+                ) : queryError ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-red-500">
+                      Erreur: {queryError.message}
+                    </td>
+                  </tr>
+                ) : !examensData ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      Aucune donnée chargée
+                    </td>
+                  </tr>
+                ) : examensData.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      Aucun examen trouvé dans la session active
+                    </td>
+                  </tr>
                 ) : filteredExamens.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      Aucun examen trouvé
+                      Aucun examen ne correspond aux filtres (Total: {examensData.length})
                     </td>
                   </tr>
                 ) : (
