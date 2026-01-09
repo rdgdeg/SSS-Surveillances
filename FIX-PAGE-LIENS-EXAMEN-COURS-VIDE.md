@@ -115,3 +115,37 @@ psql -f scripts/debug-examen-cours-links-page.sql
 2. **Exécuter le script SQL** de diagnostic
 3. **Vérifier les permissions** Supabase si nécessaire
 4. **Importer des données** si les tables sont vides
+
+## 🔧 Nouveaux outils de diagnostic
+
+### **Script SQL corrigé**
+- `scripts/find-mismatched-examen-cours-fixed.sql` - Version sans erreur de syntaxe
+- `scripts/debug-page-links-simple.sql` - Diagnostic simple et rapide
+
+### **Test JavaScript pour navigateur**
+- `scripts/test-examen-cours-links-page.js` - À exécuter dans la console (F12)
+- Diagnostic automatique des éléments DOM et requêtes réseau
+
+## 🎯 Étapes de dépannage recommandées
+
+### **1. Test dans le navigateur**
+1. Aller sur `/admin/examen-cours-links`
+2. Ouvrir F12 > Console
+3. Copier-coller le contenu de `scripts/test-examen-cours-links-page.js`
+4. Analyser les résultats
+
+### **2. Vérifier les requêtes réseau**
+1. F12 > Network
+2. Recharger la page
+3. Vérifier les requêtes vers Supabase (200 OK ou erreurs)
+
+### **3. Exécuter le diagnostic SQL**
+- Via l'interface Supabase ou un client SQL
+- Utiliser `scripts/debug-page-links-simple.sql`
+
+## 📋 Causes probables identifiées
+
+1. **Session inactive** - Aucune session marquée comme active
+2. **Données manquantes** - Pas d'examens ou cours dans la session
+3. **Permissions Supabase** - RLS bloquant l'accès aux données
+4. **Erreur de requête** - Problème dans la logique de jointure
