@@ -5,6 +5,7 @@ import { Plus, Trash2, Users, Save, X, Search, RefreshCw } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { SurveillantRemplacementModal } from './SurveillantRemplacementModal';
+import { showAttributionWarning } from '../shared/AttributionWarning';
 import { ExamenAuditoire, SurveillantRemplacement } from '../../types';
 
 interface Surveillant {
@@ -42,6 +43,20 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
         .order('nom');
       if (error) throw error;
       return data as Surveillant[];
+    },
+  });
+
+  // Fetch examen info for warning
+  const { data: examen } = useQuery({
+    queryKey: ['examen', examenId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('examens')
+        .select('code_examen, nom_examen')
+        .eq('id', examenId)
+        .single();
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -105,6 +120,10 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['examen-auditoires', examenId] });
       toast.success('Auditoire modifié');
+      
+      // Avertissement pour mise à jour Excel et planning
+      showAttributionWarning(examen?.code_examen);
+      
       setEditingAuditoire(null);
     },
     onError: () => toast.error('Erreur lors de la modification'),
