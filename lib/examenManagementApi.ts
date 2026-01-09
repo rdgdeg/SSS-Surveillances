@@ -62,8 +62,13 @@ export async function getExamens(
     }
 
     if (filters?.secretariat) {
-      const secretariatTerm = `%${filters.secretariat}%`;
-      query = query.ilike('secretariat', secretariatTerm);
+      if (filters.secretariat === 'NON_ASSIGNE') {
+        // Filtrer les examens sans secrétariat assigné (null ou vide)
+        query = query.or('secretariat.is.null,secretariat.eq.');
+      } else {
+        // Filtrage exact pour les secrétariats spécifiques
+        query = query.eq('secretariat', filters.secretariat);
+      }
     }
 
     if (filters?.hasCoursLinked !== undefined) {

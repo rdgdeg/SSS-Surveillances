@@ -14,6 +14,7 @@ interface SecretariatSelectProps {
   required?: boolean;
   disabled?: boolean;
   error?: string;
+  includeNonAssigne?: boolean; // Nouvelle prop pour inclure l'option "Non assigné"
 }
 
 const SecretariatSelect: React.FC<SecretariatSelectProps> = ({
@@ -23,7 +24,8 @@ const SecretariatSelect: React.FC<SecretariatSelectProps> = ({
   placeholder = 'Sélectionner un secrétariat',
   required = false,
   disabled = false,
-  error
+  error,
+  includeNonAssigne = false
 }) => {
   const [secretariats, setSecretariats] = useState<Secretariat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,9 @@ const SecretariatSelect: React.FC<SecretariatSelectProps> = ({
         required={required}
       >
         <option value="">{placeholder}</option>
+        {includeNonAssigne && (
+          <option value="NON_ASSIGNE">Non assigné</option>
+        )}
         {secretariats.map((secretariat) => (
           <option 
             key={secretariat.code_secretariat} 

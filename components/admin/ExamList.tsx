@@ -14,6 +14,7 @@ import ExamenAuditoiresModal from './ExamenAuditoiresModal';
 import ExamenConsignesModal from './ExamenConsignesModal';
 import ExamenSurveillantEmailsModal from './ExamenSurveillantEmailsModal';
 import { useExamenAuditoiresStats } from '../../src/hooks/useExamenAuditoiresStats';
+import SecretariatSelect from '../shared/SecretariatSelect';
 
 interface ExamListProps {
   sessionId: string;
@@ -480,16 +481,22 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Secrétariat
             </label>
-            <input
-              type="text"
-              placeholder="MED, FARM..."
+            <select
               value={filters.secretariat || ''}
               onChange={(e) => {
                 setFilters({ ...filters, secretariat: e.target.value });
                 setPage(1);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="">Tous</option>
+              <option value="NON_ASSIGNE">Non assigné</option>
+              <option value="BAC11">BAC11</option>
+              <option value="DENT">DENT</option>
+              <option value="FASB">FASB</option>
+              <option value="FSP">FSP</option>
+              <option value="MED">MED</option>
+            </select>
           </div>
 
           {/* Response Status */}
@@ -963,12 +970,11 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Secrétariat
                   </label>
-                  <input
-                    type="text"
+                  <SecretariatSelect
                     value={formData.secretariat}
-                    onChange={(e) => setFormData({ ...formData, secretariat: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Ex: MED, FARM"
+                    onChange={(value) => setFormData({ ...formData, secretariat: value })}
+                    placeholder="Sélectionner un secrétariat"
+                    className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   />
                 </div>
               </div>
@@ -1110,11 +1116,11 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Secrétariat
                   </label>
-                  <input
-                    type="text"
+                  <SecretariatSelect
                     value={formData.secretariat}
-                    onChange={(e) => setFormData({ ...formData, secretariat: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    onChange={(value) => setFormData({ ...formData, secretariat: value })}
+                    placeholder="Sélectionner un secrétariat"
+                    className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   />
                 </div>
               </div>
