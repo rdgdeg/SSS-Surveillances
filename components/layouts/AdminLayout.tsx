@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone, Edit3, GitBranch, UserCheck, BarChart2, CheckCircle } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone, Edit3, GitBranch, UserCheck, BarChart2, CheckCircle, Link2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../lib/routePreloader';
@@ -42,6 +42,7 @@ const AdminLayout: React.FC = () => {
         // === GESTION DES SESSIONS ===
         { to: 'sessions', label: 'Sessions d\'examens', icon: CalendarDays, category: 'sessions', adminOnly: true, description: 'Créer et gérer les sessions' },
         { to: 'examens', label: 'Examens', icon: FileText, category: 'sessions', adminOnly: false, description: 'Planning et organisation des examens' },
+        { to: 'examen-cours-links', label: 'Liens Examen-Cours', icon: Link2, category: 'sessions', adminOnly: false, description: 'Vérifier et corriger les liens' },
         { to: 'creneaux', label: 'Créneaux de surveillance', icon: Clock, category: 'sessions', adminOnly: false, description: 'Horaires et capacités' },
         
         // === SURVEILLANTS ===

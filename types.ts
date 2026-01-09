@@ -510,6 +510,10 @@ export interface ExamenWithStatus extends Examen {
   nb_surveillants_accompagnants: number;
 }
 
+export interface ExamenWithCours extends Examen {
+  cours?: Cours; // Joined course data
+}
+
 export interface ExamenFormData {
   cours_id: string | null;
   code_examen: string;
