@@ -798,8 +798,7 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                     {/* Secretariat - Inline editable */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {editingField?.examenId === examen.id && editingField?.field === 'secretariat' ? (
-                        <input
-                          type="text"
+                        <select
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={() => handleSaveEdit(examen.id, 'secretariat')}
@@ -807,7 +806,14 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                           className="w-full px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                           autoFocus
                           disabled={saving}
-                        />
+                        >
+                          <option value="">Sélectionner...</option>
+                          <option value="BAC11">BAC11</option>
+                          <option value="DENT">DENT</option>
+                          <option value="FASB">FASB</option>
+                          <option value="FSP">FSP</option>
+                          <option value="MED">MED</option>
+                        </select>
                       ) : (
                         <div
                           onClick={() => handleStartEdit(examen.id, 'secretariat', examen.secretariat || '')}
