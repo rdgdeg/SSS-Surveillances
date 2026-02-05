@@ -4,12 +4,13 @@ import { Button } from '../../components/shared/Button';
 import { Input } from '../../components/shared/Input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/shared/Dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
-import { Clock, PlusCircle, Edit, Trash2, Loader2, AlertTriangle, Users } from 'lucide-react';
+import { Clock, PlusCircle, Edit, Trash2, Loader2, AlertTriangle, Users, UserCheck } from 'lucide-react';
 import { getSessions, getCreneauxBySession, createCreneau, updateCreneau, deleteCreneau } from '../../lib/api';
 import { Session, Creneau } from '../../types';
 import toast from 'react-hot-toast';
 import { useDataFetching } from '../../hooks/useDataFetching';
 import { CapacityInput } from '../../components/shared/CapacityInput';
+import { Switch } from '../../components/shared/Switch';
 
 const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: string; onSave: () => void; onCancel: () => void; }> = ({ creneau, sessionId, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Partial<Creneau>>({
@@ -17,6 +18,7 @@ const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: stri
         heure_debut_surveillance: '08:30',
         heure_fin_surveillance: '12:30',
         type_creneau: 'PRINCIPAL',
+        visible_jobistes_uniquement: false,
         ...creneau,
         session_id: sessionId
     });
@@ -72,6 +74,17 @@ const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: stri
                     <SelectItem value="RESERVE">Réserve</SelectItem>
                 </SelectContent>
             </Select>
+            <div className="flex items-center gap-2">
+                <Switch
+                    id="visible_jobistes_uniquement"
+                    checked={!!formData.visible_jobistes_uniquement}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, visible_jobistes_uniquement: checked }))}
+                />
+                <label htmlFor="visible_jobistes_uniquement" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Uniquement visible aux jobistes
+                </label>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Si activé, ce créneau n&apos;apparaîtra que pour les surveillants de type jobiste. Par défaut : visible par tous.</p>
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={onCancel}>Annuler</Button>
                 <Button type="submit" disabled={isSaving}>
@@ -185,6 +198,12 @@ const CreneauxPage: React.FC = () => {
                                             <span>Surveillants requis</span>
                                         </div>
                                     </th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                                        <div className="flex items-center justify-center gap-1" title="Visible à">
+                                            <UserCheck className="h-4 w-4" />
+                                            <span>Visible</span>
+                                        </div>
+                                    </th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
                                 </tr>
                             </thead>
@@ -200,6 +219,11 @@ const CreneauxPage: React.FC = () => {
                                                 onChange={() => refetch()}
                                                 autoSave={true}
                                             />
+                                        </td>
+                                        <td className="px-6 py-3 whitespace-nowrap text-sm text-center">
+                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                                {c.visible_jobistes_uniquement ? 'Jobistes' : 'Tous'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-3 whitespace-nowrap text-sm text-right">
                                             <Button variant="ghost" size="sm" onClick={() => handleEdit(c)}><Edit className="h-4 w-4" /></Button>

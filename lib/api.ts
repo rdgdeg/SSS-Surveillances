@@ -39,11 +39,29 @@ export async function getActiveSessionWithCreneaux(): Promise<SessionWithCreneau
     };
 }
 
+/** Retourne le surveillant s'il existe (sans filtre is_active). Utilisé pour vérifier si un email peut soumettre. */
+export async function getSurveillantByEmail(email: string): Promise<Surveillant | null> {
+    const { data, error } = await supabase
+        .from('surveillants')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .limit(1)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error finding surveillant:', error);
+        throw error;
+    }
+    return data;
+}
+
+/** Retourne le surveillant actif par email (pour pré-remplissage formulaire). Les surveillants désactivés ne sont pas retournés. */
 export async function findSurveillantByEmail(email: string): Promise<Surveillant | null> {
     const { data, error } = await supabase
         .from('surveillants')
         .select('*')
         .eq('email', email.toLowerCase())
+        .eq('is_active', true)
         .limit(1)
         .single();
 
@@ -242,6 +260,11 @@ export async function duplicateSession(session: Session): Promise<Session> {
     delete newSessionData.id;
     delete newSessionData.created_at;
     return await createSession(newSessionData);
+}
+
+export async function deleteSession(id: string): Promise<void> {
+    const { error } = await supabase.from('sessions').delete().eq('id', id);
+    if (error) throw error;
 }
 
 // Creneaux

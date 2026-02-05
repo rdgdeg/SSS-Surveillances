@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
 import { Creneau, Session, SurveillantType, AvailabilityData, SurveillantTypeLabels, Surveillant, FormProgressData } from '../../types';
-import { getActiveSessionWithCreneaux, findSurveillantByEmail, getExistingSubmission } from '../../lib/api';
+import { getActiveSessionWithCreneaux, findSurveillantByEmail, getExistingSubmission, getSurveillantByEmail } from '../../lib/api';
 import * as submissionService from '../../lib/submissionService';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../shared/Card';
 import { Button } from '../shared/Button';
@@ -869,15 +869,21 @@ const AvailabilityForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!session) return toast.error("Session non trouvée. Impossible de soumettre.");
+        const surveillantByEmail = await getSurveillantByEmail(formData.email.trim().toLowerCase());
+        if (surveillantByEmail && !surveillantByEmail.is_active) {
+            toast.error("Votre compte surveillant est désactivé. Vous ne pouvez pas soumettre de disponibilités.");
+            return;
+        }
         setIsSubmitting(true);
         
         try {
+            const visibleIds = new Set(visibleCreneaux.map(c => c.id));
             const payload = {
                 session_id: session.id,
                 surveillant_id: foundSurveillantId,
                 ...formData,
                 availabilities: Object.entries(availabilities)
-                  .filter(([, val]) => val.available)
+                  .filter(([creneauId, val]) => val.available && visibleIds.has(creneauId))
                   .map(([creneauId]) => ({ creneau_id: creneauId, est_disponible: true })),
             };
 
@@ -925,18 +931,25 @@ const AvailabilityForm: React.FC = () => {
         toast('Formulaire réinitialisé.', { icon: '🔄' });
         setStep(0);
     };
+
+    // Type du surveillant (reconnu par email ou saisi manuellement) pour filtrer les créneaux visibles
+    const userType = foundSurveillant?.type ?? formData.type_surveillant;
+    // Créneaux visibles selon le type : "visible par tous" OU "jobistes uniquement" si la personne est jobiste
+    const visibleCreneaux = useMemo(() => 
+        creneaux.filter(c => !c.visible_jobistes_uniquement || userType === 'jobiste'),
+        [creneaux, userType]
+    );
     
     const renderStep = () => {
-        const groupedCreneaux = groupCreneauxByDate(creneaux);
-        // Fix: Used Object.keys to avoid type inference issues with Object.values.
-        const selectedCount = Object.keys(availabilities).filter(id => availabilities[id].available).length;
+        const groupedCreneaux = groupCreneauxByDate(visibleCreneaux);
+        const selectedCount = visibleCreneaux.filter(c => availabilities[c.id]?.available).length;
 
         switch (step) {
             case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} telephone={formData.telephone} onEmailChange={handleInputChange} onTelephoneChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} isLocked={session?.lock_submissions} lockMessage={session?.lock_message} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
             case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={session?.lock_submissions ? () => setStep(0) : nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} isReadOnly={session?.lock_submissions} />;
-            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={creneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
+            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={visibleCreneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
             case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
             default: return null;
         }

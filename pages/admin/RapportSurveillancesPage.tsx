@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
+import { getSessions } from '../../lib/api';
 import { 
   Users, 
   Download, 
@@ -18,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../components/shared/Button';
 import { Input } from '../../components/shared/Input';
 import { Badge } from '../../components/shared/Badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/shared/Select';
 import { exportToXLSX } from '../../lib/exportUtils';
 import toast from 'react-hot-toast';
 
@@ -59,16 +61,29 @@ export default function RapportSurveillancesPage() {
   const [sortBy, setSortBy] = useState<'nom' | 'surveillances'>('nom');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isExporting, setIsExporting] = useState(false);
-  
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+
   const { data: activeSession } = useActiveSession();
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['sessions'],
+    queryFn: getSessions,
+  });
+
+  const selectedSession = useMemo(() => sessions.find(s => s.id === selectedSessionId), [sessions, selectedSessionId]);
+
+  useEffect(() => {
+    if (sessions.length > 0 && !selectedSessionId) {
+      setSelectedSessionId(activeSession?.id || sessions[0].id);
+    }
+  }, [sessions, activeSession?.id, selectedSessionId]);
 
   // Fetch surveillances data
   const { data: surveillants, isLoading, error } = useQuery({
-    queryKey: ['rapport-surveillances', activeSession?.id],
+    queryKey: ['rapport-surveillances', selectedSessionId],
     queryFn: async () => {
-      if (!activeSession?.id) return [];
+      if (!selectedSessionId) return [];
 
-      // Récupérer tous les auditoires avec leurs surveillants pour la session active
+      // Récupérer tous les auditoires avec leurs surveillants pour la session sélectionnée
       const { data: auditoires, error: auditoiresError } = await supabase
         .from('examen_auditoires')
         .select(`
@@ -84,7 +99,7 @@ export default function RapportSurveillancesPage() {
             session_id
           )
         `)
-        .eq('examens.session_id', activeSession.id);
+        .eq('examens.session_id', selectedSessionId);
 
       if (auditoiresError) throw auditoiresError;
 
@@ -152,7 +167,7 @@ export default function RapportSurveillancesPage() {
 
       return Array.from(surveillanceCount.values());
     },
-    enabled: !!activeSession?.id,
+    enabled: !!selectedSessionId,
   });
 
   // Calculer les statistiques
@@ -247,7 +262,7 @@ export default function RapportSurveillancesPage() {
         ['Moyenne par surveillant', stats.moyenne_par_surveillant],
         ['Maximum surveillances', stats.max_surveillances],
         ['Minimum surveillances', stats.min_surveillances],
-        ['Session', activeSession?.name || ''],
+        ['Session', selectedSession?.name || ''],
         ['Date d\'export', new Date().toLocaleString('fr-FR')]
       ];
 
@@ -256,7 +271,7 @@ export default function RapportSurveillancesPage() {
           { name: 'Surveillants', data: exportData },
           { name: 'Statistiques', data: statsData }
         ],
-        `rapport-surveillances-${activeSession?.name?.replace(/\s+/g, '-') || 'session'}-${new Date().toISOString().split('T')[0]}`
+        `rapport-surveillances-${selectedSession?.name?.replace(/\s+/g, '-') || 'session'}-${new Date().toISOString().split('T')[0]}`
       );
 
       toast.success(`${filteredAndSortedSurveillants.length} surveillant(s) exporté(s) avec succès`);
@@ -290,12 +305,12 @@ export default function RapportSurveillancesPage() {
     );
   }
 
-  if (!activeSession) {
+  if (sessions.length === 0) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 text-yellow-800">
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
           <AlertCircle className="h-5 w-5" />
-          <span>Aucune session active. Veuillez activer une session pour voir le rapport.</span>
+          <span>Aucune session. Créez une session pour voir le rapport.</span>
         </div>
       </div>
     );
@@ -304,14 +319,31 @@ export default function RapportSurveillancesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
+      <div className="flex flex-wrap justify-between items-start gap-4">
+        <div className="space-y-2">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Rapport des Surveillances
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Session: {activeSession.name} ({activeSession.year})
-          </p>
+          <div className="flex items-center gap-2">
+            <label htmlFor="rapport-session-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">Session :</label>
+            <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
+              <SelectTrigger id="rapport-session-select" className="w-[280px]">
+                <SelectValue placeholder="Choisir une session" />
+              </SelectTrigger>
+              <SelectContent>
+                {sessions.map(s => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name} ({s.year}) {s.is_active ? ' — Active' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedSession && (
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Rapport pour la session : {selectedSession.name} ({selectedSession.year})
+            </p>
+          )}
         </div>
         <Button 
           onClick={handleExport}

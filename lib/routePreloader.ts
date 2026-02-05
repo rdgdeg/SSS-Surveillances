@@ -21,7 +21,6 @@ const routeLoaders: Record<string, RouteLoader> = {
   '/admin/presences-enseignants': () => import('../pages/admin/PresencesEnseignantsPage'),
   '/admin/examens': () => import('../pages/admin/ExamensPage'),
   '/admin/rapports': () => import('../pages/admin/RapportsPage'),
-  '/admin/analyse-examens': () => import('../pages/admin/AnalyseExamensPage'),
   
   // Public routes
   '/consignes': () => import('../pages/ConsignesPage'),

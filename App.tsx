@@ -38,7 +38,6 @@ const ExamensPage = lazy(() => import('./pages/admin/ExamensPage'));
 const ExamenCoursLinksPage = lazy(() => import('./pages/admin/ExamenCoursLinksPage'));
 const RapportsPage = lazy(() => import('./pages/admin/RapportsPage'));
 const RapportSurveillancesPage = lazy(() => import('./pages/admin/RapportSurveillancesPage'));
-const AnalyseExamensPage = lazy(() => import('./pages/admin/AnalyseExamensPage'));
 const AidePage = lazy(() => import('./pages/admin/AidePage'));
 const UsersManagementPage = lazy(() => import('./pages/admin/UsersManagementPage'));
 const ConsignesSecretariatPage = lazy(() => import('./pages/admin/ConsignesSecretariatPage'));
@@ -130,7 +129,6 @@ const AppContent: React.FC = () => {
                             <Route path="consignes-secretariat" element={<ConsignesSecretariatPage />} />
                             <Route path="rapports" element={<AdminOnlyRoute><RapportsPage /></AdminOnlyRoute>} />
                             <Route path="rapport-surveillances" element={<AdminOnlyRoute><RapportSurveillancesPage /></AdminOnlyRoute>} />
-                            <Route path="analyse-examens" element={<AdminOnlyRoute><AnalyseExamensPage /></AdminOnlyRoute>} />
                             <Route path="versioning" element={<AdminOnlyRoute><VersioningPage /></AdminOnlyRoute>} />
                             <Route path="aide" element={<AidePage />} />
                         </Route>

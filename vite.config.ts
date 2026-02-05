@@ -46,7 +46,6 @@ export default defineConfig(({ mode }) => {
                 './pages/admin/PresencesEnseignantsPage',
                 './pages/admin/ExamensPage',
                 './pages/admin/RapportsPage',
-                './pages/admin/AnalyseExamensPage',
               ]
             }
           }

@@ -3,8 +3,10 @@ export interface Session {
   id: string;
   name: string;
   year: number;
-  period: 1 | 2 | 3 | 4 | 5; // 1=Jan, 2=Jun, 3=Aug, 4=Hors-Session Jan, 5=Hors-Session Jun
+  period: 1 | 2 | 3 | 4 | 5 | 6; // 1=Jan, 2=Jun, 3=Aug, 4=HS Jan, 5=HS Jun, 6=HS Février
   is_active: boolean;
+  date_debut?: string | null; // YYYY-MM-DD, optionnel
+  date_fin?: string | null; // YYYY-MM-DD, optionnel
   lock_submissions?: boolean; // Si true, empêche les modifications de disponibilités
   lock_message?: string; // Message personnalisé affiché quand verrouillé
   planning_visible?: boolean; // Si true, le planning public est accessible
@@ -14,12 +16,14 @@ export interface Session {
 export interface Creneau {
   id: string;
   session_id: string;
-  examen_id: string; // This might need to be nullable or handled differently if not always present
+  examen_id?: string | null; // Optionnel pour les créneaux manuels (sans examen)
   date_surveillance: string | null; // YYYY-MM-DD
   heure_debut_surveillance: string | null; // HH:MM
   heure_fin_surveillance: string | null; // HH:MM
   type_creneau: 'PRINCIPAL' | 'RESERVE' | string;
   nb_surveillants_requis?: number; // Nombre de surveillants nécessaires (1-100) - Admin only
+  /** Si true, le créneau n'est affiché que pour les jobistes. Par défaut false = visible par tous. */
+  visible_jobistes_uniquement?: boolean;
   created_at?: string;
 }
 

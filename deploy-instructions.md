@@ -1,5 +1,11 @@
 # Instructions de déploiement
 
+## Stack de déploiement
+
+- **Backend / base de données** : [Supabase](https://supabase.com) (PostgreSQL, auth, API)
+- **Hébergement frontend** : [Vercel](https://vercel.com)
+- **Nom de domaine** : hébergé chez [PlanetHoster](https://www.planethoster.com) (DNS pointant vers Vercel)
+
 ## Étapes à suivre :
 
 1. Créez un repository GitHub : https://github.com/new

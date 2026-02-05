@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone, Edit3, GitBranch, UserCheck, BarChart2, CheckCircle, Link2 } from 'lucide-react';
+import { University, Sun, Moon, Home, CalendarDays, Users, Clock, FileText, MessageSquare, LogOut, ClipboardList, CheckSquare, BarChart3, BookOpen, Menu, X, HelpCircle, Phone, Edit3, GitBranch, UserCheck, CheckCircle, Link2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { preloadRoute } from '../../lib/routePreloader';
@@ -62,7 +62,6 @@ const AdminLayout: React.FC = () => {
         { to: 'statistiques', label: 'Statistiques', icon: BarChart3, category: 'rapports', adminOnly: true, description: 'Analyses et métriques' },
         { to: 'rapports', label: 'Rapports généraux', icon: FileText, category: 'rapports', adminOnly: true, description: 'Rapports détaillés' },
         { to: 'rapport-surveillances', label: 'Rapport surveillances', icon: Users, category: 'rapports', adminOnly: true, description: 'Suivi des attributions' },
-        { to: 'analyse-examens', label: 'Analyse des examens', icon: BarChart2, category: 'rapports', adminOnly: true, description: 'Analyses approfondies' },
         
         // === ADMINISTRATION ===
         { to: 'users', label: 'Utilisateurs admin', icon: Users, category: 'admin', adminOnly: true, description: 'Gestion des comptes admin' },

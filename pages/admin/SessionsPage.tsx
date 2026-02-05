@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/shared/Card';
-import { CalendarDays, PlusCircle, Edit, Loader2, Copy } from 'lucide-react';
-import { getSessions, createSession, updateSession, duplicateSession } from '../../lib/api';
+import { CalendarDays, PlusCircle, Edit, Loader2, Copy, Trash2 } from 'lucide-react';
+import { getSessions, createSession, updateSession, duplicateSession, deleteSession } from '../../lib/api';
 import { Session } from '../../types';
 import { Button } from '../../components/shared/Button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/shared/Dialog';
@@ -17,7 +17,8 @@ const periodLabels: { [key: number]: string } = {
     2: 'Juin',
     3: 'Août/Septembre',
     4: 'Hors-Session Janvier',
-    5: 'Hors-Session Juin'
+    5: 'Hors-Session Juin',
+    6: 'Hors-Session Février'
 };
 
 const SessionForm: React.FC<{ session?: Session | null; onSave: () => void; onCancel: () => void; }> = ({ session, onSave, onCancel }) => {
@@ -36,7 +37,7 @@ const SessionForm: React.FC<{ session?: Session | null; onSave: () => void; onCa
     };
 
     const handleSelectChange = (value: string) => {
-        setFormData(prev => ({ ...prev, period: parseInt(value) as (1 | 2 | 3 | 4 | 5) }));
+        setFormData(prev => ({ ...prev, period: parseInt(value) as (1 | 2 | 3 | 4 | 5 | 6) }));
     };
     
     const handleSwitchChange = (checked: boolean) => {
@@ -78,6 +79,16 @@ const SessionForm: React.FC<{ session?: Session | null; onSave: () => void; onCa
                     </SelectContent>
                 </Select>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="date_debut" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de début</label>
+                    <Input id="date_debut" name="date_debut" type="date" value={formData.date_debut ?? ''} onChange={handleChange} />
+                </div>
+                <div>
+                    <label htmlFor="date_fin" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date de fin</label>
+                    <Input id="date_fin" name="date_fin" type="date" value={formData.date_fin ?? ''} onChange={handleChange} />
+                </div>
+            </div>
              <div className="flex items-center space-x-2">
                 <Switch id="is_active" checked={!!formData.is_active} onCheckedChange={handleSwitchChange} />
                 <label htmlFor="is_active" className="text-sm font-medium">Activer la session</label>
@@ -94,7 +105,7 @@ const SessionForm: React.FC<{ session?: Session | null; onSave: () => void; onCa
     );
 };
 
-const SessionRow = memo<{ session: Session; onEdit: (s: Session) => void; onDuplicate: (s: Session) => void; onToggleActive: (s: Session) => void; }>(({ session, onEdit, onDuplicate, onToggleActive }) => (
+const SessionRow = memo<{ session: Session; onEdit: (s: Session) => void; onDuplicate: (s: Session) => void; onToggleActive: (s: Session) => void; onDelete: (s: Session) => void; }>(({ session, onEdit, onDuplicate, onToggleActive, onDelete }) => (
     <tr className="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800/50 hover:bg-indigo-50 dark:hover:bg-gray-800">
         <td className="px-6 py-3 whitespace-nowrap text-sm">{session.name}</td>
         <td className="px-6 py-3 whitespace-nowrap text-sm">{session.year}</td>
@@ -106,8 +117,9 @@ const SessionRow = memo<{ session: Session; onEdit: (s: Session) => void; onDupl
         </td>
         <td className="px-6 py-3 whitespace-nowrap text-sm text-right space-x-2">
             <Switch checked={session.is_active} onCheckedChange={() => onToggleActive(session)} aria-label="Activer la session" />
-            <Button variant="ghost" size="sm" onClick={() => onEdit(session)}><Edit className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={() => onDuplicate(session)}><Copy className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => onEdit(session)} title="Modifier"><Edit className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => onDuplicate(session)} title="Dupliquer"><Copy className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => onDelete(session)} title="Supprimer" className="text-red-600 hover:text-red-800" disabled={session.is_active}><Trash2 className="h-4 w-4" /></Button>
         </td>
     </tr>
 ));
@@ -116,6 +128,8 @@ const SessionsPage: React.FC = () => {
     const { data: sessions, isLoading, refetch } = useDataFetching(getSessions, []);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+    const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleSave = useCallback(() => {
         setIsFormOpen(false);
@@ -153,6 +167,23 @@ const SessionsPage: React.FC = () => {
             toast.error("Erreur lors de la mise à jour.");
         }
     }, [refetch]);
+
+    const handleDeleteClick = useCallback((session: Session) => setSessionToDelete(session), []);
+    const handleDeleteConfirm = useCallback(async () => {
+        if (!sessionToDelete) return;
+        setIsDeleting(true);
+        try {
+            await deleteSession(sessionToDelete.id);
+            toast.success(`Session "${sessionToDelete.name}" supprimée.`);
+            setSessionToDelete(null);
+            refetch();
+        } catch (error) {
+            toast.error("Erreur lors de la suppression. La session a peut-être des examens ou créneaux liés.");
+            console.error(error);
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [sessionToDelete, refetch]);
 
     return (
         <div className="space-y-6">
@@ -203,6 +234,7 @@ const SessionsPage: React.FC = () => {
                                             onEdit={handleEdit}
                                             onDuplicate={handleDuplicate}
                                             onToggleActive={handleToggleActive}
+                                            onDelete={handleDeleteClick}
                                         />
                                     ))}
                                 </tbody>
@@ -211,6 +243,23 @@ const SessionsPage: React.FC = () => {
                     )}
                 </CardContent>
             </Card>
+            <Dialog open={!!sessionToDelete} onOpenChange={(open) => !open && setSessionToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Supprimer la session</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Êtes-vous sûr de vouloir supprimer la session &quot;{sessionToDelete?.name}&quot; ? Les examens, créneaux et soumissions liés à cette session pourront être supprimés selon la configuration de la base.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSessionToDelete(null)} disabled={isDeleting}>Annuler</Button>
+                        <Button onClick={handleDeleteConfirm} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 text-white">
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Supprimer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

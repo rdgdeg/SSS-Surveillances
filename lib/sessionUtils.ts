@@ -13,6 +13,7 @@ export const PERIOD_LABELS: Record<number, string> = {
   3: 'Août/Septembre',
   4: 'Hors-Session Janvier',
   5: 'Hors-Session Juin',
+  6: 'Hors-Session Février',
 };
 
 /**
@@ -24,6 +25,7 @@ export const PERIOD_SHORT_LABELS: Record<number, string> = {
   3: 'Aug/Sep',
   4: 'HS Jan',
   5: 'HS Jun',
+  6: 'HS Fév',
 };
 
 /**
@@ -58,16 +60,17 @@ export function formatSessionShortName(session: Session): string {
  * Vérifie si une session est une session hors-session
  */
 export function isHorsSession(session: Session): boolean {
-  return session.period === 4 || session.period === 5;
+  return session.period === 4 || session.period === 5 || session.period === 6;
 }
 
 /**
  * Obtient la période régulière correspondante pour une session hors-session
- * (4 -> 1, 5 -> 2)
+ * (4 -> 1, 5 -> 2, 6 -> 1 pour février proche de janvier)
  */
 export function getRegularPeriod(period: number): number {
   if (period === 4) return 1; // Hors-Session Jan -> Jan
   if (period === 5) return 2; // Hors-Session Jun -> Jun
+  if (period === 6) return 1; // Hors-Session Fév -> Jan
   return period;
 }
 
@@ -81,5 +84,6 @@ export function getAvailablePeriods(): Array<{ value: number; label: string }> {
     { value: 3, label: PERIOD_LABELS[3] },
     { value: 4, label: PERIOD_LABELS[4] },
     { value: 5, label: PERIOD_LABELS[5] },
+    { value: 6, label: PERIOD_LABELS[6] },
   ];
 }
