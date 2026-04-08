@@ -38,6 +38,18 @@ interface CoursWithExam {
   exam_time?: string;
 }
 
+type ExamTypeOption = 'qcm' | 'qroc_manuel' | 'qcm_qroc' | 'gradescope' | 'oral' | 'travail' | 'autre';
+
+const EXAM_TYPE_LABELS: Record<ExamTypeOption, string> = {
+  qcm: 'QCM',
+  qroc_manuel: 'QROC (correction manuelle)',
+  qcm_qroc: 'QCM & QROC',
+  gradescope: 'Gradescope',
+  oral: 'Oral',
+  travail: 'Travail',
+  autre: 'Autre'
+};
+
 export default function TeacherPresencePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCours, setSelectedCours] = useState<CoursWithExam | null>(null);
@@ -66,6 +78,7 @@ export default function TeacherPresencePage() {
   const [manualExamMode, setManualExamMode] = useState(false);
   const [examPickerSearch, setExamPickerSearch] = useState('');
   const [showCourseSearch, setShowCourseSearch] = useState(false);
+  const [selectedExamTypes, setSelectedExamTypes] = useState<ExamTypeOption[]>([]);
 
   const { data: activeSession } = useActiveSession();
 
@@ -188,14 +201,39 @@ export default function TeacherPresencePage() {
   // Pre-fill form with existing data
   React.useEffect(() => {
     if (existingPresence) {
+      const examType = ((existingPresence as any).type_examen || null) as ExamTypeOption | null;
+      const rawOther = ((existingPresence as any).type_examen_autre || '') as string;
+      let restoredTypes: ExamTypeOption[] = [];
+      let restoredAutre = rawOther;
+
+      if (rawOther.startsWith('Sélection multiple: ')) {
+        const parts = rawOther
+          .replace('Sélection multiple: ', '')
+          .split('|')[0]
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        restoredTypes = (Object.entries(EXAM_TYPE_LABELS)
+          .filter(([, label]) => parts.includes(label))
+          .map(([k]) => k) as ExamTypeOption[]);
+        if (rawOther.includes('|')) {
+          restoredAutre = rawOther.split('|')[1]?.trim() || '';
+        } else {
+          restoredAutre = '';
+        }
+      } else if (examType) {
+        restoredTypes = [examType];
+      }
+
+      setSelectedExamTypes(restoredTypes);
       setFormData(prev => ({
         ...prev,
         enseignant_nom: existingPresence.enseignant_nom,
         enseignant_prenom: existingPresence.enseignant_prenom,
         est_present: existingPresence.est_present,
         type_presence: (existingPresence as any).type_presence || 'present_full',
-        type_examen: (existingPresence as any).type_examen || null,
-        type_examen_autre: (existingPresence as any).type_examen_autre || '',
+        type_examen: examType,
+        type_examen_autre: restoredAutre,
         travail_date_depot: (existingPresence as any).travail_date_depot || '',
         travail_en_presentiel: (existingPresence as any).travail_en_presentiel || false,
         travail_bureau: (existingPresence as any).travail_bureau || '',
@@ -305,17 +343,12 @@ export default function TeacherPresencePage() {
       return;
     }
 
-    if (!formData.type_examen) {
-      toast.error('Veuillez sélectionner le type d\'examen');
-      return;
-    }
-
-    if (formData.type_examen === 'autre' && !formData.type_examen_autre.trim()) {
+    if (selectedExamTypes.includes('autre') && !formData.type_examen_autre.trim()) {
       toast.error('Veuillez préciser le type d\'examen');
       return;
     }
 
-    if (formData.type_examen === 'travail') {
+    if (selectedExamTypes.includes('travail')) {
       if (!formData.travail_date_depot) {
         toast.error('Veuillez indiquer la date limite de remise du travail');
         return;
@@ -345,13 +378,40 @@ export default function TeacherPresencePage() {
 
     setIsSubmitting(true);
     try {
-      await submitPresence(selectedCours.id, activeSession.id, formData, selectedExamenId);
+      const computedTypeExamen = (() => {
+        if (selectedExamTypes.length === 0) return null;
+        if (selectedExamTypes.length === 1) return selectedExamTypes[0];
+        return 'autre';
+      })();
+
+      const computedTypeExamenAutre = (() => {
+        if (selectedExamTypes.length === 0) return '';
+        if (selectedExamTypes.length === 1 && selectedExamTypes[0] !== 'autre') return '';
+        if (selectedExamTypes.length === 1 && selectedExamTypes[0] === 'autre') {
+          return formData.type_examen_autre.trim();
+        }
+        const labels = selectedExamTypes.map((t) => EXAM_TYPE_LABELS[t]).join(', ');
+        const extra = formData.type_examen_autre.trim();
+        return extra ? `Sélection multiple: ${labels} | ${extra}` : `Sélection multiple: ${labels}`;
+      })();
+
+      await submitPresence(
+        selectedCours.id,
+        activeSession.id,
+        {
+          ...formData,
+          type_examen: computedTypeExamen,
+          type_examen_autre: computedTypeExamenAutre,
+        },
+        selectedExamenId
+      );
       toast.success(existingPresence ? 'Présence modifiée avec succès' : 'Présence enregistrée avec succès');
       
       // Reset form (garder identité pour enchaîner un autre examen)
       setSelectedCours(null);
       setSelectedExamenId(null);
       setShowConfirmation(false);
+      setSelectedExamTypes([]);
       setFormData({
         enseignant_email: formData.enseignant_email, // Keep email
         enseignant_nom: formData.enseignant_nom, // Keep name
@@ -856,33 +916,46 @@ export default function TeacherPresencePage() {
             {/* Exam Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Type d'examen *
+                Type d'examen (facultatif, choix multiple)
               </label>
-              <select
-                value={formData.type_examen || ''}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  type_examen: e.target.value as any,
-                  type_examen_autre: e.target.value !== 'autre' ? '' : formData.type_examen_autre,
-                  travail_date_depot: e.target.value !== 'travail' ? '' : formData.travail_date_depot,
-                  travail_en_presentiel: e.target.value !== 'travail' ? false : formData.travail_en_presentiel,
-                  travail_bureau: e.target.value !== 'travail' ? '' : formData.travail_bureau,
-                })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">-- Sélectionnez le type d'examen --</option>
-                <option value="qcm">QCM</option>
-                <option value="qroc_manuel">QROC (correction manuelle)</option>
-                <option value="qcm_qroc">QCM & QROC</option>
-                <option value="gradescope">Gradescope</option>
-                <option value="oral">Oral</option>
-                <option value="travail">Travail</option>
-                <option value="autre">Autre (à préciser)</option>
-              </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(Object.keys(EXAM_TYPE_LABELS) as ExamTypeOption[]).map((opt) => (
+                  <label
+                    key={opt}
+                    className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedExamTypes.includes(opt)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSelectedExamTypes((prev) => {
+                          const next = checked
+                            ? Array.from(new Set([...prev, opt]))
+                            : prev.filter((x) => x !== opt);
+                          if (!next.includes('autre')) {
+                            setFormData((p) => ({ ...p, type_examen_autre: '' }));
+                          }
+                          if (!next.includes('travail')) {
+                            setFormData((p) => ({
+                              ...p,
+                              travail_date_depot: '',
+                              travail_en_presentiel: false,
+                              travail_bureau: ''
+                            }));
+                          }
+                          return next;
+                        });
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-gray-800 dark:text-gray-200">{EXAM_TYPE_LABELS[opt]}</span>
+                  </label>
+                ))}
+              </div>
 
               {/* Champ de précision pour "Autre" */}
-              {formData.type_examen === 'autre' && (
+              {selectedExamTypes.includes('autre') && (
                 <div className="mt-3">
                   <input
                     type="text"
@@ -896,7 +969,7 @@ export default function TeacherPresencePage() {
               )}
 
               {/* Champs spécifiques pour "Travail" */}
-              {formData.type_examen === 'travail' && (
+              {selectedExamTypes.includes('travail') && (
                 <div className="mt-4 space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
