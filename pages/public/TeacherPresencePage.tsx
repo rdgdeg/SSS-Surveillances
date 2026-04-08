@@ -61,7 +61,6 @@ export default function TeacherPresencePage() {
   const [autoEmail, setAutoEmail] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
   const [selectedExamenId, setSelectedExamenId] = useState<string | null>(null);
   const [selectedTeacherLabel, setSelectedTeacherLabel] = useState('');
   const [manualExamMode, setManualExamMode] = useState(false);
@@ -424,61 +423,6 @@ export default function TeacherPresencePage() {
               </ul>
             </div>
           </div>
-        </div>
-
-        {/* Instructions du secrétariat - Accordéon */}
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg mb-6 overflow-hidden">
-          <button
-            onClick={() => setShowInstructions(!showInstructions)}
-            className="w-full flex items-center justify-between p-5 text-left hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-              <p className="font-bold text-indigo-900 dark:text-indigo-200">
-                Informations importantes du secrétariat de Médecine et Médecine Dentaire
-              </p>
-            </div>
-            {showInstructions ? (
-              <ChevronUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-            )}
-          </button>
-          
-          {showInstructions && (
-            <div className="px-5 pb-5 border-t border-indigo-200 dark:border-indigo-800">
-              <div className="pt-4 text-sm text-indigo-900 dark:text-indigo-200 space-y-3">
-                <div>
-                  <p className="font-semibold mb-1">Merci de nous communiquer :</p>
-                  <ul className="list-disc list-inside space-y-1 text-indigo-800 dark:text-indigo-300 ml-2">
-                    <li>Le nombre de surveillants que vous mettrez à disposition pour votre examen (le nombre total nécessaire est indiqué entre parenthèses)</li>
-                    <li>Si possible, leurs noms et coordonnées</li>
-                    <li>Le type d'examen que vous organiserez (QCM, QROC avec ou sans Gradescope, Oral ou autre)</li>
-                    <li>Si vous souhaitez que votre examen dure moins de 2h (précisez la durée)</li>
-                  </ul>
-                </div>
-
-                <div className="bg-indigo-100 dark:bg-indigo-900/40 rounded p-3">
-                  <p className="font-semibold text-indigo-900 dark:text-indigo-200 mb-2">
-                    📅 Pour Médecine et Médecine Dentaire - Dates limites de dépôt des examens :
-                  </p>
-                  <div className="space-y-1 text-xs text-indigo-800 dark:text-indigo-300">
-                    <p>• Examens du 8 au 19 décembre 2025 : <strong>Dimanche 23 novembre 2025</strong></p>
-                    <p>• Examens du 5 au 9 janvier 2026 : <strong>Mercredi 26 novembre 2025</strong></p>
-                    <p>• Examens du 12 au 16 janvier 2026 : <strong>Mercredi 3 décembre 2025</strong></p>
-                    <p>• Examens du 19 au 23 janvier 2026 : <strong>Mercredi 10 décembre 2025</strong></p>
-                  </div>
-                  <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2 italic">
-                    ⚠️ Attention : QCM Contest deviendra obsolète l'année prochaine. L'alternative sera un QCM via Gradescope.
-                  </p>
-                </div>
-
-                <div className="text-xs text-indigo-700 dark:text-indigo-300">
-                  <p>Pour toute question : <strong>02/436.16.89</strong></p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {!selectedCours ? (
