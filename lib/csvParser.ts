@@ -1,10 +1,14 @@
 /**
- * CSV Parser utility for course import
+ * CSV / XLSX Parser utility for course import
  */
+
+import * as XLSX from 'xlsx';
+import { normalizeActiviteToCoursCode } from './examCode';
 
 export interface ParsedCourse {
   code: string;
   intitule_complet: string;
+  faculte?: string | null;
 }
 
 export interface CSVParseResult {
@@ -50,8 +54,15 @@ export function parseCoursCSV(csvContent: string): CSVParseResult {
       continue;
     }
     
-    const code = parts[0].trim();
-    const intitule_complet = parts.slice(1).join(';').trim(); // Handle semicolons in title
+    const code = normalizeActiviteToCoursCode(parts[0].trim());
+    let intitule_complet: string;
+    let faculte: string | null = null;
+    if (parts.length >= 3) {
+      intitule_complet = parts[1].trim();
+      faculte = parts.slice(2).join(';').trim() || null;
+    } else {
+      intitule_complet = parts.slice(1).join(';').trim(); // Handle semicolons in title
+    }
     
     // Validate required fields
     if (!code) {
@@ -78,11 +89,37 @@ export function parseCoursCSV(csvContent: string): CSVParseResult {
     
     courses.push({
       code,
-      intitule_complet
+      intitule_complet,
+      faculte: faculte || undefined
     });
   }
   
   return { courses, errors };
+}
+
+/**
+ * Parse first sheet of an XLSX workbook (same columns as CSV: Cours, Intit., faculté optionnelle)
+ */
+export function parseCoursXLSX(buffer: ArrayBuffer): CSVParseResult {
+  const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) {
+    return { courses: [], errors: ['Classeur Excel vide'] };
+  }
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json<(string | number | undefined)[]>(sheet, {
+    header: 1,
+    raw: false,
+    defval: ''
+  }) as string[][];
+  if (!rows.length) {
+    return { courses: [], errors: ['Feuille vide'] };
+  }
+  const lines = rows.map((row) =>
+    row.map((c) => (c == null ? '' : String(c))).join(';')
+  );
+  const pseudoCsv = lines.join('\n');
+  return parseCoursCSV(pseudoCsv);
 }
 
 /**
@@ -106,18 +143,18 @@ export function readFileAsText(file: File): Promise<string> {
 }
 
 /**
- * Validate CSV file
+ * Validate CSV / XLSX file for course import
  */
 export function validateCSVFile(file: File): string | null {
   // Check file type
-  const validTypes = ['text/csv', 'text/plain', 'application/vnd.ms-excel'];
-  const validExtensions = ['.csv', '.txt'];
+  const validTypes = ['text/csv', 'text/plain', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+  const validExtensions = ['.csv', '.txt', '.xlsx', '.xls'];
   
   const hasValidType = validTypes.includes(file.type);
   const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
   
   if (!hasValidType && !hasValidExtension) {
-    return 'Type de fichier invalide. Veuillez uploader un fichier CSV.';
+    return 'Type de fichier invalide. Veuillez uploader un fichier CSV ou Excel (.xlsx).';
   }
   
   // Check file size (max 5MB)
@@ -131,4 +168,13 @@ export function validateCSVFile(file: File): string | null {
   }
   
   return null;
+}
+
+export function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'));
+    reader.readAsArrayBuffer(file);
+  });
 }

@@ -7,12 +7,16 @@ import { Cours, CoursListItem, CoursSearchParams, CoursImportResult } from '../t
 export async function getCours(params?: CoursSearchParams): Promise<{ data: CoursListItem[], total: number }> {
   let query = supabase
     .from('cours')
-    .select('id, code, intitule_complet, consignes, updated_at', { count: 'exact' });
+    .select('id, code, intitule_complet, consignes, faculte, updated_at', { count: 'exact' });
 
   // Filtre par recherche
   if (params?.search) {
     const searchTerm = params.search.trim();
     query = query.or(`code.ilike.%${searchTerm}%,intitule_complet.ilike.%${searchTerm}%`);
+  }
+
+  if (params?.faculte && params.faculte !== 'all') {
+    query = query.eq('faculte', params.faculte);
   }
 
   // Filtre par présence de consignes
@@ -45,6 +49,7 @@ export async function getCours(params?: CoursSearchParams): Promise<{ data: Cour
     id: cours.id,
     code: cours.code,
     intitule_complet: cours.intitule_complet,
+    faculte: cours.faculte ?? null,
     has_consignes: cours.consignes !== null && cours.consignes.trim() !== '',
     updated_at: cours.updated_at
   }));
@@ -86,7 +91,7 @@ export async function getCoursByCode(code: string): Promise<Cours | null> {
 /**
  * Crée un nouveau cours (Admin)
  */
-export async function createCours(cours: { code: string; intitule_complet: string; consignes?: string }): Promise<Cours> {
+export async function createCours(cours: { code: string; intitule_complet: string; consignes?: string; faculte?: string | null }): Promise<Cours> {
   const { data, error } = await supabase
     .from('cours')
     .insert(cours)
@@ -100,7 +105,7 @@ export async function createCours(cours: { code: string; intitule_complet: strin
 /**
  * Met à jour un cours (Admin)
  */
-export async function updateCours(id: string, updates: { intitule_complet?: string; consignes?: string | null }): Promise<Cours> {
+export async function updateCours(id: string, updates: { intitule_complet?: string; consignes?: string | null; faculte?: string | null }): Promise<Cours> {
   const { data, error } = await supabase
     .from('cours')
     .update(updates)
@@ -144,7 +149,7 @@ export async function deleteCours(id: string): Promise<void> {
  * Met à jour les cours existants et crée les nouveaux
  */
 export async function importCours(
-  courses: { code: string; intitule_complet: string }[],
+  courses: { code: string; intitule_complet: string; faculte?: string | null }[],
   onProgress?: (current: number, total: number) => void
 ): Promise<CoursImportResult> {
   let imported = 0;
@@ -159,12 +164,15 @@ export async function importCours(
       const existing = await getCoursByCode(course.code);
 
       if (existing) {
-        // Mettre à jour uniquement l'intitulé (préserver les consignes)
-        await supabase
-          .from('cours')
-          .update({ intitule_complet: course.intitule_complet })
-          .eq('id', existing.id);
-        updated++;
+        // Ne pas écraser intitulé ni consignes : uniquement faculté si fournie
+        const faculteTrim = course.faculte?.trim();
+        if (faculteTrim) {
+          await supabase
+            .from('cours')
+            .update({ faculte: faculteTrim })
+            .eq('id', existing.id);
+          updated++;
+        }
       } else {
         // Créer un nouveau cours
         await supabase
@@ -172,7 +180,8 @@ export async function importCours(
           .insert({
             code: course.code,
             intitule_complet: course.intitule_complet,
-            consignes: null
+            consignes: null,
+            faculte: course.faculte?.trim() || null
           });
         imported++;
       }

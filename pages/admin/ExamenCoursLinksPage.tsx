@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
 import { ExamenWithCours } from '../../types';
 import { linkExamenToCours } from '../../lib/examenManagementApi';
-import { extractCourseCode } from '../../lib/examenCsvParser';
+import { normalizeActiviteToCoursCode } from '../../lib/examCode';
 import { 
   Link2, 
   AlertTriangle, 
@@ -28,6 +28,7 @@ interface ExamenCoursLink {
   cours_id: string | null;
   cours_code: string | null;
   cours_nom: string | null;
+  cours_faculte: string | null;
   cours_enseignants: string[] | null;
   extracted_code: string;
   status: 'linked' | 'orphan' | 'mismatch' | 'perfect';
@@ -40,6 +41,7 @@ export default function ExamenCoursLinksPage() {
   const { data: activeSession, isLoading: sessionLoading } = useActiveSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
+  const [filterFaculte, setFilterFaculte] = useState('');
   const [editingExamen, setEditingExamen] = useState<string | null>(null);
   const [selectedCoursId, setSelectedCoursId] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -82,7 +84,7 @@ export default function ExamenCoursLinksPage() {
       if (coursIds.length > 0) {
         const { data: cours, error: coursError } = await supabase
           .from('cours')
-          .select('id, code, intitule_complet, enseignants')
+          .select('id, code, intitule_complet, enseignants, faculte')
           .in('id', coursIds);
 
         if (coursError) {
@@ -98,7 +100,7 @@ export default function ExamenCoursLinksPage() {
       const coursMap = new Map(coursData.map(c => [c.id, c]));
 
       return examens.map((examen): ExamenCoursLink => {
-        const extractedCode = extractCourseCode(examen.code_examen);
+        const extractedCode = normalizeActiviteToCoursCode(examen.code_examen);
         const cours = examen.cours_id ? coursMap.get(examen.cours_id) : null;
         
         let status: ExamenCoursLink['status'] = 'orphan';
@@ -126,6 +128,7 @@ export default function ExamenCoursLinksPage() {
           cours_id: cours?.id || null,
           cours_code: cours?.code || null,
           cours_nom: cours?.intitule_complet || null,
+          cours_faculte: cours?.faculte ?? null,
           cours_enseignants: cours?.enseignants || null,
           extracted_code: extractedCode,
           status,
@@ -144,8 +147,7 @@ export default function ExamenCoursLinksPage() {
 
       const { data, error } = await supabase
         .from('cours')
-        .select('id, code, intitule_complet, enseignants')
-        .eq('session_id', activeSession.id)
+        .select('id, code, intitule_complet, enseignants, faculte')
         .order('code');
 
       if (error) throw error;
@@ -176,8 +178,15 @@ export default function ExamenCoursLinksPage() {
       );
     }
 
+    const fac = filterFaculte.trim().toLowerCase();
+    if (fac) {
+      filtered = filtered.filter(
+        (item) => (item.cours_faculte || '').toLowerCase() === fac
+      );
+    }
+
     return filtered;
-  }, [examensData, filterType, searchTerm]);
+  }, [examensData, filterType, searchTerm, filterFaculte]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -394,7 +403,7 @@ export default function ExamenCoursLinksPage() {
 
         {/* Filters */}
         <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -407,6 +416,23 @@ export default function ExamenCoursLinksPage() {
                   placeholder="Code examen, nom, cours..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Faculté (cours lié) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Faculté (cours)
+              </label>
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Ex. MED, FASB… (exact)"
+                  value={filterFaculte}
+                  onChange={(e) => setFilterFaculte(e.target.value)}
                   className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -448,6 +474,9 @@ export default function ExamenCoursLinksPage() {
                     Cours Lié
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Faculté
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Statut
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -461,31 +490,31 @@ export default function ExamenCoursLinksPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       Chargement...
                     </td>
                   </tr>
                 ) : queryError ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-red-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-red-500">
                       Erreur: {queryError.message}
                     </td>
                   </tr>
                 ) : !examensData ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       Aucune donnée chargée
                     </td>
                   </tr>
                 ) : examensData.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       Aucun examen trouvé dans la session active
                     </td>
                   </tr>
                 ) : filteredExamens.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       Aucun examen ne correspond aux filtres (Total: {examensData.length})
                     </td>
                   </tr>
@@ -545,6 +574,11 @@ export default function ExamenCoursLinksPage() {
                             )}
                           </div>
                         )}
+                      </td>
+
+                      {/* Faculté */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {item.cours_faculte || '—'}
                       </td>
 
                       {/* Statut */}

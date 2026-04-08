@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
 import { supabase } from '../../lib/supabaseClient';
+import { normalizeActiviteToCoursCode } from '../../lib/examCode';
 import { Upload, FileText, CheckCircle, AlertCircle, X, Loader2 } from 'lucide-react';
 import { Button } from '../shared/Button';
 
@@ -95,11 +97,6 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
     return hours * 60 + minutes;
   };
 
-  const parseExamCode = (activite: string): string => {
-    // Extract code from format like "WMDS2221=E"
-    return activite.split('=')[0].trim();
-  };
-
   const parseEnseignants = (enseignantsStr: string): string[] => {
     if (!enseignantsStr || enseignantsStr.trim() === '') return [];
     
@@ -129,7 +126,7 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
         const debut = parseTime(cols[3]);
         const fin = parseTime(cols[4]);
         const duree = parseDuration(cols[2]);
-        const code = parseExamCode(cols[5]);
+        const code = normalizeActiviteToCoursCode(cols[5]);
 
         if (!date) {
           errors.push(`Ligne ${i + 1}: Date invalide (${cols[0]})`);
@@ -160,6 +157,22 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
     return { exams, errors };
   };
 
+  /** Première feuille Excel → texte CSV (même structure que l’import CSV) */
+  const examSheetBufferToCsvText = (buffer: ArrayBuffer): string => {
+    const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
+    const name = wb.SheetNames[0];
+    if (!name) return '';
+    const sheet = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json<(string | number | undefined)[]>(sheet, {
+      header: 1,
+      raw: false,
+      defval: ''
+    }) as string[][];
+    return rows
+      .map((row) => row.map((c) => (c == null ? '' : String(c))).join(';'))
+      .join('\n');
+  };
+
   const importExams = async (exams: ParsedExam[]): Promise<ImportResult> => {
     let imported = 0;
     let updated = 0;
@@ -168,48 +181,49 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
 
     for (const exam of exams) {
       try {
-        // Check if exam already exists
+        const { data: cours } = await supabase
+          .from('cours')
+          .select('id')
+          .eq('code', exam.code_examen)
+          .maybeSingle();
+        const coursId = cours?.id ?? null;
+
         const { data: existing } = await supabase
           .from('examens')
           .select('id')
           .eq('session_id', sessionId)
           .eq('code_examen', exam.code_examen)
+          .eq('date_examen', exam.date_examen)
           .maybeSingle();
 
+        const commonFields = {
+          nom_examen: exam.nom_examen,
+          date_examen: exam.date_examen,
+          heure_debut: exam.heure_debut,
+          heure_fin: exam.heure_fin,
+          duree_minutes: exam.duree_minutes,
+          auditoires: exam.auditoires,
+          enseignants: exam.enseignants,
+          secretariat: exam.secretariat,
+          cours_id: coursId,
+          updated_at: new Date().toISOString()
+        };
+
         if (existing) {
-          // Update existing exam
           const { error } = await supabase
             .from('examens')
-            .update({
-              nom_examen: exam.nom_examen,
-              date_examen: exam.date_examen,
-              heure_debut: exam.heure_debut,
-              heure_fin: exam.heure_fin,
-              duree_minutes: exam.duree_minutes,
-              auditoires: exam.auditoires,
-              enseignants: exam.enseignants,
-              secretariat: exam.secretariat,
-              updated_at: new Date().toISOString()
-            })
+            .update(commonFields)
             .eq('id', existing.id);
 
           if (error) throw error;
           updated++;
         } else {
-          // Insert new exam
           const { error } = await supabase
             .from('examens')
             .insert({
               session_id: sessionId,
               code_examen: exam.code_examen,
-              nom_examen: exam.nom_examen,
-              date_examen: exam.date_examen,
-              heure_debut: exam.heure_debut,
-              heure_fin: exam.heure_fin,
-              duree_minutes: exam.duree_minutes,
-              auditoires: exam.auditoires,
-              enseignants: exam.enseignants,
-              secretariat: exam.secretariat,
+              ...commonFields,
               saisie_manuelle: false,
               valide: true
             });
@@ -218,15 +232,10 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
           imported++;
         }
 
-        // Check if cours exists for linking
-        const { data: cours } = await supabase
-          .from('cours')
-          .select('id')
-          .eq('code', exam.code_examen)
-          .maybeSingle();
-
-        if (!cours) {
-          warnings.push(`${exam.code_examen}: Aucun cours correspondant trouvé pour liaison automatique`);
+        if (!coursId) {
+          warnings.push(
+            `${exam.code_examen} (${exam.date_examen}): aucun cours avec ce code — liaison cours vide (importez la liste des cours d’abord)`
+          );
         }
       } catch (error) {
         errors.push(`${exam.code_examen}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -249,8 +258,22 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
 
     setIsImporting(true);
     try {
-      const content = await selectedFile.text();
-      const { exams, errors: parseErrors } = parseCSV(content);
+      const name = selectedFile.name.toLowerCase();
+      let exams: ParsedExam[];
+      let parseErrors: string[];
+
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        const buf = await selectedFile.arrayBuffer();
+        const text = examSheetBufferToCsvText(buf);
+        const parsed = parseCSV(text);
+        exams = parsed.exams;
+        parseErrors = parsed.errors;
+      } else {
+        const content = await selectedFile.text();
+        const parsed = parseCSV(content);
+        exams = parsed.exams;
+        parseErrors = parsed.errors;
+      }
 
       if (parseErrors.length > 0) {
         setImportResult({
@@ -308,12 +331,12 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Fichier CSV
+              Fichier CSV ou Excel
             </label>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xlsx,.xls"
               onChange={handleFileSelect}
               disabled={isImporting}
               className="block w-full text-sm text-gray-500
@@ -433,7 +456,7 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
       {/* Instructions */}
       <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-          Format du fichier CSV
+          Format du fichier (CSV ou première feuille Excel)
         </h4>
         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
           <p className="font-medium">Colonnes attendues (séparées par point-virgule) :</p>
@@ -443,7 +466,7 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
             <li>Durée (HHhMM, ex: 02h00)</li>
             <li>Heure début (HHhMM ou HH:MM)</li>
             <li>Heure fin (HHhMM ou HH:MM)</li>
-            <li>Activité/Code (ex: WMDS2221=E)</li>
+            <li>Activité/Code (ex: WMDS2221=E) — seul le code avant « = » est retenu pour lier au cours</li>
             <li>Nom de l'examen</li>
             <li>Auditoires</li>
             <li>Enseignants (séparés par virgules)</li>
@@ -453,7 +476,7 @@ export function SessionExamImport({ sessionId }: SessionExamImportProps) {
             <p className="font-medium mb-1">Notes importantes :</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>Les examens existants seront mis à jour</li>
-              <li>Les cours doivent être créés séparément dans l'onglet "Lier aux cours"</li>
+              <li>Importer d’abord la liste des cours (codes + faculté), puis ce fichier — la liaison cours se fait automatiquement si le code existe</li>
               <li>Les consignes sont gérées au niveau des cours, pas des examens</li>
             </ul>
           </div>

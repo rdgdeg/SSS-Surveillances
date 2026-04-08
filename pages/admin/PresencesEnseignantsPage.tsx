@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getCoursWithPresences, deletePresence } from '../../lib/teacherPresenceApi';
+import {
+  getCoursWithPresences,
+  deletePresence,
+  getRelanceNonRepondantsEmails
+} from '../../lib/teacherPresenceApi';
 import { supabase } from '../../lib/supabaseClient';
 import { CoursWithPresence } from '../../types';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Users, 
-  Search, 
-  Filter,
-  Download,
+import {
+  CheckCircle,
+  XCircle,
+  Users,
+  Search,
   Calendar,
   BookOpen,
   AlertCircle,
   Loader2,
   RefreshCw,
-  Trash2
+  Trash2,
+  Copy
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Button } from '../../components/shared/Button';
 import { ExportButton } from '../../components/shared/ExportButton';
 
@@ -31,6 +35,10 @@ export default function PresencesEnseignantsPage() {
   const [selectedCours, setSelectedCours] = useState<CoursWithPresence | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterFaculte, setFilterFaculte] = useState('');
+  const [filterSecretariat, setFilterSecretariat] = useState('');
+  const [filterExamenId, setFilterExamenId] = useState('');
+  const [relanceLoading, setRelanceLoading] = useState(false);
   const [editingPresenceId, setEditingPresenceId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -54,6 +62,21 @@ export default function PresencesEnseignantsPage() {
     retry: false,
   });
 
+  const { data: sessionExamens } = useQuery({
+    queryKey: ['examens-presences-filters', activeSession?.id],
+    queryFn: async () => {
+      if (!activeSession?.id) return [];
+      const { data, error } = await supabase
+        .from('examens')
+        .select('id, code_examen, nom_examen, secretariat, cours_id')
+        .eq('session_id', activeSession.id)
+        .order('date_examen', { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!activeSession?.id,
+  });
+
   // Fetch cours IDs that have exams in the active session
   const { data: coursIdsWithExams } = useQuery({
     queryKey: ['cours-with-exams', activeSession?.id],
@@ -72,6 +95,26 @@ export default function PresencesEnseignantsPage() {
     enabled: !!activeSession?.id,
   });
 
+  const coursIdsMatchingSecretariat = React.useMemo(() => {
+    if (!filterSecretariat || !sessionExamens?.length) return null;
+    const ids = new Set<string>();
+    sessionExamens.forEach((ex) => {
+      if (!ex.cours_id) return;
+      if (filterSecretariat === 'NON_ASSIGNE') {
+        if (!ex.secretariat || String(ex.secretariat).trim() === '') ids.add(ex.cours_id);
+      } else if (ex.secretariat === filterSecretariat) {
+        ids.add(ex.cours_id);
+      }
+    });
+    return ids;
+  }, [filterSecretariat, sessionExamens]);
+
+  const selectedExamenCoursId = React.useMemo(() => {
+    if (!filterExamenId || !sessionExamens?.length) return null;
+    const ex = sessionExamens.find((e) => e.id === filterExamenId);
+    return ex?.cours_id ?? null;
+  }, [filterExamenId, sessionExamens]);
+
   // Filter and search logic
   const filteredCours = coursWithPresences?.filter(cours => {
     const matchesSearch = 
@@ -87,7 +130,27 @@ export default function PresencesEnseignantsPage() {
       filterScope === 'all' ||
       (filterScope === 'with-exams' && coursIdsWithExams?.has(cours.id));
 
-    return matchesSearch && matchesStatus && matchesScope;
+    const fac = filterFaculte.trim();
+    const matchesFaculte =
+      !fac || (cours.faculte || '').toLowerCase() === fac.toLowerCase();
+
+    const matchesSecretariat =
+      !filterSecretariat ||
+      (coursIdsMatchingSecretariat !== null &&
+        coursIdsMatchingSecretariat.has(cours.id));
+
+    const matchesExamen =
+      !filterExamenId ||
+      (selectedExamenCoursId !== null && cours.id === selectedExamenCoursId);
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesScope &&
+      matchesFaculte &&
+      matchesSecretariat &&
+      matchesExamen
+    );
   });
 
   // Pagination logic
@@ -99,10 +162,50 @@ export default function PresencesEnseignantsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterScope]);
+  }, [
+    searchTerm,
+    filterStatus,
+    filterScope,
+    filterFaculte,
+    filterSecretariat,
+    filterExamenId
+  ]);
+
+  const faculteOptions = React.useMemo(() => {
+    const s = new Set<string>();
+    coursWithPresences?.forEach((c) => {
+      if (c.faculte && String(c.faculte).trim()) s.add(String(c.faculte).trim());
+    });
+    return Array.from(s).sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [coursWithPresences]);
+
+  const handleCopyRelanceEmails = async () => {
+    if (!activeSession?.id) return;
+    setRelanceLoading(true);
+    try {
+      const rows = await getRelanceNonRepondantsEmails(activeSession.id, {
+        faculte: filterFaculte.trim() || undefined,
+        secretariat: filterSecretariat || undefined,
+        examenId: filterExamenId || undefined
+      });
+      const text = rows.map((r) => r.email).join('; ');
+      await navigator.clipboard.writeText(text);
+      toast.success(
+        rows.length
+          ? `${rows.length} adresse(s) copiée(s) (séparateur ; )`
+          : 'Aucun non-répondant pour ces filtres'
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error('Impossible de préparer la liste de relance');
+    } finally {
+      setRelanceLoading(false);
+    }
+  };
 
   const exportData = filteredCours?.map(cours => ({
     'Code Cours': cours.code,
+    'Faculté': cours.faculte || '',
     'Intitulé': cours.intitule_complet,
     'Déclarations': cours.nb_presences_declarees,
     'Enseignants Présents': cours.nb_enseignants_presents,
@@ -168,6 +271,18 @@ export default function PresencesEnseignantsPage() {
           <Button onClick={handleRefresh} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Rafraîchir
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleCopyRelanceEmails}
+            disabled={relanceLoading}
+          >
+            {relanceLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Copy className="h-4 w-4 mr-2" />
+            )}
+            Copier emails relance
           </Button>
           <ExportButton
             data={exportData}
@@ -253,7 +368,62 @@ export default function PresencesEnseignantsPage() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Faculté (cours)
+                </label>
+                <select
+                  value={filterFaculte}
+                  onChange={(e) => setFilterFaculte(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Toutes</option>
+                  {faculteOptions.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Secrétariat (examen)
+                </label>
+                <select
+                  value={filterSecretariat}
+                  onChange={(e) => setFilterSecretariat(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Tous</option>
+                  <option value="NON_ASSIGNE">Non assigné</option>
+                  <option value="BAC11">BAC11</option>
+                  <option value="DENT">DENT</option>
+                  <option value="FASB">FASB</option>
+                  <option value="FSP">FSP</option>
+                  <option value="MED">MED</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Examen
+                </label>
+                <select
+                  value={filterExamenId}
+                  onChange={(e) => setFilterExamenId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Tous</option>
+                  {(sessionExamens || []).map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.code_examen} — {ex.nom_examen}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
             {/* Scope Filter */}
             <div className="flex gap-2">
               <button
@@ -325,6 +495,9 @@ export default function PresencesEnseignantsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Cours
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Faculté
+                </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Déclarations
                 </th>
@@ -359,6 +532,9 @@ export default function PresencesEnseignantsPage() {
                         {cours.intitule_complet}
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                    {cours.faculte || '—'}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">

@@ -68,7 +68,7 @@ export function CourseImport() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xlsx,.xls"
               onChange={handleFileSelect}
               className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
@@ -81,7 +81,7 @@ export function CourseImport() {
             />
           </div>
           <p className="mt-2 text-xs text-gray-500">
-            Format attendu: Cours;Intit.Complet (séparateur: point-virgule)
+            Format attendu: Cours;Intit.Complet ou Cours;Intit.Complet;Faculté (séparateur: point-virgule). Importer les cours avant les examens.
           </p>
         </div>
 

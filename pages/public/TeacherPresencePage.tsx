@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   searchCours, 
   submitPresence, 
-  getExistingPresence 
+  getExistingPresence,
+  getExamensWithCoursForSession,
+  collectUniqueTeacherLabelsFromExamens,
+  filterExamensByTeacherLabel
 } from '../../lib/teacherPresenceApi';
 import { supabase } from '../../lib/supabaseClient';
+import type { Examen } from '../../types';
 import { useActiveSession } from '../../src/hooks/useActiveSession';
 import { 
   Search, 
@@ -58,8 +62,41 @@ export default function TeacherPresencePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [selectedExamenId, setSelectedExamenId] = useState<string | null>(null);
+  const [selectedTeacherLabel, setSelectedTeacherLabel] = useState('');
+  const [manualExamMode, setManualExamMode] = useState(false);
+  const [examPickerSearch, setExamPickerSearch] = useState('');
+  const [showCourseSearch, setShowCourseSearch] = useState(false);
 
   const { data: activeSession } = useActiveSession();
+
+  const { data: sessionExamens, isLoading: sessionExamensLoading } = useQuery({
+    queryKey: ['examens-session-teacher', activeSession?.id],
+    queryFn: () => getExamensWithCoursForSession(activeSession!.id),
+    enabled: !!activeSession?.id,
+  });
+
+  const teacherLabels = useMemo(
+    () => collectUniqueTeacherLabelsFromExamens(sessionExamens || []),
+    [sessionExamens]
+  );
+
+  const examsForLabel = useMemo(() => {
+    if (!selectedTeacherLabel.trim() || !sessionExamens) return [];
+    return filterExamensByTeacherLabel(sessionExamens, selectedTeacherLabel);
+  }, [sessionExamens, selectedTeacherLabel]);
+
+  const filteredManualExams = useMemo(() => {
+    if (!sessionExamens) return [];
+    const q = examPickerSearch.trim().toLowerCase();
+    if (!q) return sessionExamens;
+    return sessionExamens.filter(
+      (ex) =>
+        ex.code_examen.toLowerCase().includes(q) ||
+        (ex.nom_examen || '').toLowerCase().includes(q) ||
+        (ex.secretariat || '').toLowerCase().includes(q)
+    );
+  }, [sessionExamens, examPickerSearch]);
 
   // Search courses
   const { data: searchResults, isLoading: isSearching } = useQuery({
@@ -79,7 +116,7 @@ export default function TeacherPresencePage() {
       
       const { data: examens, error } = await supabase
         .from('examens')
-        .select('cours_id, date, heure_debut')
+        .select('cours_id, date_examen, heure_debut')
         .eq('session_id', activeSession.id)
         .not('cours_id', 'is', null);
       
@@ -88,7 +125,7 @@ export default function TeacherPresencePage() {
       const coursIds = new Set(examens?.map(e => e.cours_id) || []);
       const examMap = new Map(examens?.map(e => ({ 
         id: e.cours_id, 
-        date: e.date, 
+        date: e.date_examen, 
         time: e.heure_debut 
       })).map(e => [e.id, e]));
       
@@ -112,25 +149,36 @@ export default function TeacherPresencePage() {
 
   // Check existing presence for current teacher
   const { data: existingPresence } = useQuery({
-    queryKey: ['existing-presence', selectedCours?.id, activeSession?.id, formData.enseignant_email],
+    queryKey: ['existing-presence', selectedCours?.id, activeSession?.id, formData.enseignant_email, selectedExamenId],
     queryFn: () => {
       if (!selectedCours || !activeSession || !formData.enseignant_email) return null;
-      return getExistingPresence(selectedCours.id, activeSession.id, formData.enseignant_email);
+      return getExistingPresence(
+        selectedCours.id,
+        activeSession.id,
+        formData.enseignant_email,
+        selectedExamenId
+      );
     },
     enabled: !!selectedCours && !!activeSession && !!formData.enseignant_email,
   });
 
   // Check all presences for this course
   const { data: allPresencesForCours } = useQuery({
-    queryKey: ['all-presences-cours', selectedCours?.id, activeSession?.id],
+    queryKey: ['all-presences-cours', selectedCours?.id, activeSession?.id, selectedExamenId],
     queryFn: async () => {
       if (!selectedCours || !activeSession) return [];
       
-      const { data, error } = await supabase
+      let q = supabase
         .from('presences_enseignants')
         .select('*')
         .eq('cours_id', selectedCours.id)
         .eq('session_id', activeSession.id);
+
+      if (selectedExamenId) {
+        q = q.eq('examen_id', selectedExamenId);
+      }
+
+      const { data, error } = await q;
       
       if (error) throw error;
       return data || [];
@@ -217,7 +265,29 @@ export default function TeacherPresencePage() {
     }
   }, [selectedCours, existingPresence, existingSubmissionsStats.allSurveillants]);
 
+  const handlePickExamen = (examen: Examen) => {
+    const row = examen as Examen & {
+      cours?: { id: string; code: string; intitule_complet: string; consignes: string | null } | null;
+    };
+    if (!examen.cours_id || !row.cours) {
+      toast.error('Cours non lié à cet examen. Importez les cours puis les examens, ou contactez le secrétariat.');
+      return;
+    }
+    setSelectedExamenId(examen.id);
+    setSelectedCours({
+      id: row.cours.id,
+      code: row.cours.code,
+      intitule_complet: row.cours.intitule_complet,
+      consignes: row.cours.consignes ?? null,
+      has_exam: true,
+      exam_date: examen.date_examen || undefined,
+      exam_time: examen.heure_debut || undefined,
+    });
+    setShowConfirmation(false);
+  };
+
   const handleSelectCours = (cours: CoursWithExam) => {
+    setSelectedExamenId(null);
     setSelectedCours(cours);
     setSearchTerm('');
     setShowConfirmation(false);
@@ -276,11 +346,12 @@ export default function TeacherPresencePage() {
 
     setIsSubmitting(true);
     try {
-      await submitPresence(selectedCours.id, activeSession.id, formData);
+      await submitPresence(selectedCours.id, activeSession.id, formData, selectedExamenId);
       toast.success(existingPresence ? 'Présence modifiée avec succès' : 'Présence enregistrée avec succès');
       
-      // Reset form
+      // Reset form (garder identité pour enchaîner un autre examen)
       setSelectedCours(null);
+      setSelectedExamenId(null);
       setShowConfirmation(false);
       setFormData({
         enseignant_email: formData.enseignant_email, // Keep email
@@ -338,11 +409,18 @@ export default function TeacherPresencePage() {
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800 dark:text-blue-200">
-              <p className="font-medium mb-1">Comment ça marche ?</p>
+              <p className="font-medium mb-1">Principe de la session</p>
+              <p className="mb-2 text-blue-700 dark:text-blue-300">
+                Vous déclarez votre présence pour la session active.
+                La liste des noms est construite depuis la liste des examens importés
+                (noms/labels enseignants présents dans ce fichier).
+              </p>
               <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-300">
-                <li>Recherchez votre cours par code ou nom</li>
+                <li>Choisissez votre nom dans la liste des enseignants de la session</li>
+                <li>Sélectionnez ensuite l’examen concerné</li>
                 <li>Indiquez si vous serez présent et combien de personnes vous accompagnent</li>
-                <li>Les consignes que vous ajoutez seront conservées pour les prochaines sessions</li>
+                <li>Si votre nom n’apparaît pas, utilisez “Autre méthode (si nécessaire)”</li>
+                <li>Les deux méthodes mènent au même formulaire et au même enregistrement de présence</li>
               </ul>
             </div>
           </div>
@@ -404,74 +482,215 @@ export default function TeacherPresencePage() {
         </div>
 
         {!selectedCours ? (
-          /* Search Section */
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Rechercher votre cours
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Code ou nom du cours (min. 2 caractères)..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
+          <>
+          {sessionExamensLoading && (
+            <div className="flex justify-center py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
             </div>
-
-            {isSearching && (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-              </div>
-            )}
-
-            {enrichedResults && enrichedResults.length > 0 && (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {enrichedResults.map((cours) => (
+          )}
+          {sessionExamens && sessionExamens.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6 space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Par liste des enseignants (session)
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Sélectionnez le libellé tel qu’il apparaît dans le fichier d’examens, puis l’examen concerné.
+              </p>
+              {!manualExamMode ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Votre nom dans la liste
+                    </label>
+                    <select
+                      value={selectedTeacherLabel}
+                      onChange={(e) => setSelectedTeacherLabel(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">— Choisir —</option>
+                      {teacherLabels.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <button
-                    key={cours.id}
-                    onClick={() => handleSelectCours(cours)}
-                    className="w-full text-left p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    type="button"
+                    onClick={() => {
+                      setManualExamMode(true);
+                      setSelectedTeacherLabel('');
+                    }}
+                    className="text-sm text-indigo-600 dark:text-indigo-400 underline"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs font-bold">
-                            {cours.code}
-                          </span>
-                          {cours.has_exam && (
-                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-medium flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              Examen prévu
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {cours.intitule_complet}
-                        </p>
-                        {cours.exam_date && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {new Date(cours.exam_date).toLocaleDateString('fr-FR')}
-                            {cours.exam_time && ` à ${cours.exam_time}`}
-                          </p>
-                        )}
-                      </div>
-                      <BookOpen className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                    </div>
+                    Je ne suis pas dans la liste — choisir un examen directement
                   </button>
-                ))}
-              </div>
-            )}
+                  {selectedTeacherLabel && examsForLabel.length > 0 && (
+                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Examens</p>
+                      {examsForLabel.map((ex) => (
+                        <button
+                          key={ex.id}
+                          type="button"
+                          onClick={() => handlePickExamen(ex)}
+                          className="w-full text-left p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                        >
+                          <span className="font-mono text-xs text-indigo-600">{ex.code_examen}</span>
+                          <span className="block text-sm text-gray-900 dark:text-white">{ex.nom_examen}</span>
+                          <span className="text-xs text-gray-500">
+                            {ex.date_examen
+                              ? new Date(ex.date_examen).toLocaleDateString('fr-FR')
+                              : ''}{' '}
+                            {ex.heure_debut || ''}
+                            {ex.secretariat ? ` · ${ex.secretariat}` : ''}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedTeacherLabel && examsForLabel.length === 0 && (
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      Aucun examen pour ce libellé. Utilisez le mode ci-dessous ou la recherche par cours.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setManualExamMode(false)}
+                    className="text-sm text-indigo-600 dark:text-indigo-400 underline"
+                  >
+                    Retour à la liste des noms
+                  </button>
+                  <input
+                    type="search"
+                    placeholder="Filtrer par code, intitulé ou secrétariat…"
+                    value={examPickerSearch}
+                    onChange={(e) => setExamPickerSearch(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {filteredManualExams.map((ex) => (
+                      <button
+                        key={ex.id}
+                        type="button"
+                        onClick={() => handlePickExamen(ex)}
+                        className="w-full text-left p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        <span className="font-mono text-xs text-indigo-600">{ex.code_examen}</span>
+                        <span className="block text-sm text-gray-900 dark:text-white">{ex.nom_examen}</span>
+                        <span className="text-xs text-gray-500">
+                          {ex.date_examen
+                            ? new Date(ex.date_examen).toLocaleDateString('fr-FR')
+                            : ''}{' '}
+                          {ex.heure_debut || ''}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
-            {searchTerm.length >= 2 && !isSearching && enrichedResults?.length === 0 && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                Aucun cours trouvé
+          {/* Search Section (other method) */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowCourseSearch((v) => !v)}
+              className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Autre méthode (si nécessaire)
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Rechercher votre cours au lieu de passer par la liste de la session
+                </p>
+              </div>
+              {showCourseSearch ? (
+                <ChevronUp className="h-5 w-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-500" />
+              )}
+            </button>
+
+            {showCourseSearch && (
+              <div className="px-5 pb-5 border-t border-gray-200 dark:border-gray-700">
+                <p className="pt-4 text-xs text-gray-600 dark:text-gray-400">
+                  Cette méthode est un secours: les informations envoyées sont enregistrées
+                  exactement au même endroit que la méthode par liste des noms.
+                </p>
+                <div className="pt-4 mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Rechercher votre cours
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Code ou nom du cours (min. 2 caractères)..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {isSearching && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                  </div>
+                )}
+
+                {enrichedResults && enrichedResults.length > 0 && (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {enrichedResults.map((cours) => (
+                      <button
+                        key={cours.id}
+                        onClick={() => handleSelectCours(cours)}
+                        className="w-full text-left p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs font-bold">
+                                {cours.code}
+                              </span>
+                              {cours.has_exam && (
+                                <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-medium flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  Examen prévu
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {cours.intitule_complet}
+                            </p>
+                            {cours.exam_date && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {new Date(cours.exam_date).toLocaleDateString('fr-FR')}
+                                {cours.exam_time && ` à ${cours.exam_time}`}
+                              </p>
+                            )}
+                          </div>
+                          <BookOpen className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {searchTerm.length >= 2 && !isSearching && enrichedResults?.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    Aucun cours trouvé
+                  </div>
+                )}
               </div>
             )}
           </div>
+          </>
         ) : (
           /* Form Section */
           <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
@@ -504,7 +723,10 @@ export default function TeacherPresencePage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedCours(null)}
+                  onClick={() => {
+                    setSelectedCours(null);
+                    setSelectedExamenId(null);
+                  }}
                 >
                   Changer
                 </Button>

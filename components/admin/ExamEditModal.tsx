@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ExamenWithStatus, ExamenFormData, Cours } from '../../types';
-import { getCours } from '../../lib/coursApi';
+import { getCours, getCoursByCode } from '../../lib/coursApi';
+import { normalizeActiviteToCoursCode } from '../../lib/examCode';
 import { createExamen, updateExamen } from '../../lib/examenManagementApi';
 import SecretariatSelect from '../shared/SecretariatSelect';
 
@@ -41,7 +42,15 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
     const loadCours = async () => {
       try {
         const result = await getCours({ pageSize: 1000 });
-        setCours(result.data.map(c => ({ id: c.id, code: c.code, intitule_complet: c.intitule_complet, consignes: null, created_at: '', updated_at: '' })));
+        setCours(result.data.map(c => ({
+          id: c.id,
+          code: c.code,
+          intitule_complet: c.intitule_complet,
+          consignes: null,
+          faculte: c.faculte ?? null,
+          created_at: '',
+          updated_at: ''
+        })));
       } catch (err) {
         console.error('Error loading courses:', err);
       }
@@ -190,6 +199,26 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
     });
   };
 
+  const handleAttachCoursFromCode = async () => {
+    const code = normalizeActiviteToCoursCode(formData.code_examen);
+    if (!code) {
+      alert('Indiquez un code d’examen (la partie avant « = » sera utilisée pour retrouver le cours).');
+      return;
+    }
+    try {
+      const cours = await getCoursByCode(code);
+      if (!cours) {
+        alert(`Aucun cours avec le code « ${code} ». Importez d’abord la liste des cours.`);
+        return;
+      }
+      setFormData({ ...formData, cours_id: cours.id });
+      setCoursSearch(`${cours.code} - ${cours.intitule_complet}`);
+    } catch (err) {
+      console.error(err);
+      alert('Erreur lors de la recherche du cours');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -280,6 +309,13 @@ export function ExamEditModal({ examen, isOpen, onClose, onSave, sessionId }: Ex
                   {errors.code_examen && (
                     <p className="mt-1 text-sm text-red-600">{errors.code_examen}</p>
                   )}
+                  <button
+                    type="button"
+                    onClick={handleAttachCoursFromCode}
+                    className="mt-2 text-xs text-blue-600 hover:underline"
+                  >
+                    Rattacher au cours (recherche par code, partie avant « = »)
+                  </button>
                 </div>
 
                 <div>

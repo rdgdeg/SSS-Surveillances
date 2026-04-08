@@ -168,6 +168,7 @@ export interface Cours {
   code: string;
   intitule_complet: string;
   consignes: string | null;
+  faculte: string | null;
   updated_at: string;
   created_at: string;
 }
@@ -176,6 +177,7 @@ export interface CoursListItem {
   id: string;
   code: string;
   intitule_complet: string;
+  faculte: string | null;
   has_consignes: boolean;
   updated_at: string;
 }
@@ -188,6 +190,7 @@ export interface CoursFormData {
 
 export interface CoursSearchParams {
   search?: string;
+  faculte?: string;
   sortBy?: 'code' | 'intitule_complet' | 'updated_at';
   sortOrder?: 'asc' | 'desc';
   hasInstructions?: boolean;
@@ -541,6 +544,8 @@ export interface ExamenFilters {
   dateFrom?: string;
   dateTo?: string;
   secretariat?: string;
+  /** Filtre sur cours.faculté (jointure) */
+  faculte?: string;
   responseStatus?: 'all' | 'declared' | 'pending';
   hasCoursLinked?: boolean;
   hasSupervisorRequirement?: boolean;

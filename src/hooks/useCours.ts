@@ -10,7 +10,14 @@ import {
   getCoursStats
 } from '../../lib/coursApi';
 import { CoursSearchParams, Cours, CoursImportResult } from '../../types';
-import { parseCoursCSV, readFileAsText, validateCSVFile } from '../../lib/csvParser';
+import {
+  parseCoursCSV,
+  parseCoursXLSX,
+  readFileAsText,
+  readFileAsArrayBuffer,
+  validateCSVFile,
+  type ParsedCourse
+} from '../../lib/csvParser';
 
 /**
  * Hook pour récupérer la liste des cours
@@ -104,11 +111,21 @@ export function useCoursImport(onProgress?: (current: number, total: number) => 
         throw new Error(validationError);
       }
 
-      // Lire le contenu du fichier
-      const content = await readFileAsText(file);
+      const name = file.name.toLowerCase();
+      let courses: ParsedCourse[];
+      let parseErrors: string[];
 
-      // Parser le CSV
-      const { courses, errors: parseErrors } = parseCoursCSV(content);
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        const buf = await readFileAsArrayBuffer(file);
+        const parsed = parseCoursXLSX(buf);
+        courses = parsed.courses;
+        parseErrors = parsed.errors;
+      } else {
+        const content = await readFileAsText(file);
+        const parsed = parseCoursCSV(content);
+        courses = parsed.courses;
+        parseErrors = parsed.errors;
+      }
 
       if (courses.length === 0) {
         throw new Error('Aucun cours valide trouvé dans le fichier');

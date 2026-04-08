@@ -66,12 +66,16 @@ export function useCoursDetailQuery(id: string | null) {
 export function useExistingPresenceQuery(
   coursId: string | null,
   sessionId: string | null,
-  enseignantEmail: string | null
+  enseignantEmail: string | null,
+  examenId?: string | null
 ) {
   return useQuery({
-    queryKey: ['presence', coursId, sessionId, enseignantEmail],
-    queryFn: () => getExistingPresence(coursId!, sessionId!, enseignantEmail!),
-    enabled: !!coursId && !!sessionId && !!enseignantEmail,
+    queryKey: ['presence', coursId, sessionId, enseignantEmail, examenId ?? 'none'],
+    queryFn: () => getExistingPresence(coursId!, sessionId!, enseignantEmail!, examenId ?? undefined),
+    enabled:
+      !!sessionId &&
+      !!enseignantEmail &&
+      (!!examenId || !!coursId),
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
@@ -83,12 +87,25 @@ export function usePresenceMutation() {
   const queryClient = useQueryClient();
   
   const submitMutation = useMutation({
-    mutationFn: ({ coursId, sessionId, data }: { coursId: string; sessionId: string; data: PresenceFormData }) =>
-      submitPresence(coursId, sessionId, data),
+    mutationFn: ({
+      coursId,
+      sessionId,
+      data,
+      examenId
+    }: {
+      coursId: string;
+      sessionId: string;
+      data: PresenceFormData;
+      examenId?: string | null;
+    }) => submitPresence(coursId, sessionId, data, examenId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['cours'] });
       queryClient.invalidateQueries({ queryKey: ['presence'] });
-      queryClient.setQueryData(['presence', data.cours_id, data.session_id, data.enseignant_email], data);
+      queryClient.invalidateQueries({ queryKey: ['examens-session-teacher'] });
+      queryClient.setQueryData(
+        ['presence', data.cours_id, data.session_id, data.enseignant_email, data.examen_id ?? 'none'],
+        data
+      );
     },
   });
   

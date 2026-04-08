@@ -483,6 +483,24 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             />
           </div>
 
+          {/* Faculté (cours lié) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Faculté (cours)
+            </label>
+            <input
+              type="text"
+              value={filters.faculte && filters.faculte !== 'all' ? filters.faculte : ''}
+              onChange={(e) => {
+                const v = e.target.value.trim();
+                setFilters({ ...filters, faculte: v ? v : undefined });
+                setPage(1);
+              }}
+              placeholder="Toutes"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           {/* Secretariat */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

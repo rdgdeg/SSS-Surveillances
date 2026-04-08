@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import {
   Cours,
+  Examen,
   PresenceEnseignant,
   NotificationAdmin,
   CoursWithPresence,
@@ -63,11 +64,13 @@ export async function getCoursById(id: string): Promise<Cours | null> {
 export async function submitPresence(
   coursId: string,
   sessionId: string,
-  data: PresenceFormData
+  data: PresenceFormData,
+  examenId?: string | null
 ): Promise<PresenceEnseignant> {
   const presenceData = {
     cours_id: coursId,
     session_id: sessionId,
+    examen_id: examenId ?? null,
     enseignant_email: data.enseignant_email.toLowerCase(),
     enseignant_nom: data.enseignant_nom,
     enseignant_prenom: data.enseignant_prenom,
@@ -85,14 +88,19 @@ export async function submitPresence(
     remarque: data.remarque || null
   };
   
-  // Check if presence already exists
-  const { data: existing } = await supabase
-    .from('presences_enseignants')
-    .select('id')
-    .eq('cours_id', coursId)
-    .eq('session_id', sessionId)
-    .eq('enseignant_email', data.enseignant_email.toLowerCase())
-    .maybeSingle();
+  const emailLower = data.enseignant_email.toLowerCase();
+
+  // Check if presence already exists (priorité à examen_id si fourni)
+  let existingQuery = supabase.from('presences_enseignants').select('id');
+  if (examenId) {
+    existingQuery = existingQuery.eq('examen_id', examenId).eq('enseignant_email', emailLower);
+  } else {
+    existingQuery = existingQuery
+      .eq('cours_id', coursId)
+      .eq('session_id', sessionId)
+      .eq('enseignant_email', emailLower);
+  }
+  const { data: existing } = await existingQuery.maybeSingle();
 
   let presence;
   
@@ -216,15 +224,19 @@ async function addRemarqueToCoursConsignes(
 export async function getExistingPresence(
   coursId: string,
   sessionId: string,
-  enseignantEmail: string
+  enseignantEmail: string,
+  examenId?: string | null
 ): Promise<PresenceEnseignant | null> {
-  const { data, error } = await supabase
-    .from('presences_enseignants')
-    .select('*')
-    .eq('cours_id', coursId)
-    .eq('session_id', sessionId)
-    .eq('enseignant_email', enseignantEmail.toLowerCase())
-    .maybeSingle();
+  let q = supabase.from('presences_enseignants').select('*');
+  if (examenId) {
+    q = q.eq('examen_id', examenId).eq('enseignant_email', enseignantEmail.toLowerCase());
+  } else {
+    q = q
+      .eq('cours_id', coursId)
+      .eq('session_id', sessionId)
+      .eq('enseignant_email', enseignantEmail.toLowerCase());
+  }
+  const { data, error } = await q.maybeSingle();
   
   if (error) {
     console.error('Error fetching presence:', error);
@@ -386,4 +398,130 @@ export async function deletePresence(id: string): Promise<void> {
     console.error('Error deleting presence:', error);
     throw error;
   }
+}
+
+/**
+ * Examens de la session avec cours (filtres enseignant / secours)
+ */
+export async function getExamensWithCoursForSession(sessionId: string): Promise<Examen[]> {
+  const { data, error } = await supabase
+    .from('examens')
+    .select('*, cours(*)')
+    .eq('session_id', sessionId)
+    .order('date_examen', { ascending: true, nullsFirst: false })
+    .order('heure_debut', { ascending: true, nullsFirst: false });
+
+  if (error) throw error;
+  return (data || []) as Examen[];
+}
+
+/** Libellés uniques issus des colonnes enseignants (Excel) */
+export function collectUniqueTeacherLabelsFromExamens(examens: Pick<Examen, 'enseignants'>[]): string[] {
+  const set = new Set<string>();
+  examens.forEach((e) => {
+    (e.enseignants || []).forEach((t) => {
+      const s = String(t).trim();
+      if (s) set.add(s);
+    });
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+}
+
+export function filterExamensByTeacherLabel(examens: Examen[], label: string): Examen[] {
+  const L = label.trim().toLowerCase();
+  return examens.filter((e) =>
+    (e.enseignants || []).some((t) => String(t).trim().toLowerCase() === L)
+  );
+}
+
+export interface RelanceNonRepondantRow {
+  email: string;
+  code_examen: string;
+  nom_examen: string;
+}
+
+/**
+ * Enseignants attendus sur l'examen (colonne enseignants) sans ligne de présence liée à cet examen (examen_id).
+ * Les filtres suivent la page admin (faculté du cours, secrétariat, examen précis).
+ */
+export async function getRelanceNonRepondantsEmails(
+  sessionId: string,
+  opts?: { faculte?: string; secretariat?: string; examenId?: string }
+): Promise<RelanceNonRepondantRow[]> {
+  let q = supabase
+    .from('examens')
+    .select('id, code_examen, nom_examen, enseignants, secretariat, cours_id, cours(faculte)')
+    .eq('session_id', sessionId);
+
+  if (opts?.examenId) {
+    q = q.eq('id', opts.examenId);
+  }
+
+  const { data: examens, error: exErr } = await q;
+  if (exErr) throw exErr;
+  if (!examens?.length) return [];
+
+  let list = examens as Array<{
+    id: string;
+    code_examen: string;
+    nom_examen: string;
+    enseignants: string[] | null;
+    secretariat: string | null;
+    cours_id: string | null;
+    cours: { faculte: string | null } | null;
+  }>;
+
+  if (opts?.faculte?.trim()) {
+    const f = opts.faculte.trim();
+    list = list.filter((e) => (e.cours?.faculte || '') === f);
+  }
+
+  if (opts?.secretariat) {
+    const sec = opts.secretariat;
+    if (sec === 'NON_ASSIGNE') {
+      list = list.filter((e) => !e.secretariat || String(e.secretariat).trim() === '');
+    } else {
+      list = list.filter((e) => e.secretariat === sec);
+    }
+  }
+
+  const examIds = list.map((e) => e.id);
+  if (examIds.length === 0) return [];
+
+  const { data: presences, error: pErr } = await supabase
+    .from('presences_enseignants')
+    .select('examen_id, enseignant_email')
+    .eq('session_id', sessionId)
+    .in('examen_id', examIds);
+
+  if (pErr) throw pErr;
+
+  const declaredByExamen = new Map<string, Set<string>>();
+  (presences || []).forEach((p) => {
+    if (!p.examen_id) return;
+    if (!declaredByExamen.has(p.examen_id)) {
+      declaredByExamen.set(p.examen_id, new Set());
+    }
+    declaredByExamen.get(p.examen_id)!.add(String(p.enseignant_email).toLowerCase());
+  });
+
+  const rows: RelanceNonRepondantRow[] = [];
+
+  for (const ex of list) {
+    const expected = (ex.enseignants || [])
+      .map((x) => String(x).trim().toLowerCase())
+      .filter(Boolean);
+    const declared = declaredByExamen.get(ex.id) || new Set<string>();
+    for (const email of expected) {
+      if (!declared.has(email)) {
+        rows.push({
+          email,
+          code_examen: ex.code_examen,
+          nom_examen: ex.nom_examen
+        });
+      }
+    }
+  }
+
+  return rows;
 }

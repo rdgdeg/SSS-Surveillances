@@ -71,6 +71,15 @@ export async function getExamens(
       }
     }
 
+    if (filters?.faculte && filters.faculte !== 'all') {
+      const { data: coursRows } = await supabase.from('cours').select('id').eq('faculte', filters.faculte);
+      const ids = coursRows?.map((c) => c.id) ?? [];
+      if (ids.length === 0) {
+        return { data: [], total: 0 };
+      }
+      query = query.in('cours_id', ids);
+    }
+
     if (filters?.hasCoursLinked !== undefined) {
       if (filters.hasCoursLinked) {
         query = query.not('cours_id', 'is', null);
