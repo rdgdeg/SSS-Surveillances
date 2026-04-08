@@ -14,6 +14,45 @@ import { useDebug } from '../../contexts/DebugContext';
 import localStorageManager from '../../lib/localStorageManager';
 import SubmissionHistoryModal from './SubmissionHistoryModal';
 
+/** Seuil d’affichage du message d’encouragement à couvrir plus de créneaux */
+const CRENEAU_COVERAGE_THRESHOLD_PCT = 70;
+
+function getCreneauCoveragePercent(selectedCount: number, totalCreneaux: number): number {
+    if (totalCreneaux <= 0) return 0;
+    return Math.round((selectedCount / totalCreneaux) * 100);
+}
+
+/** Avertissement si moins de 70 % des créneaux visibles sont cochés (assistants uniquement) */
+const LowCreneauCoverageMessage: React.FC<{ selectedCount: number; totalCreneaux: number; typeSurveillant: SurveillantType }> = ({
+    selectedCount,
+    totalCreneaux,
+    typeSurveillant
+}) => {
+    if (typeSurveillant !== SurveillantType.ASSISTANT) return null;
+    if (totalCreneaux <= 0) return null;
+    const pct = getCreneauCoveragePercent(selectedCount, totalCreneaux);
+    if (pct >= CRENEAU_COVERAGE_THRESHOLD_PCT) return null;
+    return (
+        <div className="mb-4 bg-amber-50 dark:bg-amber-900/25 border border-amber-400 dark:border-amber-600 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-amber-900 dark:text-amber-100 space-y-2">
+                    <p className="font-semibold">
+                        Vous avez coché {pct} % des créneaux proposés ({selectedCount} sur {totalCreneaux}).
+                    </p>
+                    <p>
+                        Conformément à la demande des Doyens des facultés et du coordinateur à
+                        l&apos;enseignement, il est demandé aux assistants de maximiser les créneaux de
+                        surveillance. Vos disponibilités sont transmises aux responsables des facultés. Nous
+                        nous réservons le droit de recontacter les personnes concernées pour augmenter le
+                        nombre de disponibilités communiquées.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Helper Functions ---
 
 const groupCreneauxByDate = (creneaux: Creneau[]) => {
@@ -309,7 +348,7 @@ const InfoStep = memo<{ sessionName?: string; formData: AvailabilityFormData; on
     </>
 ));
 
-const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; onViewHistory?: () => void; isReadOnly?: boolean; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, isModification, submittedAt, updatedAt, modificationsCount, onViewHistory, isReadOnly }) => {
+const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; groupedCreneaux: Record<string, Creneau[]>; availabilities: AvailabilityData; onAvailabilityChange: (id: string, available: boolean) => void; onPrev: () => void; onNext: () => void; surveillant: Surveillant | null; typeSurveillant: SurveillantType; isModification?: boolean; submittedAt?: string; updatedAt?: string; modificationsCount?: number; onViewHistory?: () => void; isReadOnly?: boolean; }>(({ sessionName, selectedCount, groupedCreneaux, availabilities, onAvailabilityChange, onPrev, onNext, surveillant, typeSurveillant, isModification, submittedAt, updatedAt, modificationsCount, onViewHistory, isReadOnly }) => {
     const isFasbPat = surveillant?.type === SurveillantType.PAT && surveillant?.affectation_faculte === 'FASB';
     const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(null);
     const [showScrollIndicator, setShowScrollIndicator] = useState(false);
@@ -317,6 +356,7 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
     // Calculer le nombre total de créneaux
     const totalCreneaux = Object.values(groupedCreneaux).reduce((acc, creneaux) => acc + creneaux.length, 0);
     const totalDates = Object.keys(groupedCreneaux).length;
+    const coveragePercent = getCreneauCoveragePercent(selectedCount, totalCreneaux);
     
     // Vérifier si le contenu est scrollable
     useEffect(() => {
@@ -365,16 +405,24 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
                 </CardTitle>
                 <CardDescription>
                     {isReadOnly ? (
-                        <>Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date{totalDates > 1 ? 's' : ''}).</>
+                        <>
+                            Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur{' '}
+                            <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date
+                            {totalDates > 1 ? 's' : ''}){totalCreneaux > 0 ? <> — soit <strong>{coveragePercent} %</strong> des créneaux proposés.</> : null}
+                        </>
                     ) : (
                         <>
                             {isModification && <span className="text-blue-600 dark:text-blue-400 font-medium">Vous modifiez vos disponibilités existantes. </span>}
-                            Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date{totalDates > 1 ? 's' : ''}).
+                            Sélectionnez les créneaux pour lesquels vous êtes disponible. Vous avez sélectionné{' '}
+                            <strong className="text-indigo-600 dark:text-indigo-400">{selectedCount}</strong> créneaux sur{' '}
+                            <strong className="text-indigo-600 dark:text-indigo-400">{totalCreneaux}</strong> disponibles ({totalDates} date
+                            {totalDates > 1 ? 's' : ''}){totalCreneaux > 0 ? <> — <strong>{coveragePercent} %</strong> des créneaux sont cochés.</> : null}
                         </>
                     )}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 relative">
+                {!isReadOnly && <LowCreneauCoverageMessage selectedCount={selectedCount} totalCreneaux={totalCreneaux} typeSurveillant={typeSurveillant} />}
                 <div ref={setScrollContainerRef} className="max-h-[75vh] overflow-y-auto pr-3 scroll-smooth">
                  <div className="space-y-4">
                     {isFasbPat && (
@@ -466,9 +514,13 @@ const AvailabilityStep = memo<{ sessionName?: string; selectedCount: number; gro
             </CardFooter>
         </Card>
     </>
-)});
+    );
+});
 
-const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityFormData; selectedCount: number; creneaux: Creneau[]; availabilities: AvailabilityData; onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; onReset: () => void; onPrev: () => void; onSubmit: (e: React.FormEvent) => void; isSubmitting: boolean; isModification: boolean; }>(({ sessionName, formData, selectedCount, creneaux, availabilities, onInputChange, onReset, onPrev, onSubmit, isSubmitting, isModification }) => (
+const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityFormData; selectedCount: number; creneaux: Creneau[]; availabilities: AvailabilityData; typeSurveillant: SurveillantType; onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; onReset: () => void; onPrev: () => void; onSubmit: (e: React.FormEvent) => void; isSubmitting: boolean; isModification: boolean; }>(({ sessionName, formData, selectedCount, creneaux, availabilities, typeSurveillant, onInputChange, onReset, onPrev, onSubmit, isSubmitting, isModification }) => {
+    const totalVisible = creneaux.length;
+    const coveragePct = getCreneauCoveragePercent(selectedCount, totalVisible);
+    return (
     <>
         <h2 className="text-xl text-center text-gray-600 dark:text-gray-400 mb-6">{sessionName}</h2>
         {isModification && (
@@ -486,6 +538,12 @@ const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityForm
                 <CardDescription>Veuillez vérifier vos informations avant de {isModification ? 'modifier' : 'soumettre'}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+                <LowCreneauCoverageMessage selectedCount={selectedCount} totalCreneaux={totalVisible} typeSurveillant={typeSurveillant} />
+                {totalVisible > 0 && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Couverture des créneaux : <strong className="text-gray-900 dark:text-gray-100">{coveragePct} %</strong> ({selectedCount} sur {totalVisible}).
+                    </p>
+                )}
                 <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                     <h3 className="font-semibold text-gray-800 dark:text-gray-200">Informations personnelles</h3>
                     <p className="text-gray-600 dark:text-gray-400">{formData.prenom} {formData.nom} ({formData.email}) - {SurveillantTypeLabels[formData.type_surveillant]}</p>
@@ -522,7 +580,8 @@ const ConfirmationStep = memo<{ sessionName?: string; formData: AvailabilityForm
             </CardFooter>
         </Card>
     </>
-));
+    );
+});
 
 const SuccessStep = memo<{ prenom?: string; sessionName?: string; onReset: () => void; }>(({ prenom, sessionName, onReset }) => (
     <Card className="text-center">
@@ -917,8 +976,8 @@ const AvailabilityForm: React.FC = () => {
             case 0: return <EmailStep onEmailCheck={handleEmailCheck} email={formData.email} telephone={formData.telephone} onEmailChange={handleInputChange} onTelephoneChange={handleInputChange} isChecking={isCheckingEmail} hasExistingSubmission={hasExistingSubmission} isLocked={session?.lock_submissions} lockMessage={session?.lock_message} />;
             case -1: return <NotFoundStep onRetry={() => { setFormData(prev => ({ ...prev, email: '' })); setHasExistingSubmission(false); setStep(0);}} onManual={() => setStep(1)} />;
             case 1: return <InfoStep sessionName={session?.name} formData={formData} onInputChange={handleInputChange} onSelectChange={handleSelectChange} onNext={nextStep} />;
-            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={session?.lock_submissions ? () => setStep(0) : nextStep} surveillant={foundSurveillant} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} isReadOnly={session?.lock_submissions} />;
-            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={visibleCreneaux} availabilities={availabilities} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
+            case 2: return <AvailabilityStep sessionName={session?.name} selectedCount={selectedCount} groupedCreneaux={groupedCreneaux} availabilities={availabilities} onAvailabilityChange={handleAvailabilityChange} onPrev={foundSurveillant || hasExistingSubmission ? () => setStep(0) : prevStep} onNext={session?.lock_submissions ? () => setStep(0) : nextStep} surveillant={foundSurveillant} typeSurveillant={userType} isModification={hasExistingSubmission} submittedAt={submissionTimestamps.submittedAt} updatedAt={submissionTimestamps.updatedAt} modificationsCount={submissionTimestamps.modificationsCount} onViewHistory={() => setShowHistoryModal(true)} isReadOnly={session?.lock_submissions} />;
+            case 3: return <ConfirmationStep sessionName={session?.name} formData={formData} selectedCount={selectedCount} creneaux={visibleCreneaux} availabilities={availabilities} typeSurveillant={userType} onInputChange={handleInputChange} onReset={handleReset} onPrev={prevStep} onSubmit={handleSubmit} isSubmitting={isSubmitting} isModification={hasExistingSubmission} />;
             case 4: return <SuccessStep prenom={formData.prenom} sessionName={session?.name} onReset={handleReset} />;
             default: return null;
         }
