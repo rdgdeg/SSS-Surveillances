@@ -13,6 +13,10 @@ import { CapacityInput } from '../../components/shared/CapacityInput';
 import { Switch } from '../../components/shared/Switch';
 
 const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: string; onSave: () => void; onCancel: () => void; }> = ({ creneau, sessionId, onSave, onCancel }) => {
+    const QUICK_START_TIMES = ['08:15', '12:15', '15:45'];
+    const QUICK_END_TIMES = ['11:00', '15:00', '18:30'];
+    const isEditMode = !!creneau?.id;
+
     const [formData, setFormData] = useState<Partial<Creneau>>({
         date_surveillance: '',
         heure_debut_surveillance: '08:30',
@@ -23,6 +27,7 @@ const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: stri
         session_id: sessionId
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [batchSlots, setBatchSlots] = useState<Array<{ start: string; end: string }>>([]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -36,12 +41,38 @@ const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: stri
         e.preventDefault();
         setIsSaving(true);
         try {
-            if (creneau?.id) {
+            if (isEditMode) {
                 await updateCreneau(creneau.id, formData);
                 toast.success('Créneau mis à jour.');
             } else {
-                await createCreneau(formData);
-                toast.success('Créneau créé.');
+                if (!formData.date_surveillance) {
+                    toast.error('Veuillez sélectionner une date.');
+                    return;
+                }
+
+                const slotsToCreate =
+                    batchSlots.length > 0
+                        ? batchSlots
+                        : [{
+                            start: formData.heure_debut_surveillance || '',
+                            end: formData.heure_fin_surveillance || ''
+                        }];
+
+                for (const slot of slotsToCreate) {
+                    await createCreneau({
+                        session_id: sessionId,
+                        date_surveillance: formData.date_surveillance,
+                        heure_debut_surveillance: slot.start,
+                        heure_fin_surveillance: slot.end,
+                        type_creneau: formData.type_creneau || 'PRINCIPAL',
+                        visible_jobistes_uniquement: !!formData.visible_jobistes_uniquement
+                    });
+                }
+                toast.success(
+                    slotsToCreate.length > 1
+                        ? `${slotsToCreate.length} créneaux créés.`
+                        : 'Créneau créé.'
+                );
             }
             onSave();
         } catch (error) {
@@ -61,10 +92,42 @@ const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: stri
                 <div>
                     <label htmlFor="heure_debut_surveillance" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Heure de début</label>
                     <Input id="heure_debut_surveillance" name="heure_debut_surveillance" type="time" value={formData.heure_debut_surveillance || ''} onChange={handleChange} required />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {QUICK_START_TIMES.map((time) => (
+                            <button
+                                key={time}
+                                type="button"
+                                onClick={() => setFormData((prev) => ({ ...prev, heure_debut_surveillance: time }))}
+                                className={`px-2 py-1 text-xs rounded border ${
+                                    formData.heure_debut_surveillance === time
+                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                        : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                                }`}
+                            >
+                                {time}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div>
                     <label htmlFor="heure_fin_surveillance" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Heure de fin</label>
                     <Input id="heure_fin_surveillance" name="heure_fin_surveillance" type="time" value={formData.heure_fin_surveillance || ''} onChange={handleChange} required />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {QUICK_END_TIMES.map((time) => (
+                            <button
+                                key={time}
+                                type="button"
+                                onClick={() => setFormData((prev) => ({ ...prev, heure_fin_surveillance: time }))}
+                                className={`px-2 py-1 text-xs rounded border ${
+                                    formData.heure_fin_surveillance === time
+                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                        : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                                }`}
+                            >
+                                {time}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
             <Select onValueChange={handleSelectChange} defaultValue={formData.type_creneau}>
@@ -85,6 +148,58 @@ const CreneauForm: React.FC<{ creneau?: Partial<Creneau> | null; sessionId: stri
                 </label>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">Si activé, ce créneau n&apos;apparaîtra que pour les surveillants de type jobiste. Par défaut : visible par tous.</p>
+
+            {!isEditMode && (
+                <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Ajouter plusieurs créneaux pour la même journée
+                        </p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                const start = formData.heure_debut_surveillance || '';
+                                const end = formData.heure_fin_surveillance || '';
+                                if (!start || !end) {
+                                    toast.error('Choisissez une heure de début et de fin.');
+                                    return;
+                                }
+                                if (batchSlots.some((s) => s.start === start && s.end === end)) {
+                                    toast.error('Ce créneau est déjà dans la liste.');
+                                    return;
+                                }
+                                setBatchSlots((prev) => [...prev, { start, end }]);
+                            }}
+                        >
+                            Ajouter à la liste
+                        </Button>
+                    </div>
+                    {batchSlots.length > 0 ? (
+                        <div className="space-y-2">
+                            {batchSlots.map((slot, idx) => (
+                                <div key={`${slot.start}-${slot.end}-${idx}`} className="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+                                    <span>{slot.start} - {slot.end}</span>
+                                    <button
+                                        type="button"
+                                        className="text-red-600 text-xs"
+                                        onClick={() => setBatchSlots((prev) => prev.filter((_, i) => i !== idx))}
+                                    >
+                                        Retirer
+                                    </button>
+                                </div>
+                            ))}
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                À la sauvegarde, tous ces créneaux seront créés sur la date sélectionnée.
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Aucun créneau ajouté: la sauvegarde créera uniquement les heures actuellement saisies.
+                        </p>
+                    )}
+                </div>
+            )}
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={onCancel}>Annuler</Button>
                 <Button type="submit" disabled={isSaving}>
