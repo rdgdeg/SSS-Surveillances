@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ExamenWithStatus, ExamenFilters } from '../../types';
 import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
-import { AttributionStatusBadge } from '../shared/AttributionStatusBadge';
+import { ExamenPlanningBadges } from '../shared/ExamenPlanningBadges';
 import { Pagination } from '../shared/Pagination';
 import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
 import { Plus, Edit2, Trash2, X, Save, Users, FileText, Mail } from 'lucide-react';
@@ -675,26 +675,29 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                     {/* Code + Bouton Gérer - Colonne fixe */}
                     <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <AttributionStatusBadge
-                            requis={auditoiresStats?.[examen.id]?.total_requis || 0}
-                            attribues={auditoiresStats?.[examen.id]?.total_attribues || 0}
-                            size="sm"
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-gray-900">{examen.code_examen}</span>
+                            {!examen.cours_id && (
+                              <svg
+                                className="ml-1 h-4 w-4 text-yellow-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <ExamenPlanningBadges
+                            nbAuditoires={auditoiresStats?.[examen.id]?.nb_auditoires ?? 0}
+                            auditoiresTexte={examen.auditoires}
+                            totalRequis={auditoiresStats?.[examen.id]?.total_requis ?? 0}
+                            totalAttribues={auditoiresStats?.[examen.id]?.total_attribues ?? 0}
                           />
-                          <span className="text-sm font-medium text-gray-900">{examen.code_examen}</span>
-                          {!examen.cours_id && (
-                            <svg
-                              className="ml-1 h-4 w-4 text-yellow-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <button

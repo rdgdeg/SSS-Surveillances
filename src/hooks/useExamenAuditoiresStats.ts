@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 
 interface AuditoireStats {
   examen_id: string;
+  nb_auditoires: number;
   total_requis: number;
   total_attribues: number;
 }
@@ -27,10 +28,13 @@ export function useExamenAuditoiresStats(examenIds: string[]) {
         if (!stats[auditoire.examen_id]) {
           stats[auditoire.examen_id] = {
             examen_id: auditoire.examen_id,
+            nb_auditoires: 0,
             total_requis: 0,
             total_attribues: 0,
           };
         }
+
+        stats[auditoire.examen_id].nb_auditoires += 1;
         
         // Détecter si c'est un auditoire de type "secrétariat"
         const isSecretariatAuditoire = auditoire.auditoire && (
