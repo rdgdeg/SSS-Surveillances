@@ -4,8 +4,8 @@ import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { ExamenPlanningBadges } from '../shared/ExamenPlanningBadges';
 import { Pagination } from '../shared/Pagination';
-import { updateExamen, deleteExamen, createExamen } from '../../lib/examenManagementApi';
-import { Plus, Edit2, Trash2, X, Save, Users, FileText, Mail } from 'lucide-react';
+import { updateExamen, deleteExamen, createExamen, setExamenMasqueListe } from '../../lib/examenManagementApi';
+import { Plus, Edit2, Trash2, X, Save, Users, FileText, Mail, EyeOff, Eye } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { useDebouncedSearch } from '../../src/hooks/useDebouncedSearch';
@@ -160,6 +160,27 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   };
 
   // Handle delete
+  const handleToggleMasqueListe = async (examen: ExamenWithStatus) => {
+    const masquer = !examen.masque_liste;
+    const message = masquer
+      ? `Masquer « ${examen.code_examen} » de la liste ? Vous pourrez le retrouver via le filtre « Examens masqués ».`
+      : `Réafficher « ${examen.code_examen} » dans la liste ?`;
+
+    if (!confirm(message)) return;
+
+    try {
+      setSaving(true);
+      await setExamenMasqueListe(examen.id, masquer, user?.id, user?.username);
+      toast.success(masquer ? 'Examen masqué' : 'Examen réaffiché');
+      refetch();
+    } catch (err) {
+      console.error('Error toggling masque_liste:', err);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async (examenId: string, examenCode: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer l'examen ${examenCode} ?`)) {
       return;
@@ -583,6 +604,28 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             </select>
           </div>
 
+          {/* Visibilité liste */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Affichage liste
+            </label>
+            <select
+              value={filters.masqueListe || 'visible'}
+              onChange={(e) => {
+                setFilters({
+                  ...filters,
+                  masqueListe: e.target.value as 'visible' | 'hidden' | 'all',
+                });
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="visible">Examens actifs</option>
+              <option value="hidden">Examens masqués</option>
+              <option value="all">Tous</option>
+            </select>
+          </div>
+
           {/* Attribution Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -671,7 +714,10 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                 </tr>
               ) : (
                 examens.map((examen) => (
-                  <tr key={examen.id} className="hover:bg-gray-50 group">
+                  <tr
+                    key={examen.id}
+                    className={`hover:bg-gray-50 group ${examen.masque_liste ? 'bg-slate-50 opacity-80' : ''}`}
+                  >
                     {/* Code + Bouton Gérer - Colonne fixe */}
                     <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex flex-col gap-2">
@@ -942,6 +988,22 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
                         title="Consignes spécifiques"
                       >
                         <FileText className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleMasqueListe(examen)}
+                        disabled={saving}
+                        className={`mr-3 ${examen.masque_liste ? 'text-amber-600 hover:text-amber-800' : 'text-gray-500 hover:text-gray-700'}`}
+                        title={
+                          examen.masque_liste
+                            ? 'Réafficher dans la liste'
+                            : 'Masquer (pas de gestion des surveillances)'
+                        }
+                      >
+                        {examen.masque_liste ? (
+                          <Eye className="h-5 w-5" />
+                        ) : (
+                          <EyeOff className="h-5 w-5" />
+                        )}
                       </button>
                       <button
                         onClick={() => handleDelete(examen.id, examen.code_examen)}

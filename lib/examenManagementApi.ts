@@ -22,6 +22,17 @@ import {
   parseTeachers
 } from './examenCsvParser';
 
+function applyMasqueListeFilter<T>(query: T, filters?: ExamenFilters): T {
+  const mode = filters?.masqueListe ?? 'visible';
+  if (mode === 'visible') {
+    return (query as any).eq('masque_liste', false);
+  }
+  if (mode === 'hidden') {
+    return (query as any).eq('masque_liste', true);
+  }
+  return query;
+}
+
 // ============================================
 // CRUD Operations
 // ============================================
@@ -46,6 +57,8 @@ export async function getExamens(
       .from('examens')
       .select('*, cours(*)', { count: 'exact' })
       .eq('session_id', sessionId);
+
+    query = applyMasqueListeFilter(query, filters);
 
     // Apply filters
     if (filters?.search) {
@@ -364,6 +377,48 @@ export async function createExamen(
     console.error('Error in createExamen:', error);
     throw error;
   }
+}
+
+/**
+ * Masquer ou réafficher un examen dans la liste admin
+ */
+export async function setExamenMasqueListe(
+  id: string,
+  masqueListe: boolean,
+  userId?: string,
+  username?: string
+): Promise<Examen> {
+  const { data: oldExamen } = await supabase
+    .from('examens')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  const { data: examen, error } = await supabase
+    .from('examens')
+    .update({ masque_liste: masqueListe, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating masque_liste:', error);
+    throw error;
+  }
+
+  if (userId && username && oldExamen) {
+    await supabase.from('audit_log').insert({
+      user_id: userId,
+      username,
+      action: 'update',
+      table_name: 'examens',
+      record_id: id,
+      old_values: { masque_liste: oldExamen.masque_liste },
+      new_values: { masque_liste: masqueListe },
+    });
+  }
+
+  return examen;
 }
 
 /**

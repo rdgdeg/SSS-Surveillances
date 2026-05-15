@@ -383,6 +383,8 @@ export interface Examen {
   saisie_manuelle: boolean;
   cree_par_email: string | null;
   valide: boolean;
+  /** Masqué de la liste admin (pas de gestion des surveillances) */
+  masque_liste?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -550,6 +552,8 @@ export interface ExamenFilters {
   hasCoursLinked?: boolean;
   hasSupervisorRequirement?: boolean;
   attributionStatus?: 'all' | 'none' | 'partial' | 'complete';
+  /** visible = liste par défaut ; hidden = masqués uniquement ; all = tout afficher */
+  masqueListe?: 'visible' | 'hidden' | 'all';
 }
 
 export interface ExamenDashboardStats {
