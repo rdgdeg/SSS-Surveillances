@@ -25,22 +25,25 @@ export function ExamenPlanningBadges({
   totalRequis,
   totalAttribues,
 }: ExamenPlanningBadgesProps) {
-  const hasAuditoires =
-    nbAuditoires > 0 || Boolean(auditoiresTexte?.trim());
+  /** Auditoires ajoutés via « Gérer » (table examen_auditoires) */
+  const hasAuditoiresStructures = nbAuditoires > 0;
+  const hasAuditoiresTexte = Boolean(auditoiresTexte?.trim());
 
-  const auditoiresTone = hasAuditoires ? 'ok' : 'error';
+  const auditoiresTone = hasAuditoiresStructures ? 'ok' : 'warn';
   const auditoiresLabel =
-    nbAuditoires > 0
-      ? `Auditoires ${nbAuditoires}`
-      : hasAuditoires
-        ? 'Auditoires'
-        : 'Auditoires';
+    nbAuditoires > 0 ? `Auditoires ${nbAuditoires}` : 'Auditoires';
+
+  const auditoiresTitle = hasAuditoiresStructures
+    ? `${nbAuditoires} auditoire(s) configuré(s)`
+    : hasAuditoiresTexte
+      ? 'Aucun auditoire sélectionné (texte importé seulement — utilisez Gérer)'
+      : 'Aucun auditoire sélectionné';
 
   let survTone: 'neutral' | 'ok' | 'error' = 'neutral';
   let survLabel = 'Surveillants';
   let survTitle = 'Aucun auditoire configuré';
 
-  if (hasAuditoires && totalRequis > 0) {
+  if (hasAuditoiresStructures && totalRequis > 0) {
     const complet = totalAttribues >= totalRequis;
     survTone = complet ? 'ok' : 'error';
     survLabel = complet ? 'Surv. complet' : 'Surv. incomplet';
@@ -49,7 +52,7 @@ export function ExamenPlanningBadges({
       : totalAttribues === 0
         ? `Aucun surveillant attribué (${totalRequis} requis)`
         : `${totalAttribues}/${totalRequis} surveillants attribués`;
-  } else if (hasAuditoires && totalRequis === 0) {
+  } else if (hasAuditoiresStructures && totalRequis === 0) {
     survTone = 'error';
     survLabel = 'Surv. incomplet';
     survTitle = 'Auditoires sans effectif de surveillants défini';
@@ -59,13 +62,7 @@ export function ExamenPlanningBadges({
     <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Statut auditoires et surveillants">
       <span
         className={badgeClass(auditoiresTone)}
-        title={
-          hasAuditoires
-            ? nbAuditoires > 0
-              ? `${nbAuditoires} auditoire(s) structuré(s)`
-              : 'Auditoires renseignés (texte)'
-            : 'Aucun auditoire renseigné'
-        }
+        title={auditoiresTitle}
       >
         {auditoiresLabel}
       </span>
