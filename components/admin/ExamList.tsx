@@ -604,26 +604,52 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             </select>
           </div>
 
-          {/* Visibilité liste */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Affichage liste
+          {/* Examens masqués (exclus surveillance) */}
+          <div className="lg:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Examens masqués (sans surveillance)
             </label>
-            <select
-              value={filters.masqueListe || 'visible'}
-              onChange={(e) => {
-                setFilters({
-                  ...filters,
-                  masqueListe: e.target.value as 'visible' | 'hidden' | 'all',
-                });
-                setPage(1);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="visible">Examens actifs</option>
-              <option value="hidden">Examens masqués</option>
-              <option value="all">Tous</option>
-            </select>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-700">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="masqueListe"
+                  checked={(filters.masqueListe || 'visible') === 'visible'}
+                  onChange={() => {
+                    setFilters({ ...filters, masqueListe: 'visible' });
+                    setPage(1);
+                  }}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                />
+                Cacher (liste normale)
+              </label>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="masqueListe"
+                  checked={filters.masqueListe === 'all'}
+                  onChange={() => {
+                    setFilters({ ...filters, masqueListe: 'all' });
+                    setPage(1);
+                  }}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                />
+                Afficher avec les autres
+              </label>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="masqueListe"
+                  checked={filters.masqueListe === 'hidden'}
+                  onChange={() => {
+                    setFilters({ ...filters, masqueListe: 'hidden' });
+                    setPage(1);
+                  }}
+                  className="text-indigo-600 focus:ring-indigo-500"
+                />
+                Uniquement les masqués
+              </label>
+            </div>
           </div>
 
           {/* Attribution Status */}
