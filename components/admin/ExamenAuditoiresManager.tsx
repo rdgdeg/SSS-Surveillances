@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabaseClient';
-import { Plus, Trash2, Users, Save, X, Search, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Users, Save, X, Search, RefreshCw, Check } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
 import { SurveillantRemplacementModal } from './SurveillantRemplacementModal';
 import { showAttributionWarning } from '../shared/AttributionWarning';
 import { ExamenAuditoire, SurveillantRemplacement } from '../../types';
+import {
+  AUDITOIRES_PRESETS,
+  AuditoirePreset,
+  isAuditoireAlreadyAdded,
+} from '../../lib/auditoiresPresets';
 
 interface Surveillant {
   id: string;
@@ -32,6 +37,8 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
     surveillants: [] as string[],
     remarques: '',
   });
+  const [selectedPresets, setSelectedPresets] = useState<Set<string>>(new Set());
+  const [showPresetsPanel, setShowPresetsPanel] = useState(true);
 
   // Fetch surveillants
   const { data: surveillants } = useQuery({
@@ -89,6 +96,19 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
     auditoireSecretariat.surveillants && 
     auditoireSecretariat.surveillants.length > 0;
 
+  const existingAuditoireNames = useMemo(
+    () => auditoires?.map((a) => a.auditoire) ?? [],
+    [auditoires]
+  );
+
+  const availablePresets = useMemo(
+    () =>
+      AUDITOIRES_PRESETS.filter(
+        (p) => !isAuditoireAlreadyAdded(p.auditoire, existingAuditoireNames)
+      ),
+    [existingAuditoireNames]
+  );
+
   // Create auditoire
   const createMutation = useMutation({
     mutationFn: async (data: typeof newAuditoire) => {
@@ -106,6 +126,30 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
       setNewAuditoire({ auditoire: '', nb_surveillants_requis: 1, surveillants: [], remarques: '' });
     },
     onError: () => toast.error('Erreur lors de l\'ajout'),
+  });
+
+  const bulkCreateMutation = useMutation({
+    mutationFn: async (presets: AuditoirePreset[]) => {
+      const rows = presets.map((p) => ({
+        examen_id: examenId,
+        auditoire: p.auditoire,
+        nb_surveillants_requis: p.nb_surveillants_requis,
+        surveillants: [] as string[],
+        remarques: '',
+      }));
+      const { error } = await supabase.from('examen_auditoires').insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: (_, presets) => {
+      queryClient.invalidateQueries({ queryKey: ['examen-auditoires', examenId] });
+      setSelectedPresets(new Set());
+      toast.success(
+        presets.length === 1
+          ? 'Auditoire ajouté'
+          : `${presets.length} auditoires ajoutés`
+      );
+    },
+    onError: () => toast.error('Erreur lors de l\'ajout des auditoires'),
   });
 
   // Update auditoire
@@ -151,6 +195,43 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
       return;
     }
     createMutation.mutate(newAuditoire);
+  };
+
+  const togglePresetSelection = (auditoire: string) => {
+    setSelectedPresets((prev) => {
+      const next = new Set(prev);
+      if (next.has(auditoire)) {
+        next.delete(auditoire);
+      } else {
+        next.add(auditoire);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllPresets = () => {
+    setSelectedPresets(new Set(availablePresets.map((p) => p.auditoire)));
+  };
+
+  const handleClearPresetSelection = () => {
+    setSelectedPresets(new Set());
+  };
+
+  const handleAddSelectedPresets = () => {
+    const toAdd = AUDITOIRES_PRESETS.filter((p) => selectedPresets.has(p.auditoire));
+    if (toAdd.length === 0) {
+      toast.error('Sélectionnez au moins un auditoire');
+      return;
+    }
+    bulkCreateMutation.mutate(toAdd);
+  };
+
+  const handleQuickAddPreset = (preset: AuditoirePreset) => {
+    if (isAuditoireAlreadyAdded(preset.auditoire, existingAuditoireNames)) {
+      toast.error('Cet auditoire est déjà ajouté à cet examen');
+      return;
+    }
+    bulkCreateMutation.mutate([preset]);
   };
 
   const handleAddAuditoireSecretariat = () => {
@@ -456,11 +537,116 @@ export default function ExamenAuditoiresManager({ examenId }: Props) {
       {/* Formulaires d'ajout - seulement si pas en mode secrétariat avec surveillants */}
       {!hasSecretariatSurveillants && (
         <div className="space-y-4">
-          {/* Ajouter un auditoire normal */}
+          {/* Auditoires prédéfinis */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-200 dark:border-indigo-800">
+            <button
+              type="button"
+              onClick={() => setShowPresetsPanel((v) => !v)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h4 className="font-medium text-indigo-900 dark:text-indigo-200">
+                Auditoires prédéfinis
+              </h4>
+              <span className="text-xs text-indigo-600 dark:text-indigo-400">
+                {showPresetsPanel ? 'Masquer' : 'Afficher'}
+              </span>
+            </button>
+            {showPresetsPanel && (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                  Cliquez pour sélectionner, double-cliquez pour ajouter immédiatement.
+                  Le nombre de surveillants est prérempli automatiquement.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {AUDITOIRES_PRESETS.map((preset) => {
+                    const alreadyAdded = isAuditoireAlreadyAdded(
+                      preset.auditoire,
+                      existingAuditoireNames
+                    );
+                    const isSelected = selectedPresets.has(preset.auditoire);
+                    return (
+                      <button
+                        key={preset.auditoire}
+                        type="button"
+                        disabled={alreadyAdded || bulkCreateMutation.isPending}
+                        onClick={() => !alreadyAdded && togglePresetSelection(preset.auditoire)}
+                        onDoubleClick={() => !alreadyAdded && handleQuickAddPreset(preset)}
+                        title={
+                          alreadyAdded
+                            ? 'Déjà ajouté à cet examen'
+                            : `${preset.nb_surveillants_requis} surveillant(s) — double-clic pour ajouter`
+                        }
+                        className={`
+                          inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors
+                          ${alreadyAdded
+                            ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 cursor-not-allowed'
+                            : isSelected
+                              ? 'bg-indigo-600 border-indigo-600 text-white'
+                              : 'bg-white dark:bg-gray-800 border-indigo-300 dark:border-indigo-600 text-indigo-900 dark:text-indigo-100 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
+                          }
+                        `}
+                      >
+                        {alreadyAdded && <Check className="h-3.5 w-3.5" />}
+                        <span className="font-medium">{preset.auditoire}</span>
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded ${
+                            isSelected && !alreadyAdded
+                              ? 'bg-indigo-500 text-white'
+                              : 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300'
+                          }`}
+                        >
+                          {preset.nb_surveillants_requis} surv.
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {availablePresets.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Button
+                      onClick={handleAddSelectedPresets}
+                      size="sm"
+                      disabled={
+                        selectedPresets.size === 0 || bulkCreateMutation.isPending
+                      }
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter la sélection
+                      {selectedPresets.size > 0 && ` (${selectedPresets.size})`}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllPresets}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                      disabled={bulkCreateMutation.isPending}
+                    >
+                      Tout sélectionner
+                    </button>
+                    {selectedPresets.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearPresetSelection}
+                        className="text-xs text-gray-500 hover:underline"
+                      >
+                        Effacer la sélection
+                      </button>
+                    )}
+                  </div>
+                )}
+                {availablePresets.length === 0 && auditoires && auditoires.length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Tous les auditoires prédéfinis sont déjà ajoutés à cet examen.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Ajouter un auditoire manuel */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
           <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-3 flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            Ajouter un auditoire
+            Ajouter un auditoire (manuel)
           </h4>
           <div className="space-y-3">
             <div>
