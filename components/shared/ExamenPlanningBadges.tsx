@@ -28,7 +28,7 @@ export function ExamenPlanningBadges({
   const hasAuditoires =
     nbAuditoires > 0 || Boolean(auditoiresTexte?.trim());
 
-  const auditoiresTone = hasAuditoires ? 'ok' : 'neutral';
+  const auditoiresTone = hasAuditoires ? 'ok' : 'error';
   const auditoiresLabel =
     nbAuditoires > 0
       ? `Auditoires ${nbAuditoires}`
