@@ -15,9 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  Download
+  Download,
+  List,
+  CalendarDays,
 } from 'lucide-react';
 import ExamenSurveillants from '../../components/public/ExamenSurveillants';
+import SurveillantMonthCalendar from '../../components/public/SurveillantMonthCalendar';
+import { buildSurveillanceCalendarEntries } from '../../lib/surveillantCalendarUtils';
 import CalendarExportButton from '../../components/shared/CalendarExportButton';
 import { exportSurveillancesSurveillant } from '../../lib/exportUtils';
 import { generateMultipleEventsICS, downloadICSFile, surveillanceToCalendarEvent } from '../../lib/calendarUtils';
@@ -70,6 +74,7 @@ export default function ExamSchedulePage() {
   const [showSurveillantSuggestions, setShowSurveillantSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const itemsPerPage = 20;
   const { data: activeSession } = useActiveSession();
 
@@ -305,6 +310,11 @@ export default function ExamSchedulePage() {
     });
   }, [examensWithSurveillants, searchTerm, selectedDate, selectedSecretariat, selectedTimeSlot, selectedSurveillant]);
 
+  const calendarEntries = useMemo(() => {
+    if (!selectedSurveillant || !examens || !auditoires) return [];
+    return buildSurveillanceCalendarEntries(selectedSurveillant, examens, auditoires);
+  }, [selectedSurveillant, examens, auditoires]);
+
   // Pagination
   const totalPages = Math.ceil(filteredExamens.length / itemsPerPage);
   const paginatedExamens = useMemo(() => {
@@ -432,9 +442,12 @@ export default function ExamSchedulePage() {
             <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-800 dark:text-blue-200">
               <p className="font-medium mb-1">Pour les surveillants</p>
-              <p>Utilisez la barre de recherche ou le filtre "Surveillant" pour trouver rapidement vos surveillances.</p>
+              <p>
+                Sélectionnez votre nom dans le filtre « Surveillant », puis affichez la{' '}
+                <strong>vue calendrier</strong> pour voir toutes vos surveillances du mois avec les horaires.
+              </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                💡 Astuce : Tapez quelques lettres dans le filtre "Surveillant" pour voir les suggestions.
+                Astuce : tapez quelques lettres de votre nom pour voir les suggestions.
               </p>
             </div>
           </div>
@@ -546,6 +559,7 @@ export default function ExamSchedulePage() {
                         setSurveillantInput('');
                         setSelectedSurveillant('');
                         setShowSurveillantSuggestions(false);
+                        setViewMode('list');
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                     >
@@ -563,6 +577,7 @@ export default function ExamSchedulePage() {
                             setSurveillantInput(nom);
                             setSelectedSurveillant(nom);
                             setShowSurveillantSuggestions(false);
+                            setViewMode('list');
                           }}
                           className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                         >
@@ -589,12 +604,42 @@ export default function ExamSchedulePage() {
               </div>
             </div>
 
-            {/* Export button and Results count */}
-            <div className="flex items-center justify-between">
+            {/* Vue liste / calendrier + export */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 {filteredExamens.length} examen{filteredExamens.length !== 1 ? 's' : ''} trouvé{filteredExamens.length !== 1 ? 's' : ''}
               </div>
-              
+
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedSurveillant && (
+                  <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('list')}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+                        viewMode === 'list'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <List className="h-4 w-4" />
+                      Liste
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('calendar')}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${
+                        viewMode === 'calendar'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      Calendrier
+                    </button>
+                  </div>
+                )}
+
               {selectedSurveillant && filteredExamens.length > 0 && (
                 <div className="flex gap-2">
                   <button
@@ -623,6 +668,7 @@ export default function ExamSchedulePage() {
                   </button>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
@@ -647,8 +693,18 @@ export default function ExamSchedulePage() {
           </div>
         )}
 
+        {/* Vue calendrier mensuelle */}
+        {!isLoading && selectedSurveillant && viewMode === 'calendar' && (
+          <div className="mb-6">
+            <SurveillantMonthCalendar
+              surveillantName={selectedSurveillant}
+              entries={calendarEntries}
+            />
+          </div>
+        )}
+
         {/* Examens List */}
-        {!isLoading && paginatedExamens && paginatedExamens.length > 0 ? (
+        {!isLoading && viewMode === 'list' && paginatedExamens && paginatedExamens.length > 0 ? (
           <>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               {/* Header */}
@@ -889,12 +945,20 @@ export default function ExamSchedulePage() {
               </div>
             )}
           </>
-        ) : !isLoading && (
+        ) : !isLoading && viewMode === 'list' && (
           <div className="text-center py-12">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm ? 'Aucun examen trouvé pour cette recherche' : 'Aucun examen planifié pour cette session'}
+              {searchTerm || selectedSurveillant
+                ? 'Aucun examen trouvé pour cette recherche'
+                : 'Aucun examen planifié pour cette session'}
             </p>
+          </div>
+        )}
+
+        {!isLoading && selectedSurveillant && viewMode === 'calendar' && calendarEntries.length === 0 && (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            Aucune surveillance trouvée pour ce nom sur la session active.
           </div>
         )}
       </div>
