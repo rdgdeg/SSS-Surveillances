@@ -22,7 +22,39 @@ import {
   parseTeachers
 } from './examenCsvParser';
 
-function applyMasqueListeFilter<T>(query: T, filters?: ExamenFilters): T {
+let masqueListeColumnCache: boolean | null = null;
+
+export function isMasqueListeColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: string; message?: string };
+  return e.code === '42703' && (e.message?.includes('masque_liste') ?? false);
+}
+
+/** Vérifie si la migration masque_liste a été appliquée sur Supabase */
+export async function isMasqueListeColumnAvailable(): Promise<boolean> {
+  if (masqueListeColumnCache !== null) return masqueListeColumnCache;
+
+  const { error } = await supabase.from('examens').select('masque_liste').limit(1);
+
+  if (error && isMasqueListeColumnError(error)) {
+    masqueListeColumnCache = false;
+    console.warn(
+      'Colonne examens.masque_liste absente — exécutez supabase/migrations/add_examen_masque_liste.sql dans Supabase'
+    );
+    return false;
+  }
+
+  masqueListeColumnCache = true;
+  return true;
+}
+
+function applyMasqueListeFilter<T>(
+  query: T,
+  filters?: ExamenFilters,
+  enabled = true
+): T {
+  if (!enabled) return query;
+
   const mode = filters?.masqueListe ?? 'visible';
   if (mode === 'visible') {
     return (query as any).eq('masque_liste', false);
@@ -58,7 +90,8 @@ export async function getExamens(
       .select('*, cours(*)', { count: 'exact' })
       .eq('session_id', sessionId);
 
-    query = applyMasqueListeFilter(query, filters);
+    const masqueFilterEnabled = await isMasqueListeColumnAvailable();
+    query = applyMasqueListeFilter(query, filters, masqueFilterEnabled);
 
     // Apply filters
     if (filters?.search) {
@@ -388,6 +421,12 @@ export async function setExamenMasqueListe(
   userId?: string,
   username?: string
 ): Promise<Examen> {
+  if (!(await isMasqueListeColumnAvailable())) {
+    throw new Error(
+      'La fonction « masquer un examen » nécessite une migration Supabase. Exécutez le fichier supabase/migrations/add_examen_masque_liste.sql dans le SQL Editor.'
+    );
+  }
+
   const { data: oldExamen } = await supabase
     .from('examens')
     .select('*')

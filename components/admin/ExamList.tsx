@@ -1,10 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ExamenWithStatus, ExamenFilters } from '../../types';
 import { useExamens } from '../../src/hooks/useExamens';
 import { ExamStatusBadge } from '../shared/ExamStatusBadge';
 import { ExamenPlanningBadges } from '../shared/ExamenPlanningBadges';
 import { Pagination } from '../shared/Pagination';
-import { updateExamen, deleteExamen, createExamen, setExamenMasqueListe } from '../../lib/examenManagementApi';
+import {
+  updateExamen,
+  deleteExamen,
+  createExamen,
+  setExamenMasqueListe,
+  isMasqueListeColumnAvailable,
+} from '../../lib/examenManagementApi';
+import { matchesPlanningFilters } from '../../lib/examenPlanningStatus';
 import { Plus, Edit2, Trash2, X, Save, Users, FileText, Mail, EyeOff, Eye } from 'lucide-react';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
@@ -55,6 +62,12 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
   const [showAuditoiresModal, setShowAuditoiresModal] = useState<{ id: string; nom: string } | null>(null);
   const [showConsignesModal, setShowConsignesModal] = useState<ExamenWithStatus | null>(null);
   const [showEmailsModal, setShowEmailsModal] = useState<{ id: string; nom: string } | null>(null);
+  const [masqueListeAvailable, setMasqueListeAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    isMasqueListeColumnAvailable().then(setMasqueListeAvailable);
+  }, []);
+
   const [formData, setFormData] = useState<ExamFormData>({
     cours_id: null,
     code_examen: '',
@@ -72,43 +85,44 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
     use_manual_counts: false,
   });
 
-  // Utiliser le terme debounced pour les requêtes API, mais exclure le filtre d'attribution qui sera appliqué côté client
-  const { attributionStatus, ...backendFilters } = filters;
+  const { auditoiresStatus, surveillantsStatus, ...backendFilters } = filters;
+  const hasPlanningFilter =
+    (auditoiresStatus && auditoiresStatus !== 'all') ||
+    (surveillantsStatus && surveillantsStatus !== 'all');
+
   const debouncedFilters = { ...backendFilters, search: debouncedTerm };
-  const { examens: allExamens, loading, error, total: totalBeforeAttributionFilter, refetch } = useExamens(sessionId, debouncedFilters, page, pageSize);
-  
-  // Récupérer les stats d'attribution pour tous les examens affichés
-  const examenIds = allExamens.map(e => e.id);
-  const { data: auditoiresStats } = useExamenAuditoiresStats(examenIds);
+  const fetchPage = hasPlanningFilter ? 1 : page;
+  const fetchPageSize = hasPlanningFilter ? 5000 : pageSize;
+  const { examens: allExamens, loading, error, total: totalBeforePlanningFilter, refetch } = useExamens(
+    sessionId,
+    debouncedFilters,
+    fetchPage,
+    fetchPageSize
+  );
 
-  // Appliquer le filtre d'attribution côté client
+  const examenIds = allExamens.map((e) => e.id);
+  const { data: auditoiresStats, isLoading: planningStatsLoading } = useExamenAuditoiresStats(examenIds);
+
+  const filteredExamens = useMemo(() => {
+    if (!hasPlanningFilter) return allExamens;
+    if (planningStatsLoading) return allExamens;
+
+    return allExamens.filter((examen) =>
+      matchesPlanningFilters(
+        auditoiresStats?.[examen.id],
+        auditoiresStatus,
+        surveillantsStatus
+      )
+    );
+  }, [allExamens, auditoiresStats, auditoiresStatus, surveillantsStatus, hasPlanningFilter, planningStatsLoading]);
+
   const examens = useMemo(() => {
-    if (!attributionStatus || attributionStatus === 'all') {
-      return allExamens;
-    }
+    if (!hasPlanningFilter) return filteredExamens;
+    const start = (page - 1) * pageSize;
+    return filteredExamens.slice(start, start + pageSize);
+  }, [filteredExamens, hasPlanningFilter, page, pageSize]);
 
-    return allExamens.filter(examen => {
-      const stats = auditoiresStats?.[examen.id];
-      if (!stats) return attributionStatus === 'none';
-
-      const requis = stats.total_requis;
-      const attribues = stats.total_attribues;
-
-      switch (attributionStatus) {
-        case 'none':
-          return requis === 0;
-        case 'partial':
-          return requis > 0 && attribues > 0 && attribues < requis;
-        case 'complete':
-          return requis > 0 && attribues >= requis;
-        default:
-          return true;
-      }
-    });
-  }, [allExamens, auditoiresStats, attributionStatus]);
-
-  // Calculer le total après filtrage d'attribution
-  const total = attributionStatus && attributionStatus !== 'all' ? examens.length : totalBeforeAttributionFilter;
+  const total = hasPlanningFilter ? filteredExamens.length : totalBeforePlanningFilter;
 
   // Handle inline edit start
   const handleStartEdit = (examenId: string, field: string, currentValue: string) => {
@@ -450,6 +464,14 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
         </div>
       </div>
 
+      {masqueListeAvailable === false && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+          La fonction « masquer un examen » nécessite une migration Supabase. Exécutez{' '}
+          <code className="text-xs bg-amber-100 px-1 rounded">add_examen_masque_liste.sql</code>{' '}
+          dans le SQL Editor Supabase pour activer les filtres et le bouton masquer.
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-white shadow-sm rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -652,23 +674,42 @@ export function ExamList({ sessionId, initialFilters = {}, onEditExam, onCreateE
             </div>
           </div>
 
-          {/* Attribution Status */}
+          {/* Auditoires (étiquette verte / orange) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Statut d'attribution
+              Auditoires
             </label>
             <select
-              value={filters.attributionStatus || 'all'}
+              value={filters.auditoiresStatus || 'all'}
               onChange={(e) => {
-                setFilters({ ...filters, attributionStatus: e.target.value as any });
+                setFilters({ ...filters, auditoiresStatus: e.target.value as ExamenFilters['auditoiresStatus'] });
                 setPage(1);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Tous</option>
-              <option value="none">Non défini (gris)</option>
-              <option value="partial">Partiel (orange)</option>
-              <option value="complete">Complet (vert)</option>
+              <option value="with">Avec auditoires (Gérer)</option>
+              <option value="without">Sans auditoires</option>
+            </select>
+          </div>
+
+          {/* Surveillants (étiquette verte / rouge) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Surveillants
+            </label>
+            <select
+              value={filters.surveillantsStatus || 'all'}
+              onChange={(e) => {
+                setFilters({ ...filters, surveillantsStatus: e.target.value as ExamenFilters['surveillantsStatus'] });
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Tous</option>
+              <option value="complete">Complet</option>
+              <option value="partial">Partiel</option>
+              <option value="incomplete">Non complété</option>
             </select>
           </div>
 

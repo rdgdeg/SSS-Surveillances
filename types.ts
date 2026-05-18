@@ -551,7 +551,10 @@ export interface ExamenFilters {
   responseStatus?: 'all' | 'declared' | 'pending';
   hasCoursLinked?: boolean;
   hasSupervisorRequirement?: boolean;
-  attributionStatus?: 'all' | 'none' | 'partial' | 'complete';
+  /** Auditoires structurés (table examen_auditoires, via Gérer) */
+  auditoiresStatus?: 'all' | 'with' | 'without';
+  /** Surveillants : complet, partiel ou non complété (aligné sur les étiquettes) */
+  surveillantsStatus?: 'all' | 'complete' | 'partial' | 'incomplete';
   /** visible = liste par défaut ; hidden = masqués uniquement ; all = tout afficher */
   masqueListe?: 'visible' | 'hidden' | 'all';
 }
