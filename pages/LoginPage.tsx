@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authenticateUser } from '../lib/auth';
 import { Lock, User, AlertCircle, Loader2, Home } from 'lucide-react';
@@ -11,8 +11,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getRedirectPath = () => {
+    const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
+    return from && from !== '/login' ? from : '/admin';
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(getRedirectPath(), { replace: true });
+    }
+  }, [isAuthenticated, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +37,7 @@ export default function LoginPage() {
       if (user) {
         login(user);
         toast.success(`Bienvenue ${user.display_name}!`);
-        navigate('/admin');
+        navigate(getRedirectPath(), { replace: true });
       } else {
         setError('Nom d\'utilisateur ou mot de passe incorrect');
       }
