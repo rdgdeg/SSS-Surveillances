@@ -118,6 +118,36 @@ export interface AvailabilityData {
     };
 }
 
+/** Créneau publié pour recrutement de volontaires (places manquantes) */
+export interface CreneauAPourvoir {
+  id: string;
+  session_id: string;
+  date_surveillance: string;
+  heure_debut: string | null;
+  heure_fin: string | null;
+  nb_personnes_manquantes: number;
+  libelle?: string | null;
+  is_open: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ReponseCreneauAPourvoir {
+  id: string;
+  session_id: string;
+  email: string;
+  nom: string;
+  prenom: string;
+  creneau_ids: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreneauAPourvoirWithStats extends CreneauAPourvoir {
+  nb_reponses: number;
+  candidats: Array<{ email: string; nom: string; prenom: string }>;
+}
+
 export interface Message {
     id: string;
     session_id: string | null;

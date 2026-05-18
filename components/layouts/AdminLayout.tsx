@@ -48,6 +48,7 @@ const AdminLayout: React.FC = () => {
         // === SURVEILLANTS ===
         { to: 'surveillants', label: 'Base surveillants', icon: Users, category: 'surveillants', adminOnly: false, description: 'Gestion des surveillants' },
         { to: 'disponibilites', label: 'Disponibilités', icon: CheckCircle, category: 'surveillants', adminOnly: false, description: 'Collecte des disponibilités' },
+        { to: 'creneaux-a-pourvoir', label: 'Créneaux à pourvoir', icon: Users, category: 'surveillants', adminOnly: false, description: 'Appels de volontaires sur créneaux manquants' },
         { to: 'contacts', label: 'Contacts & téléphones', icon: Phone, category: 'surveillants', adminOnly: false, description: 'Coordonnées des surveillants' },
         { to: 'messages-disponibilites', label: 'Messages disponibilités', icon: MessageSquare, category: 'surveillants', adminOnly: false, description: 'Communication avec les surveillants' },
         { to: 'soumissions', label: 'Suivi des soumissions', icon: ClipboardList, category: 'surveillants', adminOnly: true, description: 'Monitoring des réponses' },

@@ -49,7 +49,9 @@ const ConsignesPage = lazy(() => import('./pages/ConsignesPage'));
 const TeacherPresencePage = lazy(() => import('./pages/public/TeacherPresencePage'));
 const SharedDisponibilitesPage = lazy(() => import('./pages/public/SharedDisponibilitesPage'));
 const ExamSchedulePage = lazy(() => import('./pages/public/ExamSchedulePage'));
+const CreneauxAPourvoirPage = lazy(() => import('./pages/public/CreneauxAPourvoirPage'));
 const UpdatePhonePage = lazy(() => import('./pages/public/UpdatePhonePage'));
+const CreneauxAPourvoirAdminPage = lazy(() => import('./pages/admin/CreneauxAPourvoirAdminPage'));
 
 
 const AppToaster = () => {
@@ -99,6 +101,8 @@ const AppContent: React.FC = () => {
                             <Route path="consignes" element={<ConsignesPage />} />
                             <Route path="enseignant/presence" element={<TeacherPresencePage />} />
                             <Route path="planning" element={<ExamSchedulePage />} />
+                            <Route path="creneaux-a-pourvoir/:sessionId" element={<CreneauxAPourvoirPage />} />
+                            <Route path="creneaux-a-pourvoir" element={<CreneauxAPourvoirPage />} />
                             <Route path="telephone" element={<UpdatePhonePage />} />
                         </Route>
                         <Route path="/shared/disponibilites/:shareToken" element={<SharedDisponibilitesPage />} />
@@ -117,6 +121,7 @@ const AppContent: React.FC = () => {
                             <Route path="contacts" element={<ContactsPage />} />
                             <Route path="creneaux" element={<CreneauxPage />} />
                             <Route path="disponibilites" element={<DisponibilitesPage />} />
+                            <Route path="creneaux-a-pourvoir" element={<CreneauxAPourvoirAdminPage />} />
                             <Route path="soumissions" element={<AdminOnlyRoute><SoumissionsPage /></AdminOnlyRoute>} />
                             <Route path="suivi-soumissions" element={<AdminOnlyRoute><SuiviSoumissionsPage /></AdminOnlyRoute>} />
                             <Route path="statistiques" element={<AdminOnlyRoute><StatistiquesPage /></AdminOnlyRoute>} />
